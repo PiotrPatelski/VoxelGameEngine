@@ -11,7 +11,7 @@ find_package(GLFW3 REQUIRED)
 include_directories(${CMAKE_SOURCE_DIR}/glad/include)
 add_library(glad STATIC glad/src/glad.c)
 
-add_executable(OpenGLTutorial main.cpp)
+add_executable(OpenGLTutorial main.cpp Shader.hpp Shader.cpp)
 target_link_libraries(OpenGLTutorial OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory
