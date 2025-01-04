@@ -27,7 +27,7 @@ if(CLANG_FORMAT)
     )
 endif()
 
-add_executable(OpenGLTutorial main.cpp Shader.cpp)
+add_executable(OpenGLTutorial main.cpp Shader.cpp Camera.cpp)
 target_link_libraries(OpenGLTutorial OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory
