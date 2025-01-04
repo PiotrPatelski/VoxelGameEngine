@@ -1,0 +1,9 @@
+# .clang-format
+BasedOnStyle: Google
+IndentWidth: 4
+UseTab: Never
+ColumnLimit: 80
+SpacesBeforeTrailingComments: 1
+AllowAllParametersOfDeclarationOnNextLine: true
+SortIncludes: false
+IncludeBlocks: Preserve

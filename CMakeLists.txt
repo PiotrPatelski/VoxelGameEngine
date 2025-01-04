@@ -8,18 +8,33 @@ cmake_policy(SET CMP0072 NEW)
 find_package(OpenGL REQUIRED)
 
 find_package(GLFW3 REQUIRED)
-include_directories(${CMAKE_SOURCE_DIR}/glad/include)
-add_library(glad STATIC glad/src/glad.c)
+include_directories(${CMAKE_SOURCE_DIR}/external/glad/include)
+add_library(glad STATIC ${CMAKE_SOURCE_DIR}/external/glad/src/glad.c)
+include_directories(${PROJECT_SOURCE_DIR}/external)
+include_directories(${PROJECT_SOURCE_DIR}/external/glm)
 
-add_executable(OpenGLTutorial main.cpp Shader.hpp Shader.cpp)
+find_program(CLANG_FORMAT "clang-format")
+if(CLANG_FORMAT)
+    message("clang-format found.")
+    # Define the target that formats all C++ source files
+    add_custom_target(
+        clang_format ALL
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.hpp
+        # Include all subdirectories you want to format
+        # COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/shaders/*.fs ${PROJECT_SOURCE_DIR}/shaders/*.vs
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        COMMENT "Running clang-format on source files"
+    )
+endif()
+
+add_executable(OpenGLTutorial main.cpp Shader.cpp)
 target_link_libraries(OpenGLTutorial OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory
-configure_file(${CMAKE_SOURCE_DIR}/shaders/vertex_shader.vs ${CMAKE_BINARY_DIR}/shaders/vertex_shader.vs COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/shaders/fragment_shader1.fs ${CMAKE_BINARY_DIR}/shaders/fragment_shader1.fs COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/shaders/fragment_shader2.fs ${CMAKE_BINARY_DIR}/shaders/fragment_shader2.fs COPYONLY)
+file(COPY ${CMAKE_SOURCE_DIR}/shaders/ DESTINATION ${CMAKE_BINARY_DIR}/shaders)
+file(COPY ${CMAKE_SOURCE_DIR}/textures/ DESTINATION ${CMAKE_BINARY_DIR}/textures)
 
-target_include_directories(OpenGLTutorial PRIVATE glad/include ${OPENGL_INCLUDE_DIR})
+target_include_directories(OpenGLTutorial PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include ${OPENGL_INCLUDE_DIR})
 include(CTest)
 enable_testing()
 
