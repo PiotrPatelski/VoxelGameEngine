@@ -31,6 +31,11 @@ class Shader {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE,
                            glm::value_ptr(value));
     }
+    inline void setVec3(const std::string& name, float x, float y,
+                        float z) const {
+        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1,
+                     glm::value_ptr(glm::vec3(x, y, z)));
+    }
 
    private:
     void compileShaders(const char* vertexShaderCode,
