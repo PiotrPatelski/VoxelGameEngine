@@ -19,5 +19,5 @@ void main()
 
     // vec3 result = ambient * objectColor;
     // FragColor = vec4(result, 1.0);
-    FragColor = vec4(1.0);
+    FragColor = vec4(objectColor, 1.0);
 } 

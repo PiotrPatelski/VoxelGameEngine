@@ -313,10 +313,23 @@ int main() {
     unsigned int texture2 =
         createTexture("./textures/awesomeface.png", GL_RGBA);
 
-    Shader ourShader("shaders/cube_shader.vs", "shaders/cube_shader.fs");
-    ourShader.use();
-    ourShader.setInt("texture1", 0);
-    ourShader.setInt("texture2", 1);
+    Shader cubeShader("shaders/cube_shader.vs", "shaders/cube_shader.fs");
+    cubeShader.use();
+    cubeShader.setInt("texture1", 0);
+    cubeShader.setInt("texture2", 1);
+    cubeShader.setFloat("fadeValue", faceFadeValue);
+    cubeShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    cubeShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+
+    cubeShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+    cubeShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+    cubeShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    cubeShader.setFloat("material.shininess", 32.0f);
+
+    // cubeShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+    // cubeShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darken diffuse
+    // light a bit
+    cubeShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
     Shader lightCubeShader("shaders/light_source.vs",
                            "shaders/light_source.fs");
@@ -345,19 +358,26 @@ int main() {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-        ourShader.use();
-        ourShader.setFloat("fadeValue", faceFadeValue);
-        ourShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-        ourShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-        ourShader.setVec3("lightPosition", lightPos);
+        cubeShader.use();
+        cubeShader.setVec3("lightPosition", lightPos);
+        glm::vec3 lightColor;
+        lightColor.x = sin(glfwGetTime() * 2.0f);
+        lightColor.y = sin(glfwGetTime() * 0.7f);
+        lightColor.z = sin(glfwGetTime() * 1.3f);
+
+        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+
+        cubeShader.setVec3("light.ambient", ambientColor);
+        cubeShader.setVec3("light.diffuse", diffuseColor);
 
         glm::mat4 projection = glm::perspective(
             glm::radians(camera.getZoom()),
             (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        ourShader.setMat4("projection", projection);
+        cubeShader.setMat4("projection", projection);
         glm::mat4 cameraView = camera.getViewMatrix();
-        ourShader.setMat4("view", cameraView);
-        // ourShader.setVec3("viewPos", camera.getPosition());
+        cubeShader.setMat4("view", cameraView);
+        // cubeShader.setVec3("viewPos", camera.getPosition());
         // render boxes
 
         for (unsigned int i = 0; i < 10; i++) {
@@ -371,13 +391,17 @@ int main() {
             angle = glfwGetTime() * 25.0f;
             model = glm::rotate(model, glm::radians(angle),
                                 glm::vec3(1.0f, 0.3f, 0.5f));
-            ourShader.use();
-            ourShader.setMat4("model", model);
+            cubeShader.use();
+            cubeShader.setMat4("model", model);
             glBindVertexArray(vertexArrayObjects);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
+        glm::vec3 lightSourceColor(1.0f, 0.5f * sin(glfwGetTime() * 3.0f),
+                                   0.5f * sin(glfwGetTime() * 3.0f));
+
         lightCubeShader.use();
+        lightCubeShader.setVec3("objectColor", lightSourceColor);
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", cameraView);
         auto lightModel = glm::mat4(1.0f);
