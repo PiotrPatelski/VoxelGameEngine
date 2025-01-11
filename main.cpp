@@ -174,6 +174,12 @@ void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
         lightPos.x -= 0.01;
     }
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        lightPos.z += 0.01;
+    }
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        lightPos.z -= 0.01;
+    }
 }
 
 GLFWwindow* createAppWindow() {
@@ -255,30 +261,35 @@ void setupVertexBufferData() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-unsigned int createTexture(const std::string& path, GLenum format) {
+unsigned int createTexture(const std::string& path) {
     unsigned int texture;
     glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    const float borderColor[] = {1.0f, 1.0f, 0.0f, 1.0f};
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    // GL_LINEAR for smoother look from distance
-    // GL_NEAREST for more detailed zoom
-    //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-    //                  GL_LINEAR_MIPMAP_LINEAR);
-    //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     int width, height, nrChannels;
     unsigned char* data =
         stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
     if (data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format,
+        GLenum format;
+        if (nrChannels == 1)
+            format = GL_RED;
+        else if (nrChannels == 3)
+            format = GL_RGB;
+        else if (nrChannels == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
                      GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        const float borderColor[] = {1.0f, 1.0f, 0.0f, 1.0f};
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        // GL_LINEAR for smoother look from distance
+        // GL_NEAREST for more detailed zoom
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                        GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     } else {
         std::cout << "Failed to load texture" << std::endl;
     }
@@ -309,26 +320,29 @@ int main() {
     // load and create a texture
     // -------------------------
     stbi_set_flip_vertically_on_load(true);
-    unsigned int texture1 = createTexture("./textures/container.jpg", GL_RGB);
-    unsigned int texture2 =
-        createTexture("./textures/awesomeface.png", GL_RGBA);
-
+    const auto texture1 = createTexture("./textures/container2.png");
+    const auto texture2 = createTexture("./textures/awesomeface.png");
+    const auto specularMapContainer =
+        createTexture("./textures/container2_specular.png");
+    const auto emissionMap = createTexture("./textures/matrix.jpg");
     Shader cubeShader("shaders/cube_shader.vs", "shaders/cube_shader.fs");
     cubeShader.use();
-    cubeShader.setInt("texture1", 0);
-    cubeShader.setInt("texture2", 1);
+    // cubeShader.setInt("texture1", 0);
+    cubeShader.setInt("material.diffuse", 0);
+    cubeShader.setInt("material.specular", 2);
+    // cubeShader.setInt("texture2", 1);
+    cubeShader.setInt("material.emission", 3);
     cubeShader.setFloat("fadeValue", faceFadeValue);
-    cubeShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    // cubeShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
     cubeShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
-    cubeShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-    cubeShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-    cubeShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-    cubeShader.setFloat("material.shininess", 32.0f);
+    // cubeShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+    // cubeShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+    // cubeShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    cubeShader.setFloat("material.shininess", 64.0f);
 
-    // cubeShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-    // cubeShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darken diffuse
-    // light a bit
+    cubeShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+    cubeShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
     cubeShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
     Shader lightCubeShader("shaders/light_source.vs",
@@ -356,20 +370,15 @@ int main() {
                                       // binding texture
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
+        // glBindTexture(GL_TEXTURE_2D, texture2);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, specularMapContainer);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, emissionMap);
 
         cubeShader.use();
         cubeShader.setVec3("lightPosition", lightPos);
-        glm::vec3 lightColor;
-        lightColor.x = sin(glfwGetTime() * 2.0f);
-        lightColor.y = sin(glfwGetTime() * 0.7f);
-        lightColor.z = sin(glfwGetTime() * 1.3f);
-
-        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
-
-        cubeShader.setVec3("light.ambient", ambientColor);
-        cubeShader.setVec3("light.diffuse", diffuseColor);
+        cubeShader.setFloat("time", glfwGetTime());
 
         glm::mat4 projection = glm::perspective(
             glm::radians(camera.getZoom()),
