@@ -20,6 +20,17 @@ struct Light {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+    //directional light specific params
+    vec3 direction;
+    //point light (standing torches)specific params
+    float constant;
+    float linear;
+    float quadratic;
+    //spotlight light (camera flashlight)specific params
+    vec3  spotlightPosition;
+    vec3  spotlightDirection;
+    float cutOff;
+    float outerCutOff;
 };
 
 // uniform sampler2D texture2;
@@ -33,12 +44,15 @@ uniform float time;
 void main()
 {
     // FragColor = texture(ourTexture, TexCoord);
+    vec3 lightDirection = normalize(light.spotlightPosition - fragPos);
+    //vec3 lightDirection = normalize(lightPos - fragPos);
+    // vec3 lightDirection = normalize(-light.direction);
+
     //Ambient light factor
     vec3 ambient = light.ambient * texture(material.diffuse, TexCoord).rgb;
 
     //Diffuse light factor
     vec3 norm = normalize(normal);
-    vec3 lightDirection = normalize (lightPos - fragPos);
     float diff = max(dot(norm, lightDirection), 0.0);
     // vec3 diffuse = light.diffuse * lightColor * (diff * material.diffuse);
     vec3 diffuseMap = texture(material.diffuse, TexCoord).rgb;
@@ -61,12 +75,32 @@ void main()
     vec3 emissionMap = vec3(texture(material.emission, myTexCoords + vec2(0.0,time*0.75)));
     vec3 emission = emissionMap * (sin(time)*0.5f+0.5f)*2.0;
 
-    // emission mask
+    //emission mask
     vec3 emissionMask = step(vec3(1.0f), vec3(1.0f)-specularMap);
     emission = emission * emissionMask;
 
+    //Spotlight soft edges
+    float theta = dot(lightDirection, normalize(-light.spotlightDirection));
+    float epsilon   = light.cutOff - light.outerCutOff;
+    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+
+    diffuse  *= intensity;
+    specular *= intensity;
+
+    //Light fading over distance factor
+    float distance = length(light.position - fragPos);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + 
+                light.quadratic * (distance * distance));
+    
+    ambient  *= attenuation; 
+    diffuse  *= attenuation;
+    specular *= attenuation;
+
     // vec3 result = (ambient + diffuse + specular) * objectColor;
-    vec3 result = ambient + diffuse + specular + emission;
+    // vec3 result = ambient + diffuse + specular + emission;
+    vec3 result = ambient + diffuse + specular;
     // FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), fadeValue) * vec4(result, 1.0);
     FragColor = vec4(result, 1.0);
+
+ 
 } 

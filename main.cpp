@@ -345,6 +345,10 @@ int main() {
     cubeShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
     cubeShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
+    cubeShader.setFloat("light.constant", 1.0f);
+    cubeShader.setFloat("light.linear", 0.09f);
+    cubeShader.setFloat("light.quadratic", 0.032f);
+
     Shader lightCubeShader("shaders/light_source.vs",
                            "shaders/light_source.fs");
     lightCubeShader.use();
@@ -377,7 +381,8 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, emissionMap);
 
         cubeShader.use();
-        cubeShader.setVec3("lightPosition", lightPos);
+        cubeShader.setVec3("light.Position", lightPos);
+        cubeShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
         cubeShader.setFloat("time", glfwGetTime());
 
         glm::mat4 projection = glm::perspective(
@@ -387,8 +392,13 @@ int main() {
         glm::mat4 cameraView = camera.getViewMatrix();
         cubeShader.setMat4("view", cameraView);
         // cubeShader.setVec3("viewPos", camera.getPosition());
-        // render boxes
 
+        cubeShader.setVec3("light.spotlightPosition", camera.getPosition());
+        cubeShader.setVec3("light.spotlightDirection", camera.getFront());
+        cubeShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
+        cubeShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+
+        // render boxes
         for (unsigned int i = 0; i < 10; i++) {
             // calculate the model matrix for each object and pass it to shader
             // before drawing make sure to initialize matrix to identity matrix

@@ -35,6 +35,7 @@ class Camera {
     }
     inline float getZoom() const { return zoom; }
     inline glm::vec3 getPosition() const { return position; }
+    inline glm::vec3 getFront() const { return frontVec; }
 
     void processKeyboard(Camera_Movement direction, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset,
