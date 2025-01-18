@@ -2,6 +2,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <memory>
+#include "Renderer.hpp"
 #include "Camera.hpp"
 #include "Shader.hpp"
 
@@ -18,10 +19,5 @@ class App {
 
     GLFWwindow* window{nullptr};
     Camera camera{glm::vec3(0.0f, 0.0f, 3.0f)};
-    unsigned int texture1{0};
-    unsigned int texture2{0};
-    unsigned int specularMapContainer{0};
-    unsigned int emissionMap{0};
-    std::unique_ptr<Shader> cubeShader{nullptr};
-    std::unique_ptr<Shader> lightCubeShader{nullptr};
+    std::unique_ptr<Renderer> renderer{nullptr};
 };
