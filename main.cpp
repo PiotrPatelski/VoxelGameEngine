@@ -115,6 +115,10 @@ glm::vec3 cubePositions[] = {
     glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
     glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
 
+glm::vec3 pointLightPositions[] = {
+    glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
+    glm::vec3(-4.0f, 2.0f, -12.0f), glm::vec3(0.0f, 0.0f, -3.0f)};
+
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
@@ -326,6 +330,10 @@ int main() {
         createTexture("./textures/container2_specular.png");
     const auto emissionMap = createTexture("./textures/matrix.jpg");
     Shader cubeShader("shaders/cube_shader.vs", "shaders/cube_shader.fs");
+    Shader lightCubeShader("shaders/light_source.vs",
+                           "shaders/light_source.fs");
+    // lightCubeShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    // lightCubeShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
     cubeShader.use();
     // cubeShader.setInt("texture1", 0);
     cubeShader.setInt("material.diffuse", 0);
@@ -334,26 +342,7 @@ int main() {
     cubeShader.setInt("material.emission", 3);
     cubeShader.setFloat("fadeValue", faceFadeValue);
     // cubeShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-    cubeShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-
-    // cubeShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-    // cubeShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-    // cubeShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-    cubeShader.setFloat("material.shininess", 64.0f);
-
-    cubeShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-    cubeShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-    cubeShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-
-    cubeShader.setFloat("light.constant", 1.0f);
-    cubeShader.setFloat("light.linear", 0.09f);
-    cubeShader.setFloat("light.quadratic", 0.032f);
-
-    Shader lightCubeShader("shaders/light_source.vs",
-                           "shaders/light_source.fs");
-    lightCubeShader.use();
-    // lightCubeShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-    // lightCubeShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+    // cubeShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
@@ -365,11 +354,82 @@ int main() {
         processInput(window);
 
         // RENDER
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f; //position rotation in
         // a circle lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
+
+        cubeShader.use();
+        cubeShader.setFloat("time", glfwGetTime());
+        cubeShader.setVec3("viewPosition", camera.getPosition());
+        cubeShader.setFloat("material.shininess", 32.0f);
+        /*
+           Here we set all the uniforms for the 5/6 types of lights we have. We
+           have to set them manually and index the proper PointLight struct in
+           the array to set each uniform variable. This can be done more
+           code-friendly by defining light types as classes and set their values
+           in there, or by using a more efficient uniform approach by using
+           'Uniform buffer objects', but that is something we'll discuss in the
+           'Advanced GLSL' tutorial.
+        */
+        // directional light
+        cubeShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
+        cubeShader.setVec3("directionalLight.ambient", 0.0f, 0.0f, 0.0f);
+        cubeShader.setVec3("directionalLight.diffuse", 0.05f, 0.05f, 0.05f);
+        cubeShader.setVec3("directionalLight.specular", 0.2f, 0.2f, 0.2f);
+        // point light 1
+        cubeShader.setVec3("pointLights[0].position", pointLightPositions[0]);
+        cubeShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
+        cubeShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+        cubeShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+        cubeShader.setFloat("pointLights[0].constant", 1.0f);
+        cubeShader.setFloat("pointLights[0].linear", 0.09f);
+        cubeShader.setFloat("pointLights[0].quadratic", 0.032f);
+        // point light 2
+        cubeShader.setVec3("pointLights[1].position", pointLightPositions[1]);
+        cubeShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
+        cubeShader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+        cubeShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+        cubeShader.setFloat("pointLights[1].constant", 1.0f);
+        cubeShader.setFloat("pointLights[1].linear", 0.09f);
+        cubeShader.setFloat("pointLights[1].quadratic", 0.032f);
+        // point light 3
+        cubeShader.setVec3("pointLights[2].position", pointLightPositions[2]);
+        cubeShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
+        cubeShader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+        cubeShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+        cubeShader.setFloat("pointLights[2].constant", 1.0f);
+        cubeShader.setFloat("pointLights[2].linear", 0.09f);
+        cubeShader.setFloat("pointLights[2].quadratic", 0.032f);
+        // point light 4
+        cubeShader.setVec3("pointLights[3].position", pointLightPositions[3]);
+        cubeShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
+        cubeShader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+        cubeShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+        cubeShader.setFloat("pointLights[3].constant", 1.0f);
+        cubeShader.setFloat("pointLights[3].linear", 0.09f);
+        cubeShader.setFloat("pointLights[3].quadratic", 0.032f);
+        // spotLight
+        cubeShader.setVec3("spotLight.position", camera.getPosition());
+        cubeShader.setVec3("spotLight.direction", camera.getFront());
+        cubeShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+        cubeShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+        cubeShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+        cubeShader.setFloat("spotLight.constant", 1.0f);
+        cubeShader.setFloat("spotLight.linear", 0.09f);
+        cubeShader.setFloat("spotLight.quadratic", 0.032f);
+        cubeShader.setFloat("spotLight.innerCutOff",
+                            glm::cos(glm::radians(12.5f)));
+        cubeShader.setFloat("spotLight.outerCutOff",
+                            glm::cos(glm::radians(15.0f)));
+
+        glm::mat4 projection = glm::perspective(
+            glm::radians(camera.getZoom()),
+            (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 cameraView = camera.getViewMatrix();
+        cubeShader.setMat4("projection", projection);
+        cubeShader.setMat4("view", cameraView);
+
         glActiveTexture(GL_TEXTURE0); // activate the texture unit first before
                                       // binding texture
         glBindTexture(GL_TEXTURE_2D, texture1);
@@ -380,25 +440,8 @@ int main() {
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, emissionMap);
 
-        cubeShader.use();
-        cubeShader.setVec3("light.Position", lightPos);
-        cubeShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
-        cubeShader.setFloat("time", glfwGetTime());
-
-        glm::mat4 projection = glm::perspective(
-            glm::radians(camera.getZoom()),
-            (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        cubeShader.setMat4("projection", projection);
-        glm::mat4 cameraView = camera.getViewMatrix();
-        cubeShader.setMat4("view", cameraView);
-        // cubeShader.setVec3("viewPos", camera.getPosition());
-
-        cubeShader.setVec3("light.spotlightPosition", camera.getPosition());
-        cubeShader.setVec3("light.spotlightDirection", camera.getFront());
-        cubeShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
-        cubeShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
-
         // render boxes
+        glBindVertexArray(vertexArrayObjects);
         for (unsigned int i = 0; i < 10; i++) {
             // calculate the model matrix for each object and pass it to shader
             // before drawing make sure to initialize matrix to identity matrix
@@ -412,7 +455,7 @@ int main() {
                                 glm::vec3(1.0f, 0.3f, 0.5f));
             cubeShader.use();
             cubeShader.setMat4("model", model);
-            glBindVertexArray(vertexArrayObjects);
+
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
@@ -423,12 +466,14 @@ int main() {
         lightCubeShader.setVec3("objectColor", lightSourceColor);
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", cameraView);
-        auto lightModel = glm::mat4(1.0f);
-        lightModel = glm::translate(lightModel, lightPos);
-        lightModel = glm::scale(lightModel, glm::vec3(0.2f));
-        lightCubeShader.setMat4("model", lightModel);
         glBindVertexArray(lightSourceVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (unsigned int i = 0; i < 4; i++) {
+            auto lightModel = glm::mat4(1.0f);
+            lightModel = glm::translate(lightModel, pointLightPositions[i]);
+            lightModel = glm::scale(lightModel, glm::vec3(0.2f));
+            lightCubeShader.setMat4("model", lightModel);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
