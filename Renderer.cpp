@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include "Cube.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -8,8 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <functional>
-#include "Shader.hpp"
+#include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -28,71 +28,14 @@ const unsigned int cubeVAOIndex{0};
 // LIGHTING
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
-// float vertices[] = {
-//     // positions          // colors           // texture coords
-//     0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
-//     0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
-//     -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-//     -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left
-// };
-// unsigned int indices[] = {
-//     0, 1, 3, // first triangle
-//     1, 2, 3  // second triangle
-// };
-
-// clang-format off
-float verticesCube[] = {
-    -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-    0.5f,  -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-    0.5f,  0.5f,  -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f,
-    0.5f,  0.5f,  -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f,
-    -0.5f, 0.5f,  -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f,
-    -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-
-    -0.5f, -0.5f, 0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-    0.5f,  -0.5f, 0.5f,  0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-    0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 
-    0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-    -0.5f, 0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 
-    -0.5f, -0.5f, 0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-
-    -0.5f, 0.5f,  0.5f,  0.0f, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-    -0.5f, 0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 
-    -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f,
-    -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 
-    -0.5f, 0.5f,  0.5f,  0.0f, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-
-    0.5f,  0.5f,  0.5f,  0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 
-    0.5f,  0.5f,  -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-    0.5f,  -0.5f, -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 
-    0.5f,  -0.5f, -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-    0.5f,  -0.5f, 0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 
-    0.5f,  0.5f,  0.5f,  0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f, 0.5f, 0.0f, 0.5f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 
-    0.5f,  -0.5f, -0.5f, 0.5f, 0.0f, 0.5f, 1.0f, 1.0f, 0.0f, -1.0f, 0.0f,
-    0.5f,  -0.5f, 0.5f,  0.5f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 
-    0.5f,  -0.5f, 0.5f,  0.5f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, -1.0f, 0.0f,
-    -0.5f, -0.5f, 0.5f,  0.5f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 
-    -0.5f, -0.5f, -0.5f, 0.5f, 0.0f, 0.5f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f,
-
-    -0.5f, 0.5f,  -0.5f, 0.0f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 
-    0.5f,  0.5f,  -0.5f, 0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-    0.5f,  0.5f,  0.5f,  0.0f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 
-    0.5f,  0.5f,  0.5f,  0.0f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-    -0.5f, 0.5f,  0.5f,  0.0f, 0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 
-    -0.5f, 0.5f,  -0.5f, 0.0f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f};
-// clang-format on
-
-glm::vec3 cubePositions[] = {
+std::vector<Cube> cubes = {
     glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
     glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
     glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
     glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
     glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
 
-glm::vec3 pointLightPositions[] = {
+std::vector<glm::vec3> pointLightPositions = {
     glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
     glm::vec3(-4.0f, 2.0f, -12.0f), glm::vec3(0.0f, 0.0f, -3.0f)};
 
@@ -107,23 +50,23 @@ void setupVertexBufferData() {
     glBindVertexArray(vertexArrayObjects);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verticesCube), verticesCube,
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, Cube::getVertices().size() * sizeof(float),
+                 Cube::getVertices().data(), GL_STATIC_DRAW);
+    const unsigned int stride = 11 * sizeof(float);
     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObjects);
     // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
     //              GL_STATIC_DRAW);
     // glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean
     // normalized, GLsizei stride, const void *pointer);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
-                          (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride,
                           (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride,
                           (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride,
                           (void*)(8 * sizeof(float)));
     glEnableVertexAttribArray(3);
 
@@ -132,18 +75,14 @@ void setupVertexBufferData() {
     glBindVertexArray(lightSourceVAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
-                          (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride,
                           (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride,
                           (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-    //                       (void*)(6 * sizeof(float)));
-    // glEnableVertexAttribArray(2);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //DRAW LINES ONLY - FOR DEBUG
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -183,6 +122,7 @@ unsigned int createTexture(const std::string& path) {
     }
 
     stbi_image_free(data);
+    std::cout << "created texture with id: " << texture << std::endl;
     return texture;
 }
 
@@ -228,7 +168,7 @@ Renderer::~Renderer() {
     glfwTerminate();
 }
 
-void Renderer::render(const Camera& camera, GLFWwindow* window) {
+void Renderer::render(const Camera& camera) {
     // RENDER
     glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -318,15 +258,14 @@ void Renderer::render(const Camera& camera, GLFWwindow* window) {
 
     // render boxes
     glBindVertexArray(vertexArrayObjects);
-    for (unsigned int i = 0; i < 10; i++) {
+    for (auto cube : cubes) {
         // calculate the model matrix for each object and pass it to shader
         // before drawing make sure to initialize matrix to identity matrix
         // first
 
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePositions[i]);
-        float angle = 20.0f * i;
-        angle = glfwGetTime() * 25.0f;
+        model = glm::translate(model, cube.getPosition());
+        float angle = glfwGetTime() * 25.0f;
         model = glm::rotate(model, glm::radians(angle),
                             glm::vec3(1.0f, 0.3f, 0.5f));
         cubeShader->use();

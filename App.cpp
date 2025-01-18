@@ -96,7 +96,7 @@ void App::run() {
 
         // USER INPUT
         processInput(window);
-        renderer->render(camera, window);
+        renderer->render(camera);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
