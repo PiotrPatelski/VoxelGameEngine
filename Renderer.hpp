@@ -9,7 +9,8 @@ class Renderer {
    public:
     Renderer(unsigned int screenWidth, unsigned int screenHeight);
     ~Renderer();
-    void render(const Camera& camera);
+    void updateShaders(const Camera& camera);
+    void render();
 
    private:
     float screenWidth{0};

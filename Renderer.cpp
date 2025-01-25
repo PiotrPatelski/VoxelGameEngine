@@ -1,5 +1,5 @@
 #include "Renderer.hpp"
-#include "Cube.hpp"
+#include "Chunk.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -25,15 +25,10 @@ const unsigned int amountOfVAOBuffers{1};
 const unsigned int amountOfEBOBuffers{1};
 const unsigned int cubeVAOIndex{0};
 
+Chunk chunk{};
+
 // LIGHTING
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-
-std::vector<Cube> cubes = {
-    glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
-    glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
-    glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
-    glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
-    glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
 
 std::vector<glm::vec3> pointLightPositions = {
     glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
@@ -50,8 +45,8 @@ void setupVertexBufferData() {
     glBindVertexArray(vertexArrayObjects);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
-    glBufferData(GL_ARRAY_BUFFER, Cube::getVertices().size() * sizeof(float),
-                 Cube::getVertices().data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, Chunk::getVertices().size() * sizeof(float),
+                 Chunk::getVertices().data(), GL_STATIC_DRAW);
     const unsigned int stride = 11 * sizeof(float);
     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObjects);
     // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
@@ -157,27 +152,7 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     cubeShader->setFloat("fadeValue", 0.2f);
     // cubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
     // cubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-}
 
-Renderer::~Renderer() {
-    std::cout << "Renderer::Shutdown!" << std::endl;
-    // CLEANUP
-    glDeleteVertexArrays(amountOfVAOBuffers, &vertexArrayObjects);
-    glDeleteBuffers(amountOfVBOBuffers, &vertexBufferObjects);
-    glDeleteBuffers(amountOfEBOBuffers, &elementBufferObjects);
-    glfwTerminate();
-}
-
-void Renderer::render(const Camera& camera) {
-    // RENDER
-    glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f; //position rotation in
-    // a circle lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
-
-    cubeShader->use();
-    cubeShader->setFloat("time", glfwGetTime());
-    cubeShader->setVec3("viewPosition", camera.getPosition());
     cubeShader->setFloat("material.shininess", 32.0f);
     /*
        Here we set all the uniforms for the 5/6 types of lights we have. We
@@ -193,41 +168,20 @@ void Renderer::render(const Camera& camera) {
     cubeShader->setVec3("directionalLight.ambient", 0.0f, 0.0f, 0.0f);
     cubeShader->setVec3("directionalLight.diffuse", 0.05f, 0.05f, 0.05f);
     cubeShader->setVec3("directionalLight.specular", 0.2f, 0.2f, 0.2f);
-    // point light 1
-    cubeShader->setVec3("pointLights[0].position", pointLightPositions[0]);
-    cubeShader->setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-    cubeShader->setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-    cubeShader->setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-    cubeShader->setFloat("pointLights[0].constant", 1.0f);
-    cubeShader->setFloat("pointLights[0].linear", 0.09f);
-    cubeShader->setFloat("pointLights[0].quadratic", 0.032f);
-    // point light 2
-    cubeShader->setVec3("pointLights[1].position", pointLightPositions[1]);
-    cubeShader->setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-    cubeShader->setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-    cubeShader->setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-    cubeShader->setFloat("pointLights[1].constant", 1.0f);
-    cubeShader->setFloat("pointLights[1].linear", 0.09f);
-    cubeShader->setFloat("pointLights[1].quadratic", 0.032f);
-    // point light 3
-    cubeShader->setVec3("pointLights[2].position", pointLightPositions[2]);
-    cubeShader->setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-    cubeShader->setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-    cubeShader->setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-    cubeShader->setFloat("pointLights[2].constant", 1.0f);
-    cubeShader->setFloat("pointLights[2].linear", 0.09f);
-    cubeShader->setFloat("pointLights[2].quadratic", 0.032f);
-    // point light 4
-    cubeShader->setVec3("pointLights[3].position", pointLightPositions[3]);
-    cubeShader->setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-    cubeShader->setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-    cubeShader->setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-    cubeShader->setFloat("pointLights[3].constant", 1.0f);
-    cubeShader->setFloat("pointLights[3].linear", 0.09f);
-    cubeShader->setFloat("pointLights[3].quadratic", 0.032f);
-    // spotLight
-    cubeShader->setVec3("spotLight.position", camera.getPosition());
-    cubeShader->setVec3("spotLight.direction", camera.getFront());
+    // point lights
+    for (unsigned int lightPosIndex = 0;
+         lightPosIndex < pointLightPositions.size(); lightPosIndex++) {
+        const std::string uniformName =
+            "pointLights[" + std::to_string(lightPosIndex) + "]";
+        cubeShader->setVec3(uniformName + ".position",
+                            pointLightPositions[lightPosIndex]);
+        cubeShader->setVec3(uniformName + ".ambient", 0.05f, 0.05f, 0.05f);
+        cubeShader->setVec3(uniformName + ".diffuse", 0.8f, 0.8f, 0.8f);
+        cubeShader->setVec3(uniformName + ".specular", 1.0f, 1.0f, 1.0f);
+        cubeShader->setFloat(uniformName + ".constant", 1.0f);
+        cubeShader->setFloat(uniformName + ".linear", 0.09f);
+        cubeShader->setFloat(uniformName + ".quadratic", 0.032f);
+    }
     cubeShader->setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
     cubeShader->setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
     cubeShader->setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
@@ -239,13 +193,6 @@ void Renderer::render(const Camera& camera) {
     cubeShader->setFloat("spotLight.outerCutOff",
                          glm::cos(glm::radians(15.0f)));
 
-    glm::mat4 projection =
-        glm::perspective(glm::radians(camera.getZoom()),
-                         screenWidth / screenHeight, 0.1f, 100.0f);
-    glm::mat4 cameraView = camera.getViewMatrix();
-    cubeShader->setMat4("projection", projection);
-    cubeShader->setMat4("view", cameraView);
-
     glActiveTexture(GL_TEXTURE0); // activate the texture unit first before
                                   // binding texture
     glBindTexture(GL_TEXTURE_2D, texture1);
@@ -255,36 +202,59 @@ void Renderer::render(const Camera& camera) {
     glBindTexture(GL_TEXTURE_2D, specularMapContainer);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, emissionMap);
+}
 
-    // render boxes
-    glBindVertexArray(vertexArrayObjects);
-    for (auto cube : cubes) {
-        // calculate the model matrix for each object and pass it to shader
-        // before drawing make sure to initialize matrix to identity matrix
-        // first
+Renderer::~Renderer() {
+    std::cout << "Renderer::Shutdown!" << std::endl;
+    // CLEANUP
+    glDeleteVertexArrays(amountOfVAOBuffers, &vertexArrayObjects);
+    glDeleteBuffers(amountOfVBOBuffers, &vertexBufferObjects);
+    glDeleteBuffers(amountOfEBOBuffers, &elementBufferObjects);
+    glfwTerminate();
+}
 
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, cube.getPosition());
-        float angle = glfwGetTime() * 25.0f;
-        model = glm::rotate(model, glm::radians(angle),
-                            glm::vec3(1.0f, 0.3f, 0.5f));
-        cubeShader->use();
-        cubeShader->setMat4("model", model);
+void Renderer::updateShaders(const Camera& camera) {
+    // lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f; //position rotation in
+    // a circle lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
 
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
+    cubeShader->use();
+    cubeShader->setFloat("time", glfwGetTime());
+    cubeShader->setVec3("viewPosition", camera.getPosition());
 
-    glm::vec3 lightSourceColor(1.0f, 0.5f * sin(glfwGetTime() * 3.0f),
-                               0.5f * sin(glfwGetTime() * 3.0f));
+    // spotLight
+    cubeShader->setVec3("spotLight.position", camera.getPosition());
+    cubeShader->setVec3("spotLight.direction", camera.getFront());
+
+    glm::mat4 projection =
+        glm::perspective(glm::radians(camera.getZoom()),
+                         screenWidth / screenHeight, 0.1f, 100.0f);
+    glm::mat4 cameraView = camera.getViewMatrix();
+    cubeShader->setMat4("projection", projection);
+    cubeShader->setMat4("view", cameraView);
 
     lightCubeShader->use();
+    glm::vec3 lightSourceColor(1.0f, 0.5f * sin(glfwGetTime() * 3.0f),
+                               0.5f * sin(glfwGetTime() * 3.0f));
     lightCubeShader->setVec3("objectColor", lightSourceColor);
     lightCubeShader->setMat4("projection", projection);
     lightCubeShader->setMat4("view", cameraView);
+}
+
+void Renderer::render() {
+    // RENDER
+    glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // render boxes
+    glBindVertexArray(vertexArrayObjects);
+    cubeShader->use();
+    chunk.render(*cubeShader);
+
+    lightCubeShader->use();
     glBindVertexArray(lightSourceVAO);
-    for (unsigned int i = 0; i < 4; i++) {
+    for (const auto& position : pointLightPositions) {
         auto lightModel = glm::mat4(1.0f);
-        lightModel = glm::translate(lightModel, pointLightPositions[i]);
+        lightModel = glm::translate(lightModel, position);
         lightModel = glm::scale(lightModel, glm::vec3(0.2f));
         lightCubeShader->setMat4("model", lightModel);
         glDrawArrays(GL_TRIANGLES, 0, 36);
