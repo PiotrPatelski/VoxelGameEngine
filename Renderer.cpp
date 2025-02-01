@@ -10,7 +10,8 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -202,6 +203,19 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     glBindTexture(GL_TEXTURE_2D, specularMapContainer);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, emissionMap);
+
+    FT_Library ft;
+    if (FT_Init_FreeType(&ft)) {
+        std::cout << "ERROR::FREETYPE: Could not init FreeType Library"
+                  << std::endl;
+        throw;
+    }
+
+    FT_Face face;
+    if (FT_New_Face(ft, "fonts/Raleway-Regular.ttf", 0, &face)) {
+        std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+        throw;
+    }
 }
 
 Renderer::~Renderer() {
