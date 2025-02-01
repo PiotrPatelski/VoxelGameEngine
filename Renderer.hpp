@@ -2,6 +2,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <memory>
+#include "FontManager.hpp"
 #include "Camera.hpp"
 #include "Shader.hpp"
 
@@ -21,4 +22,5 @@ class Renderer {
     unsigned int emissionMap{0};
     std::unique_ptr<Shader> cubeShader{nullptr};
     std::unique_ptr<Shader> lightCubeShader{nullptr};
+    std::unique_ptr<FontManager> fontManager{nullptr};
 };

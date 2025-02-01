@@ -27,7 +27,8 @@ std::pair<std::string, std::string> getCodeFromShaderPath(
         vertexCode = vShaderStream.str();
         fragmentCode = fShaderStream.str();
     } catch (std::ifstream::failure e) {
-        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ: " << vertexPath
+                  << std::endl;
     }
     return std::make_pair(vertexCode, fragmentCode);
 }

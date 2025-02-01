@@ -10,8 +10,6 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <ft2build.h>
-#include FT_FREETYPE_H
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -131,13 +129,14 @@ Renderer::Renderer(unsigned int width, unsigned int height)
 
     setupVertexBufferData();
 
+    fontManager = std::make_unique<FontManager>(screenWidth, screenHeight);
     // load and create a texture
     // -------------------------
     stbi_set_flip_vertically_on_load(true);
     texture1 = createTexture("./textures/container2.png");
-    texture2 = createTexture("./textures/awesomeface.png");
     specularMapContainer = createTexture("./textures/container2_specular.png");
     emissionMap = createTexture("./textures/matrix.jpg");
+
     cubeShader = std::make_unique<Shader>("shaders/cube_shader.vs",
                                           "shaders/cube_shader.fs");
     lightCubeShader = std::make_unique<Shader>("shaders/light_source.vs",
@@ -145,10 +144,11 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     // lightCubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
     // lightCubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
     cubeShader->use();
-    // cubeShader->setInt("texture1", 0);
-    cubeShader->setInt("material.diffuse", 0);
+    /////////////////////////////////////////////////////////////
+    // TODO UNIFY INDICES assigned below, INDEX 0 IS ASSIGNED IN FONT MANAGER!
+    /////////////////////////////////////////////////////////////
+    cubeShader->setInt("material.diffuse", 1);
     cubeShader->setInt("material.specular", 2);
-    // cubeShader->setInt("texture2", 1);
     cubeShader->setInt("material.emission", 3);
     cubeShader->setFloat("fadeValue", 0.2f);
     // cubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
@@ -194,28 +194,18 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     cubeShader->setFloat("spotLight.outerCutOff",
                          glm::cos(glm::radians(15.0f)));
 
-    glActiveTexture(GL_TEXTURE0); // activate the texture unit first before
-                                  // binding texture
-    glBindTexture(GL_TEXTURE_2D, texture1);
+    // glActiveTexture(GL_TEXTURE0); // activate the texture unit first before
+    // binding texture
+
+    /////////////////////////////////////////////////////////////
+    // TODO UNIFY INDICES assigned below, INDEX 0 IS ASSIGNED IN FONT MANAGER!
+    /////////////////////////////////////////////////////////////
     glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, texture2);
+    glBindTexture(GL_TEXTURE_2D, texture1);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, specularMapContainer);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, emissionMap);
-
-    FT_Library ft;
-    if (FT_Init_FreeType(&ft)) {
-        std::cout << "ERROR::FREETYPE: Could not init FreeType Library"
-                  << std::endl;
-        throw;
-    }
-
-    FT_Face face;
-    if (FT_New_Face(ft, "fonts/Raleway-Regular.ttf", 0, &face)) {
-        std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
-        throw;
-    }
 }
 
 Renderer::~Renderer() {
@@ -273,4 +263,9 @@ void Renderer::render() {
         lightCubeShader->setMat4("model", lightModel);
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+
+    fontManager->renderText("FPS: ???", 25.0f, 25.0f, 1.0f,
+                            glm::vec3(0.5, 0.8f, 0.2f));
+    fontManager->renderText("Pioter Craft Project", 540.0f, 570.0f, 0.5f,
+                            glm::vec3(0.3, 0.7f, 0.9f));
 }

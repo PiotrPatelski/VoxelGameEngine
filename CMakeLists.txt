@@ -44,7 +44,7 @@ if(CLANG_FORMAT)
     )
 endif()
 
-add_executable(OpenGLTutorial main.cpp App.cpp Renderer.cpp Shader.cpp Camera.cpp Chunk.cpp Cube.cpp)
+add_executable(OpenGLTutorial main.cpp App.cpp Renderer.cpp FontManager.cpp Shader.cpp Camera.cpp Chunk.cpp Cube.cpp)
 target_link_libraries(OpenGLTutorial ${FREETYPE_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory
