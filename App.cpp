@@ -46,23 +46,23 @@ App::App() {
     // glfw window creation
     // --------------------
     window = createAppWindow(SCR_WIDTH, SCR_HEIGHT);
-    lastX = SCR_WIDTH / 2;
-    lastY = SCR_HEIGHT / 2;
+    lastX = static_cast<float>(SCR_WIDTH / 2);
+    lastY = static_cast<float>(SCR_HEIGHT / 2);
 
     // set input callbacks
     //-------------------
     // Associate the App instance with the GLFW window
     glfwSetWindowUserPointer(window, this);
-    glfwSetCursorPosCallback(
-        window, [](GLFWwindow* window, double xpos, double ypos) {
-            App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
-            app->mouse_callback(window, xpos, ypos);
-        });
-    glfwSetScrollCallback(
-        window, [](GLFWwindow* window, double xoffset, double yoffset) {
-            App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
-            app->scroll_callback(window, xoffset, yoffset);
-        });
+    glfwSetCursorPosCallback(window, [](GLFWwindow* targetWindow, double xpos,
+                                        double ypos) {
+        App* app = static_cast<App*>(glfwGetWindowUserPointer(targetWindow));
+        app->mouse_callback(targetWindow, xpos, ypos);
+    });
+    glfwSetScrollCallback(window, [](GLFWwindow* targetWindow, double xoffset,
+                                     double yoffset) {
+        App* app = static_cast<App*>(glfwGetWindowUserPointer(targetWindow));
+        app->scroll_callback(targetWindow, xoffset, yoffset);
+    });
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -88,7 +88,7 @@ void App::run() {
         const auto currentFps = frameTimeClock.calculateFps();
 
         // USER INPUT
-        processInput(window);
+        processInput();
         renderer->updateShaders(camera);
         renderer->render(currentFps);
 
@@ -102,7 +102,8 @@ void App::run() {
 
 //--------------------------------------------------------------------------
 // window param present eventhough unused only for signature of dependent lib
-void App::mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
+void App::mouse_callback(GLFWwindow* targetWindow, double xposIn,
+                         double yposIn) {
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
@@ -124,11 +125,12 @@ void App::mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
 
 //--------------------------------------------------------------------------
 // window param present eventhough unused only for signature of dependent lib
-void App::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+void App::scroll_callback(GLFWwindow* targetWindow, double xoffset,
+                          double yoffset) {
     camera.processMouseScroll(static_cast<float>(yoffset));
 }
 
-void App::processInput(GLFWwindow* window) {
+void App::processInput() {
     const auto cameraSpeed = 2.5f * frameTimeClock.getDeltaTime();
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);

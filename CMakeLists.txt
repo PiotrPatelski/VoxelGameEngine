@@ -53,6 +53,7 @@ file(COPY ${CMAKE_SOURCE_DIR}/textures/ DESTINATION ${CMAKE_BINARY_DIR}/textures
 file(COPY ${CMAKE_SOURCE_DIR}/fonts/ DESTINATION ${CMAKE_BINARY_DIR}/fonts)
 
 target_include_directories(OpenGLTutorial PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include ${OPENGL_INCLUDE_DIR})
+target_compile_options(OpenGLTutorial PRIVATE -Wall -Werror -Wpedantic -Wshadow)
 include(CTest)
 enable_testing()
 

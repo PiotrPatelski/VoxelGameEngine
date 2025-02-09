@@ -1,30 +1,6 @@
 #include "Camera.hpp"
 
-Camera::Camera(const glm::vec3& position, const glm::vec3& up, float yaw,
-               float pitch)
-    : position(position),
-      worldUpVec(up),
-      frontVec(glm::vec3(0.0f, 0.0f, -1.0f)),
-      movementSpeed(SPEED),
-      mouseSensitivity(SENSITIVITY),
-      yaw{yaw},
-      pitch{pitch},
-      zoom{ZOOM} {
-    updateCameraVectors();
-}
-
-Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
-               float upZ, float yaw, float pitch)
-    : position(glm::vec3(posX, posY, posZ)),
-      worldUpVec(glm::vec3(upX, upY, upZ)),
-      frontVec(glm::vec3(0.0f, 0.0f, -1.0f)),
-      movementSpeed(SPEED),
-      mouseSensitivity(SENSITIVITY),
-      yaw{yaw},
-      pitch{pitch},
-      zoom{ZOOM} {
-    updateCameraVectors();
-}
+Camera::Camera() { updateCameraVectors(); }
 
 // processes input received from any keyboard-like input system. Accepts input
 // parameter in the form of camera defined ENUM (to abstract it from windowing
@@ -69,9 +45,11 @@ void Camera::processMouseScroll(float yoffset) {
 void Camera::updateCameraVectors() {
     // calculate the new front vector
     glm::vec3 front;
-    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    front.y = sin(glm::radians(pitch));
-    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.x =
+        static_cast<float>(cos(glm::radians(yaw)) * cos(glm::radians(pitch)));
+    front.y = static_cast<float>(sin(glm::radians(pitch)));
+    front.z =
+        static_cast<float>(sin(glm::radians(yaw)) * cos(glm::radians(pitch)));
     frontVec = glm::normalize(front);
     // also re-calculate the rightVec and upVec vector
     rightVec = glm::normalize(glm::cross(

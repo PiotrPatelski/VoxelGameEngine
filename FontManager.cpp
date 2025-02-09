@@ -100,11 +100,11 @@ void FontManager::renderText(const std::string& text, float x, float y,
     for (const auto& character : text) {
         Character ch = characters[character];
 
-        float xpos = x + ch.Bearing.x * scale;
-        float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+        float xpos = x + static_cast<float>(ch.Bearing.x) * scale;
+        float ypos = y - static_cast<float>(ch.Size.y - ch.Bearing.y) * scale;
 
-        float w = ch.Size.x * scale;
-        float h = ch.Size.y * scale;
+        float w = static_cast<float>(ch.Size.x) * scale;
+        float h = static_cast<float>(ch.Size.y) * scale;
         // update VBO for each character
         float vertices[6][4] = {
             {xpos, ypos + h, 0.0f, 0.0f},    {xpos, ypos, 0.0f, 1.0f},
@@ -125,7 +125,7 @@ void FontManager::renderText(const std::string& text, float x, float y,
         glDrawArrays(GL_TRIANGLES, 0, 6);
         // now advance cursors for next glyph (note that advance is number of
         // 1/64 pixels)
-        x += (ch.Advance >> 6) *
+        x += static_cast<float>(ch.Advance >> 6) *
              scale; // bitshift by 6 to get value in pixels (2^6 = 64 (divide
                     // amount of 1/64th pixels by 64 to get amount of pixels))
     }

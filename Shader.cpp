@@ -26,7 +26,7 @@ std::pair<std::string, std::string> getCodeFromShaderPath(
         // convert stream into string
         vertexCode = vShaderStream.str();
         fragmentCode = fShaderStream.str();
-    } catch (std::ifstream::failure e) {
+    } catch (const std::ifstream::failure& e) {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ: " << vertexPath
                   << std::endl;
     }

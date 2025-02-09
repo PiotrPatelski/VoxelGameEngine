@@ -12,14 +12,15 @@ class App {
     App();
     ~App();
     void run();
-    void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
-    void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+    void mouse_callback(GLFWwindow* targetWindow, double xposIn, double yposIn);
+    void scroll_callback(GLFWwindow* targetWindow, double xoffset,
+                         double yoffset);
 
    private:
-    void processInput(GLFWwindow* window);
+    void processInput();
 
     GLFWwindow* window{nullptr};
-    Camera camera{glm::vec3(0.0f, 0.0f, 3.0f)};
+    Camera camera{};
     std::unique_ptr<Renderer> renderer{nullptr};
     Clock frameTimeClock{};
 

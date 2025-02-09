@@ -1,8 +1,8 @@
 #include "Chunk.hpp"
 
-static constexpr float xSize{20.0f};
-static constexpr float ySize{20.0f};
-static constexpr float zSize{20.0f};
+static constexpr unsigned int xSize{20};
+static constexpr unsigned int ySize{20};
+static constexpr unsigned int zSize{20};
 
 // float vertices[] = {
 //     // positions          // colors           // texture coords
@@ -64,11 +64,11 @@ std::vector<float> Chunk::vertices = {
 
 Chunk::Chunk() {
     glm::vec3 currentCubePos{0.0f, 0.0f, 0.0f};
-    for (float x = 0.0f; x <= xSize; x++) {
+    for (unsigned int x{0}; x <= xSize; x++) {
         cubes.emplace_back(std::vector<std::vector<Cube>>{});
-        for (float y = 0.0f; y <= ySize; y++) {
+        for (unsigned int y{0}; y <= ySize; y++) {
             cubes[x].emplace_back(std::vector<Cube>{});
-            for (float z = 0.0f; z <= zSize; z++) {
+            for (unsigned int z{0}; z <= zSize; z++) {
                 cubes[x][y].emplace_back(Cube(currentCubePos));
                 currentCubePos.z += 1.0f;
             }

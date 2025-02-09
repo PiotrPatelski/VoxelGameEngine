@@ -13,7 +13,8 @@ unsigned int Clock::calculateFps() {
     frameCount++;
 
     if (fpsTimer >= fpsUpdateInterval) {
-        currentFps = static_cast<unsigned int>(frameCount / fpsTimer);
+        currentFps = static_cast<unsigned int>(static_cast<float>(frameCount) /
+                                               fpsTimer);
         frameCount = 0;
         fpsTimer = 0.0f;
     }
