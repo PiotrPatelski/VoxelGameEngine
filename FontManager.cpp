@@ -51,12 +51,13 @@ void FontManager::initFontTextures() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         // now store character for later use
-        Character character = {texture,
-                               glm::ivec2(fontFace->glyph->bitmap.width,
-                                          fontFace->glyph->bitmap.rows),
-                               glm::ivec2(fontFace->glyph->bitmap_left,
-                                          fontFace->glyph->bitmap_top),
-                               fontFace->glyph->advance.x};
+        Character character = {
+            texture,
+            glm::ivec2(fontFace->glyph->bitmap.width,
+                       fontFace->glyph->bitmap.rows),
+            glm::ivec2(fontFace->glyph->bitmap_left,
+                       fontFace->glyph->bitmap_top),
+            static_cast<unsigned int>(fontFace->glyph->advance.x)};
         characters.insert(std::pair<char, Character>(c, character));
     }
     // destroy FreeType once we're finished

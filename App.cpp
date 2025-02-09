@@ -2,16 +2,6 @@
 #include <glm/glm.hpp>
 
 namespace {
-// settings
-// SCREEN SIZE
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
-
-// DELTATIME
-float deltaTime = 0.0f; // Time between current frame and last frame
-float lastFrame = 0.0f; // Time of last frame
-float lastX = SCR_WIDTH / 2, lastY = SCR_HEIGHT / 2;
-bool firstMouse = true;
 
 // glfw: whenever the window size changed (by OS or user resize) this callback
 // function executes
@@ -23,7 +13,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-GLFWwindow* createAppWindow() {
+GLFWwindow* createAppWindow(unsigned int width, unsigned int height) {
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -31,8 +21,8 @@ GLFWwindow* createAppWindow() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); //MAC OS ONLY!
-    auto* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT,
-                                    "OpenGL Pioter Test Window", NULL, NULL);
+    auto* window = glfwCreateWindow(width, height, "OpenGL Pioter Test Window",
+                                    NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -55,7 +45,9 @@ App::App() {
 
     // glfw window creation
     // --------------------
-    window = createAppWindow();
+    window = createAppWindow(SCR_WIDTH, SCR_HEIGHT);
+    lastX = SCR_WIDTH / 2;
+    lastY = SCR_HEIGHT / 2;
 
     // set input callbacks
     //-------------------
@@ -81,7 +73,7 @@ App::App() {
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -93,14 +85,12 @@ App::~App() { std::cout << "App::Shutdown!" << std::endl; }
 void App::run() {
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
-        float currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+        const auto currentFps = frameTimeClock.calculateFps();
 
         // USER INPUT
         processInput(window);
         renderer->updateShaders(camera);
-        renderer->render();
+        renderer->render(currentFps);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
@@ -139,20 +129,20 @@ void App::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 }
 
 void App::processInput(GLFWwindow* window) {
-    float cameraSpeed = 2.5f * deltaTime;
+    const auto cameraSpeed = 2.5f * frameTimeClock.getDeltaTime();
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        camera.processKeyboard(FORWARD, deltaTime);
+        camera.processKeyboard(FORWARD, cameraSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        camera.processKeyboard(BACKWARD, deltaTime);
+        camera.processKeyboard(BACKWARD, cameraSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        camera.processKeyboard(LEFT, deltaTime);
+        camera.processKeyboard(LEFT, cameraSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        camera.processKeyboard(RIGHT, deltaTime);
+        camera.processKeyboard(RIGHT, cameraSpeed);
     }
 }

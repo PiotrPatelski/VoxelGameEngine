@@ -11,7 +11,7 @@ class Renderer {
     Renderer(unsigned int screenWidth, unsigned int screenHeight);
     ~Renderer();
     void updateShaders(const Camera& camera);
-    void render();
+    void render(unsigned int fps);
 
    private:
     float screenWidth{0};
