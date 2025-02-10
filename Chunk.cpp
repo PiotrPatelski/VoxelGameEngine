@@ -1,8 +1,7 @@
 #include "Chunk.hpp"
+#include "FastNoiseLite.h"
 
-static constexpr unsigned int xSize{20};
-static constexpr unsigned int ySize{20};
-static constexpr unsigned int zSize{20};
+static constexpr unsigned int chunkSize{64};
 
 // float vertices[] = {
 //     // positions          // colors           // texture coords
@@ -63,20 +62,33 @@ std::vector<float> Chunk::vertices = {
 // clang-format on
 
 Chunk::Chunk() {
+    FastNoiseLite noise;
+    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    noise.SetFrequency(0.01f);
+
     glm::vec3 currentCubePos{0.0f, 0.0f, 0.0f};
-    for (unsigned int x{0}; x <= xSize; x++) {
+    for (unsigned int x{0}; x <= chunkSize; x++) {
         cubes.emplace_back(std::vector<std::vector<Cube>>{});
-        for (unsigned int y{0}; y <= ySize; y++) {
+        for (unsigned int z{0}; z <= chunkSize; z++) {
+            // Generate height using Perlin noise (normalized)
+            const auto heightValue =
+                noise.GetNoise(static_cast<float>(x), static_cast<float>(z));
+            const auto height = static_cast<unsigned int>(
+                (heightValue + 1.0f) * 0.5f * chunkSize /
+                2); // Normalize to chunk size
+
             cubes[x].emplace_back(std::vector<Cube>{});
-            for (unsigned int z{0}; z <= zSize; z++) {
-                cubes[x][y].emplace_back(Cube(currentCubePos));
-                currentCubePos.z += 1.0f;
+            for (unsigned int y{0}; y <= chunkSize; y++) {
+                if (y <= height) {
+                    cubes[x][z].emplace_back(Cube(currentCubePos));
+                }
+                currentCubePos.y += 1.0f;
             }
-            currentCubePos.y += 1.0f;
-            currentCubePos.z = 0.0f;
+            currentCubePos.z += 1.0f;
+            currentCubePos.y = 0.0f;
         }
         currentCubePos.x += 1.0f;
-        currentCubePos.y = 0.0f;
+        currentCubePos.z = 0.0f;
     }
 }
 
