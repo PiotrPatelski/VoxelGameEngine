@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <memory>
 #include <glm/gtc/matrix_transform.hpp>
 #include "Cube.hpp"
 #include "Shader.hpp"
@@ -9,12 +10,10 @@ class Chunk {
     Chunk();
     ~Chunk();
     static inline const std::vector<float> getVertices() { return vertices; }
-    inline std::vector<std::vector<std::vector<Cube>>> getCubes() const {
-        return cubes;
-    }
+    bool isSurroundedCube(const Cube& cube) const;
     void render(Shader& shader);
 
    private:
     static std::vector<float> vertices;
-    std::vector<std::vector<std::vector<Cube>>> cubes{};
+    std::vector<std::vector<std::vector<std::unique_ptr<Cube>>>> cubes{};
 };
