@@ -12,7 +12,6 @@ World::World() {
 void World::render(Shader& shader) {
     for (auto& x : chunks) {
         for (auto& z : x) {
-            printf("render chunk\n");
             z->render(shader);
         }
     }
