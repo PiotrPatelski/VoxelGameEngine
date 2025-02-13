@@ -5,13 +5,14 @@
 #include "FontManager.hpp"
 #include "Camera.hpp"
 #include "Shader.hpp"
+#include "World.hpp"
 
 class Renderer {
    public:
     Renderer(unsigned int screenWidth, unsigned int screenHeight);
     ~Renderer();
     void updateShaders(const Camera& camera);
-    void render(unsigned int fps);
+    void render(unsigned int fps, World& world);
 
    private:
     float screenWidth{0};

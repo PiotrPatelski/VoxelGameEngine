@@ -1,6 +1,4 @@
 #include "Renderer.hpp"
-#include "Chunk.hpp"
-
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -23,8 +21,6 @@ const unsigned int amountOfVBOBuffers{1};
 const unsigned int amountOfVAOBuffers{1};
 const unsigned int amountOfEBOBuffers{1};
 const unsigned int cubeVAOIndex{0};
-
-Chunk chunk{};
 
 // LIGHTING
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
@@ -244,7 +240,7 @@ void Renderer::updateShaders(const Camera& camera) {
     lightCubeShader->setMat4("view", cameraView);
 }
 
-void Renderer::render(unsigned int fps) {
+void Renderer::render(unsigned int fps, World& world) {
     // RENDER
     glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -252,7 +248,7 @@ void Renderer::render(unsigned int fps) {
     // render boxes
     glBindVertexArray(vertexArrayObjects);
     cubeShader->use();
-    chunk.render(*cubeShader);
+    world.render(*cubeShader);
 
     lightCubeShader->use();
     glBindVertexArray(lightSourceVAO);

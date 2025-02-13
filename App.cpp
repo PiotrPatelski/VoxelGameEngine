@@ -1,5 +1,6 @@
 #include "App.hpp"
 #include <glm/glm.hpp>
+#include "World.hpp"
 
 namespace {
 
@@ -83,6 +84,7 @@ App::App() {
 App::~App() { std::cout << "App::Shutdown!" << std::endl; }
 
 void App::run() {
+    auto gameWorld = std::make_unique<World>();
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
         const auto currentFps = frameTimeClock.calculateFps();
@@ -90,7 +92,7 @@ void App::run() {
         // USER INPUT
         processInput();
         renderer->updateShaders(camera);
-        renderer->render(currentFps);
+        renderer->render(currentFps, *gameWorld);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
