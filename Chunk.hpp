@@ -14,8 +14,10 @@ class Chunk {
     void render(Shader& shader);
 
    private:
+    auto positionToIndex(const glm::vec3& position) const;
+    bool isCubeOnBorder(const glm::vec3& position) const;
     int chunkWorldXPosition{0};
     int chunkWorldZPosition{0};
     static std::vector<float> vertices;
-    std::vector<std::vector<std::vector<std::unique_ptr<Cube>>>> cubes{};
+    std::vector<std::unique_ptr<Cube>> cubes{};
 };

@@ -61,10 +61,6 @@ std::vector<float> Chunk::vertices = {
     -0.5f, 0.5f,  0.5f, 0.0f, 0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f};
 // clang-format on
 
-bool isOutOfChunk(int value) {
-    return ((value >= static_cast<int>(chunkSize)) or (value < 0));
-}
-
 Chunk::Chunk(int worldXindex, int worldZindex)
     : chunkWorldXPosition{worldXindex}, chunkWorldZPosition{worldZindex} {
     FastNoiseLite noise;
@@ -74,7 +70,6 @@ Chunk::Chunk(int worldXindex, int worldZindex)
     const auto initialCubeZ = static_cast<float>(worldZindex * chunkSize);
     glm::vec3 currentCubePos{initialCubeX, 0.0f, initialCubeZ};
     for (int x{0}; x < chunkSize; x++) {
-        cubes.emplace_back(std::vector<std::vector<std::unique_ptr<Cube>>>{});
         for (int z{0}; z < chunkSize; z++) {
             int worldCubeXPosition{
                 chunkWorldXPosition * static_cast<int>(chunkSize) + x};
@@ -89,13 +84,11 @@ Chunk::Chunk(int worldXindex, int worldZindex)
                 static_cast<int>((heightValue + 1.0f) * 0.5f * chunkSize /
                                  2); // Normalize to chunk size
 
-            cubes[x].emplace_back(std::vector<std::unique_ptr<Cube>>{});
             for (int y{0}; y < chunkSize; y++) {
                 if (y <= height) {
-                    cubes[x][z].emplace_back(
-                        std::make_unique<Cube>(currentCubePos));
+                    cubes.emplace_back(std::make_unique<Cube>(currentCubePos));
                 } else {
-                    cubes[x][z].emplace_back(nullptr);
+                    cubes.emplace_back(nullptr);
                 }
                 currentCubePos.y += 1.0f;
             }
@@ -107,71 +100,71 @@ Chunk::Chunk(int worldXindex, int worldZindex)
     }
 }
 
+bool Chunk::isCubeOnBorder(const glm::vec3& position) const {
+    const glm::vec3 lowerBorder = {chunkWorldXPosition * chunkSize, 0,
+                                   chunkWorldZPosition * chunkSize};
+    const glm::vec3 upperBorder = {lowerBorder.x + chunkSize - 1, chunkSize - 1,
+                                   lowerBorder.z + chunkSize - 1};
+    const bool isXBorder =
+        position.x <= lowerBorder.x or position.x >= upperBorder.x;
+    const bool isYBorder = position.y <= 0 or position.y >= chunkSize - 1;
+    const bool isZBorder =
+        position.z <= lowerBorder.z or position.z >= upperBorder.z;
+    return (isXBorder or isYBorder or isZBorder);
+}
+
+auto Chunk::positionToIndex(const glm::vec3& position) const {
+    // ASSERT position values are in bounds of chunk's x,y,z
+    const auto xFactor =
+        (position.x - chunkWorldXPosition * chunkSize) * chunkSize * chunkSize;
+    const auto zFactor =
+        (position.z - chunkWorldZPosition * chunkSize) * chunkSize;
+    const auto cubeIndex = xFactor + zFactor + position.y;
+    return cubeIndex;
+}
+
 bool Chunk::isSurroundedCube(const Cube& cube) const {
     const auto& cubePosition = cube.getPosition();
-    const auto leftCubeIndex = static_cast<int>(
-        cubePosition.x - chunkSize * chunkWorldXPosition - 1.0f);
-    if (not isOutOfChunk(leftCubeIndex) and
-        cubes[leftCubeIndex][cubePosition.z - chunkSize * chunkWorldZPosition]
-             [cubePosition.y] == nullptr) {
-        // No cube from left side
+
+    if (isCubeOnBorder(cubePosition)) {
+        // TO BE HANDLED when reference to neighbouring chunks is added
         return false;
     }
-    const auto rightCubeIndex = static_cast<int>(
-        cubePosition.x - chunkSize * chunkWorldXPosition + 1.0f);
-    if (not isOutOfChunk(rightCubeIndex) and
-        cubes[rightCubeIndex][cubePosition.z - chunkSize * chunkWorldZPosition]
-             [cubePosition.y] == nullptr) {
-        // No cube from right side
+    if (cubes[positionToIndex(cubePosition + glm::vec3{-1.0f, 0.f, 0.f})] ==
+        nullptr) {
         return false;
     }
-    const auto frontCubeIndex = static_cast<int>(
-        cubePosition.z - chunkSize * chunkWorldZPosition - 1.0f);
-    if (not isOutOfChunk(frontCubeIndex) and
-        cubes[cubePosition.x - chunkSize * chunkWorldXPosition][frontCubeIndex]
-             [cubePosition.y] == nullptr) {
-        // No cube from front side
+    if (cubes[positionToIndex(cubePosition + glm::vec3{1.0f, 0.f, 0.f})] ==
+        nullptr) {
         return false;
     }
-    const auto backCubeIndex = static_cast<int>(
-        cubePosition.z - chunkSize * chunkWorldZPosition + 1.0f);
-    if (not isOutOfChunk(backCubeIndex) and
-        cubes[cubePosition.x - chunkSize * chunkWorldXPosition][backCubeIndex]
-             [cubePosition.y] == nullptr) {
-        // No cube from back side
+    if (cubes[positionToIndex(cubePosition + glm::vec3{0.0f, 0.f, -1.0f})] ==
+        nullptr) {
         return false;
     }
-    const auto bottomCubeIndex = static_cast<int>(cubePosition.y - 1.0f);
-    if (not isOutOfChunk(bottomCubeIndex) and
-        cubes[cubePosition.x - chunkSize * chunkWorldXPosition]
-             [cubePosition.z - chunkSize * chunkWorldZPosition]
-             [bottomCubeIndex] == nullptr) {
-        // No cube from bottom side
+    if (cubes[positionToIndex(cubePosition + glm::vec3{0.0f, 0.f, 1.0f})] ==
+        nullptr) {
         return false;
     }
-    const auto topCubeIndex = static_cast<int>(cubePosition.y + 1.0f);
-    if (not isOutOfChunk(topCubeIndex) and
-        cubes[cubePosition.x - chunkSize * chunkWorldXPosition]
-             [cubePosition.z - chunkSize * chunkWorldZPosition][topCubeIndex] ==
-            nullptr) {
-        // No cube from top side
+    if (cubes[positionToIndex(cubePosition + glm::vec3{0.0f, -1.0f, 0.0f})] ==
+        nullptr) {
+        return false;
+    }
+    if (cubes[positionToIndex(cubePosition + glm::vec3{0.0f, 1.0f, 0.0f})] ==
+        nullptr) {
         return false;
     }
     return true;
 }
 
 void Chunk::render(Shader& shader) {
-    for (auto& x : cubes) {
-        for (auto& y : x) {
-            for (auto& z : y) {
-                if (z and not isSurroundedCube(*z)) {
-                    // calculate the model matrix for each object and pass it to
-                    // shader before drawing make sure to initialize matrix to
-                    // identity matrix first
-                    shader.setMat4("model", z->getModel());
-                    glDrawArrays(GL_TRIANGLES, 0, 36);
-                }
-            }
+    for (auto& cube : cubes) {
+        if (cube and not isSurroundedCube(*cube)) {
+            // calculate the model matrix for each object and pass it to
+            // shader before drawing make sure to initialize matrix to
+            // identity matrix first
+            shader.setMat4("model", cube->getModel());
+            glDrawArrays(GL_TRIANGLES, 0, 36);
         }
     }
 }
