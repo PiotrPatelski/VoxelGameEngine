@@ -40,24 +40,28 @@ void setupVertexBufferData() {
     glBindVertexArray(vertexArrayObjects);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
-    glBufferData(GL_ARRAY_BUFFER, Chunk::getVertices().size() * sizeof(float),
+    glBufferData(GL_ARRAY_BUFFER, Chunk::getVertices().size() * sizeof(Vertex),
                  Chunk::getVertices().data(), GL_STATIC_DRAW);
-    const unsigned int stride = 11 * sizeof(float);
+    const unsigned int stride = sizeof(Vertex);
     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObjects);
     // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
     //              GL_STATIC_DRAW);
     // glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean
     // normalized, GLsizei stride, const void *pointer);
+    // POSITION
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
+    // COLOR
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride,
-                          (void*)(3 * sizeof(float)));
+                          (void*)offsetof(Vertex, color));
     glEnableVertexAttribArray(1);
+    // TEXCOORDS
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride,
-                          (void*)(6 * sizeof(float)));
+                          (void*)offsetof(Vertex, texCoord));
     glEnableVertexAttribArray(2);
+    // NORMAL
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride,
-                          (void*)(8 * sizeof(float)));
+                          (void*)offsetof(Vertex, normal));
     glEnableVertexAttribArray(3);
 
     // SECOND LIGHT
@@ -145,10 +149,8 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     /////////////////////////////////////////////////////////////
     cubeShader->setInt("material.diffuse", 1);
     cubeShader->setInt("material.specular", 2);
-    cubeShader->setInt("material.emission", 3);
+    // cubeShader->setInt("material.emission", 3);
     cubeShader->setFloat("fadeValue", 0.2f);
-    // cubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-    // cubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
     cubeShader->setFloat("material.shininess", 32.0f);
     /*
@@ -162,9 +164,9 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     */
     // directional light
     cubeShader->setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
-    cubeShader->setVec3("directionalLight.ambient", 0.0f, 0.0f, 0.0f);
-    cubeShader->setVec3("directionalLight.diffuse", 0.05f, 0.05f, 0.05f);
-    cubeShader->setVec3("directionalLight.specular", 0.2f, 0.2f, 0.2f);
+    cubeShader->setVec3("directionalLight.ambient", 0.2f, 0.2f, 0.2f);
+    cubeShader->setVec3("directionalLight.diffuse", 0.5f, 0.5f, 0.5f);
+    cubeShader->setVec3("directionalLight.specular", 0.5f, 0.5f, 0.5f);
     // point lights
     for (unsigned int lightPosIndex = 0;
          lightPosIndex < pointLightPositions.size(); lightPosIndex++) {
@@ -214,9 +216,6 @@ Renderer::~Renderer() {
 }
 
 void Renderer::updateShaders(const Camera& camera) {
-    // lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f; //position rotation in
-    // a circle lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
-
     cubeShader->use();
     cubeShader->setFloat("time", glfwGetTime());
     cubeShader->setVec3("viewPosition", camera.getPosition());
@@ -262,6 +261,6 @@ void Renderer::render(unsigned int fps, World& world) {
     const std::string fpsCount{"FPS count: " + std::to_string(fps)};
     fontManager->renderText(fpsCount, 25.0f, 25.0f, 1.0f,
                             glm::vec3(0.5, 0.8f, 0.2f));
-    fontManager->renderText("Pioter Craft Project", 540.0f, 570.0f, 0.5f,
+    fontManager->renderText("Pioter Craft Project", 1640.0f, 1010.0f, 0.5f,
                             glm::vec3(0.3, 0.7f, 0.9f));
 }

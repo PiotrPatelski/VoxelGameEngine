@@ -10,7 +10,7 @@ in vec3 normal;
 struct Material {
     sampler2D diffuse;
     sampler2D specular;
-    sampler2D emission;
+    // sampler2D emission;
     float shininess;
 };
 
@@ -132,19 +132,15 @@ void main()
     vec3 viewDirection = normalize(viewPosition - fragPos);
     
     //Emission light factor
-    vec2 myTexCoords = TexCoord;
-    myTexCoords.x = myTexCoords.x + 0.045f; // slightly shift texture on x for better alignment
-    vec3 emissionMap = vec3(texture(material.emission, myTexCoords + vec2(0.0,time*0.75)));
-    vec3 emission = emissionMap * (sin(time)*0.5f+0.5f)*2.0;
+    // vec2 myTexCoords = TexCoord;
+    // myTexCoords.x = myTexCoords.x + 0.045f; // slightly shift texture on x for better alignment
+    // vec3 emissionMap = vec3(texture(material.emission, myTexCoords + vec2(0.0,time*0.75)));
+    // vec3 emission = emissionMap * (sin(time)*0.5f+0.5f)*2.0;
 
     //emission mask
-    vec3 emissionMask = step(vec3(1.0f), vec3(1.0f)-texture(material.specular, TexCoord).rgb);
-    emission = emission * emissionMask;
+    // vec3 emissionMask = step(vec3(1.0f), vec3(1.0f)-texture(material.specular, TexCoord).rgb);
+    // emission = emission * emissionMask;
     
-    // vec3 result = (ambient + diffuse + specular) * objectColor;
-    // vec3 result = ambient + diffuse + specular + emission;
-    // vec3 result = ambient + diffuse + specular;
-    // FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), fadeValue) * vec4(result, 1.0);
     // phase 1: Directional lighting
     vec3 result = CalcDirectionalLight(directionalLight, norm, viewDirection);
     // phase 2: Point lights
@@ -152,7 +148,7 @@ void main()
         result += CalcPointLight(pointLights[i], norm, fragPos, viewDirection);    
     // phase 3: Spot light
     result += CalcSpotLight(spotLight, norm, fragPos, viewDirection);
-    FragColor = vec4(result + emission, 1.0);
-
+    // FragColor = vec4(result + emission, 1.0);
+    FragColor = vec4(result, 1.0);
  
 } 

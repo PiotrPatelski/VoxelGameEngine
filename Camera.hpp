@@ -34,7 +34,7 @@ class Camera {
     void updateCameraVectors();
 
     // camera Attributes
-    glm::vec3 position{0.0f, 0.0f, 0.0f};
+    glm::vec3 position{64.0f, 30.0f, 64.0f};
     glm::vec3 frontVec{0.0f, 0.0f, -1.0f};
     glm::vec3 upVec{0.0f, 0.0f, 0.0f};
     glm::vec3 rightVec{0.0f, 0.0f, 0.0f};
