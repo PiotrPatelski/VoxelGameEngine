@@ -15,8 +15,6 @@ namespace {
 // settings
 
 // LIGHTING
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-
 std::vector<glm::vec3> pointLightPositions = {
     glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
     glm::vec3(-4.0f, 2.0f, -12.0f), glm::vec3(0.0f, 0.0f, -3.0f)};
@@ -65,8 +63,6 @@ Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
     : screenWidth{static_cast<float>(width)},
       screenHeight{static_cast<float>(height)} {
     std::cout << "Renderer::Init!" << std::endl;
-
-    // setupVertexBufferData(world);
 
     fontManager = std::make_unique<FontManager>(screenWidth, screenHeight);
     // load and create a texture
@@ -131,9 +127,6 @@ Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
     cubeShader->setFloat("spotLight.outerCutOff",
                          glm::cos(glm::radians(15.0f)));
 
-    // glActiveTexture(GL_TEXTURE0); // activate the texture unit first before
-    // binding texture
-
     /////////////////////////////////////////////////////////////
     // TODO UNIFY INDICES assigned below, INDEX 0 IS ASSIGNED IN FONT MANAGER!
     /////////////////////////////////////////////////////////////
@@ -143,7 +136,6 @@ Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
     glBindTexture(GL_TEXTURE_2D, specularMapContainer);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, emissionMap);
-    // chunkModel = std::make_unique<Model>("textures/pioterCube.obj");
 }
 
 Renderer::~Renderer() {
@@ -168,13 +160,8 @@ void Renderer::updateShaders(const Camera& camera) {
     glm::mat4 cameraView = camera.getViewMatrix();
     cubeShader->setMat4("projection", projection);
     cubeShader->setMat4("view", cameraView);
-
-    // lightCubeShader->use();
-    // glm::vec3 lightSourceColor(1.0f, 0.5f * sin(glfwGetTime() * 3.0f),
-    //                            0.5f * sin(glfwGetTime() * 3.0f));
-    // lightCubeShader->setVec3("objectColor", lightSourceColor);
-    // lightCubeShader->setMat4("projection", projection);
-    // lightCubeShader->setMat4("view", cameraView);
+    glm::mat4 projView = projection * cameraView;
+    frustum.update(projView);
 }
 
 void Renderer::render(unsigned int fps, World& world) {
@@ -182,23 +169,12 @@ void Renderer::render(unsigned int fps, World& world) {
     glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // render boxes
+    // Perform per-cube frustum culling on the world.
+    world.performFrustumCulling(frustum);
 
+    // Now render the world (each chunk draws only its visible cubes).
+    cubeShader->use();
     world.render(*cubeShader);
-
-    // glm::mat4 model = glm::mat4(1.0f);
-    // model = glm::translate(
-    //     model,
-    //     glm::vec3(
-    //         0.0f, 0.0f,
-    //         0.0f)); // translate it down so it's at the center of the scene
-    // model = glm::scale(
-    //     model,
-    //     glm::vec3(1.0f, 1.0f,
-    //               1.0f)); // it's a bit too big for our scene, so scale it
-    //               down
-    // cubeShader->setMat4("model", model);
-    // chunkModel->draw(*cubeShader);
 
     const std::string fpsCount{"FPS count: " + std::to_string(fps)};
     fontManager->renderText(fpsCount, 25.0f, 25.0f, 1.0f,

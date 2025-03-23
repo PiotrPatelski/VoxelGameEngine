@@ -6,7 +6,7 @@
 #include "Camera.hpp"
 #include "Shader.hpp"
 #include "World.hpp"
-#include "Model.hpp"
+#include "Frustum.hpp"
 
 class Renderer {
    public:
@@ -27,5 +27,5 @@ class Renderer {
     std::unique_ptr<Shader> cubeShader{nullptr};
     std::unique_ptr<Shader> lightCubeShader{nullptr};
     std::unique_ptr<FontManager> fontManager{nullptr};
-    std::unique_ptr<Model> chunkModel{nullptr};
+    Frustum frustum{};
 };

@@ -87,7 +87,6 @@ void App::run() {
     auto gameWorld = std::make_unique<World>();
     renderer = std::make_unique<Renderer>(SCR_WIDTH, SCR_HEIGHT, *gameWorld);
     // MAIN LOOP
-    // int id{0};
     while (!glfwWindowShouldClose(window)) {
         const auto currentFps = frameTimeClock.calculateFps();
 
@@ -95,10 +94,9 @@ void App::run() {
         processInput();
         renderer->updateShaders(camera);
         renderer->render(currentFps, *gameWorld);
-        // printf("render %d success\n", id++);
+
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
-        // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
