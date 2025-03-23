@@ -13,14 +13,6 @@
 
 namespace {
 // settings
-// BUFFER DEFAULTS
-unsigned int vertexBufferObjects, vertexArrayObjects,
-    elementBufferObjects; // must be overwritten before use
-unsigned int lightSourceVAO;
-const unsigned int amountOfVBOBuffers{1};
-const unsigned int amountOfVAOBuffers{1};
-const unsigned int amountOfEBOBuffers{1};
-const unsigned int cubeVAOIndex{0};
 
 // LIGHTING
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
@@ -28,59 +20,6 @@ glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 std::vector<glm::vec3> pointLightPositions = {
     glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
     glm::vec3(-4.0f, 2.0f, -12.0f), glm::vec3(0.0f, 0.0f, -3.0f)};
-
-void setupVertexBufferData() {
-    // FIRST CUBES
-    //  set up vertex data (and buffer(s)) and configure vertex attributes
-    //  ------------------------------------------------------------------
-    glGenBuffers(amountOfVBOBuffers, &vertexBufferObjects);
-    glGenVertexArrays(amountOfVAOBuffers, &vertexArrayObjects);
-    glGenBuffers(amountOfEBOBuffers, &elementBufferObjects);
-
-    glBindVertexArray(vertexArrayObjects);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
-    glBufferData(GL_ARRAY_BUFFER, Chunk::getVertices().size() * sizeof(Vertex),
-                 Chunk::getVertices().data(), GL_STATIC_DRAW);
-    const unsigned int stride = sizeof(Vertex);
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObjects);
-    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-    //              GL_STATIC_DRAW);
-    // glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean
-    // normalized, GLsizei stride, const void *pointer);
-    // POSITION
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-    glEnableVertexAttribArray(0);
-    // COLOR
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride,
-                          (void*)offsetof(Vertex, color));
-    glEnableVertexAttribArray(1);
-    // TEXCOORDS
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride,
-                          (void*)offsetof(Vertex, texCoord));
-    glEnableVertexAttribArray(2);
-    // NORMAL
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride,
-                          (void*)offsetof(Vertex, normal));
-    glEnableVertexAttribArray(3);
-
-    // SECOND LIGHT
-    glGenVertexArrays(amountOfVAOBuffers, &lightSourceVAO);
-    glBindVertexArray(lightSourceVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride,
-                          (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride,
-                          (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //DRAW LINES ONLY - FOR DEBUG
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-}
 
 unsigned int createTexture(const std::string& path) {
     unsigned int texture;
@@ -122,12 +61,12 @@ unsigned int createTexture(const std::string& path) {
 
 } // namespace
 
-Renderer::Renderer(unsigned int width, unsigned int height)
+Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
     : screenWidth{static_cast<float>(width)},
       screenHeight{static_cast<float>(height)} {
     std::cout << "Renderer::Init!" << std::endl;
 
-    setupVertexBufferData();
+    // setupVertexBufferData(world);
 
     fontManager = std::make_unique<FontManager>(screenWidth, screenHeight);
     // load and create a texture
@@ -139,8 +78,8 @@ Renderer::Renderer(unsigned int width, unsigned int height)
 
     cubeShader = std::make_unique<Shader>("shaders/cube_shader.vs",
                                           "shaders/cube_shader.fs");
-    lightCubeShader = std::make_unique<Shader>("shaders/light_source.vs",
-                                               "shaders/light_source.fs");
+    // lightCubeShader = std::make_unique<Shader>("shaders/light_source.vs",
+    //                                            "shaders/light_source.fs");
     // lightCubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
     // lightCubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
     cubeShader->use();
@@ -204,14 +143,13 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     glBindTexture(GL_TEXTURE_2D, specularMapContainer);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, emissionMap);
+    // chunkModel = std::make_unique<Model>("textures/pioterCube.obj");
 }
 
 Renderer::~Renderer() {
     std::cout << "Renderer::Shutdown!" << std::endl;
     // CLEANUP
-    glDeleteVertexArrays(amountOfVAOBuffers, &vertexArrayObjects);
-    glDeleteBuffers(amountOfVBOBuffers, &vertexBufferObjects);
-    glDeleteBuffers(amountOfEBOBuffers, &elementBufferObjects);
+
     glfwTerminate();
 }
 
@@ -231,12 +169,12 @@ void Renderer::updateShaders(const Camera& camera) {
     cubeShader->setMat4("projection", projection);
     cubeShader->setMat4("view", cameraView);
 
-    lightCubeShader->use();
-    glm::vec3 lightSourceColor(1.0f, 0.5f * sin(glfwGetTime() * 3.0f),
-                               0.5f * sin(glfwGetTime() * 3.0f));
-    lightCubeShader->setVec3("objectColor", lightSourceColor);
-    lightCubeShader->setMat4("projection", projection);
-    lightCubeShader->setMat4("view", cameraView);
+    // lightCubeShader->use();
+    // glm::vec3 lightSourceColor(1.0f, 0.5f * sin(glfwGetTime() * 3.0f),
+    //                            0.5f * sin(glfwGetTime() * 3.0f));
+    // lightCubeShader->setVec3("objectColor", lightSourceColor);
+    // lightCubeShader->setMat4("projection", projection);
+    // lightCubeShader->setMat4("view", cameraView);
 }
 
 void Renderer::render(unsigned int fps, World& world) {
@@ -245,19 +183,23 @@ void Renderer::render(unsigned int fps, World& world) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // render boxes
-    glBindVertexArray(vertexArrayObjects);
-    cubeShader->use();
+
     world.render(*cubeShader);
 
-    lightCubeShader->use();
-    glBindVertexArray(lightSourceVAO);
-    for (const auto& position : pointLightPositions) {
-        auto lightModel = glm::mat4(1.0f);
-        lightModel = glm::translate(lightModel, position);
-        lightModel = glm::scale(lightModel, glm::vec3(0.2f));
-        lightCubeShader->setMat4("model", lightModel);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
+    // glm::mat4 model = glm::mat4(1.0f);
+    // model = glm::translate(
+    //     model,
+    //     glm::vec3(
+    //         0.0f, 0.0f,
+    //         0.0f)); // translate it down so it's at the center of the scene
+    // model = glm::scale(
+    //     model,
+    //     glm::vec3(1.0f, 1.0f,
+    //               1.0f)); // it's a bit too big for our scene, so scale it
+    //               down
+    // cubeShader->setMat4("model", model);
+    // chunkModel->draw(*cubeShader);
+
     const std::string fpsCount{"FPS count: " + std::to_string(fps)};
     fontManager->renderText(fpsCount, 25.0f, 25.0f, 1.0f,
                             glm::vec3(0.5, 0.8f, 0.2f));

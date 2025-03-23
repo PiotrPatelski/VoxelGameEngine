@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5.0)
 project(OpenGLTutorial VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_BUILD_TYPE Debug)
 
 # Set the policy to use GLVND if available
 cmake_policy(SET CMP0072 NEW)
@@ -12,6 +13,10 @@ include_directories(${CMAKE_SOURCE_DIR}/external/glad/include)
 add_library(glad STATIC ${CMAKE_SOURCE_DIR}/external/glad/src/glad.c)
 include_directories(${PROJECT_SOURCE_DIR}/external)
 include_directories(${PROJECT_SOURCE_DIR}/external/glm)
+include_directories(${ASSIMP_INCLUDE_DIR})
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ASSIMP REQUIRED assimp)
 
 # Cross-platform FreeType detection
 if(WIN32)
@@ -44,8 +49,22 @@ if(CLANG_FORMAT)
     )
 endif()
 
-add_executable(OpenGLTutorial main.cpp App.cpp Clock.cpp Renderer.cpp FontManager.cpp Shader.cpp Camera.cpp World.cpp Chunk.cpp Cube.cpp)
-target_link_libraries(OpenGLTutorial ${FREETYPE_LIBRARIES} OpenGL::GL glfw glad -lGL)
+add_executable(
+    OpenGLTutorial 
+        main.cpp 
+        App.cpp 
+        Clock.cpp 
+        Renderer.cpp 
+        FontManager.cpp 
+        Shader.cpp 
+        Camera.cpp 
+        Frustum.cpp
+        Mesh.cpp
+        Model.cpp
+        World.cpp 
+        Chunk.cpp 
+        Cube.cpp)
+target_link_libraries(OpenGLTutorial ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory
 file(COPY ${CMAKE_SOURCE_DIR}/shaders/ DESTINATION ${CMAKE_BINARY_DIR}/shaders)

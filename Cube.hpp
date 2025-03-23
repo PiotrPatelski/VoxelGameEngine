@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <glm/gtc/matrix_transform.hpp>
+#include "Mesh.hpp"
 
 class Cube {
    public:
