@@ -18,15 +18,27 @@ class Chunk {
     Chunk(int worldXindex, int worldZindex, unsigned vertexBufferObjects,
           unsigned elementBufferObjects);
     ~Chunk();
-    static inline const std::vector<Vertex> getVertices() { return vertices; }
-    static inline const std::vector<unsigned int> getIndices() {
+    static inline constexpr std::vector<Vertex> getVertices() {
+        return vertices;
+    }
+    static inline constexpr std::vector<unsigned int> getIndices() {
         return indices;
     }
+    void updateInstanceBuffer();
     void render(Shader& shader);
     void performFrustumCulling(const Frustum& frustum);
 
    private:
-    void updateInstanceBuffer();
+    void setupVAO(unsigned int sharedVBO, unsigned int sharedEBO);
+    void generateCubeData();
+    void generateCubePresence(
+        std::vector<std::vector<std::vector<bool>>>& cubePresent,
+        std::vector<std::vector<int>>& columnHeights);
+    void generateVisibleCubes(
+        const std::vector<std::vector<std::vector<bool>>>& cubePresent,
+        float initialCubeX, float initialCubeZ);
+    void uploadInstanceData();
+
     int chunkWorldXPosition{0};
     int chunkWorldZPosition{0};
     static std::vector<Vertex> vertices;

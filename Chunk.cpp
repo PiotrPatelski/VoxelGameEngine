@@ -2,6 +2,7 @@
 #include "FastNoiseLite.h"
 
 static constexpr int chunkSize{64};
+static constexpr int mat4Length{4};
 
 // clang-format off
 //Pos: {X, Y, Z} Color:{R, G, B} TexCord:{X, Y} Normal{X, Y, Z}
@@ -52,14 +53,53 @@ std::vector<unsigned int> Chunk::indices = {
 };
 // clang-format on
 
+static bool isCubeExposed(
+    const std::vector<std::vector<std::vector<bool>>>& cubePresent,
+    const glm::vec3& gridPosition) {
+    const std::array<std::array<int, 3>, 6> neighborOffsets{{
+        {{1, 0, 0}},  // +X
+        {{-1, 0, 0}}, // -X
+        {{0, 1, 0}},  // +Z
+        {{0, -1, 0}}, // -Z
+        {{0, 0, 1}},  // +Y
+        {{0, 0, -1}}  // -Y
+    }};
+
+    for (const auto& offset : neighborOffsets) {
+        int neighborX = gridPosition.x + offset[0];
+        int neighborZ = gridPosition.z + offset[1];
+        int neighborY = gridPosition.y + offset[2];
+
+        // If neighbor is out-of-bounds, cube is exposed.
+        if (neighborX < 0 || neighborX >= chunkSize || neighborZ < 0 ||
+            neighborZ >= chunkSize || neighborY < 0 || neighborY >= chunkSize) {
+            return true;
+        }
+        // If neighbor cell is empty, cube is exposed.
+        if (!cubePresent[neighborX][neighborZ][neighborY]) {
+            return true;
+        }
+    }
+    return false;
+}
+
 Chunk::Chunk(int worldXindex, int worldZindex, unsigned int sharedVBO,
              unsigned int sharedEBO)
     : chunkWorldXPosition{worldXindex}, chunkWorldZPosition{worldZindex} {
-    // First, create the VAO and bind the shared vertex data.
+    // 1. Set up the VAO.
+    setupVAO(sharedVBO, sharedEBO);
+
+    // 2. Generate cubes from noise with hidden-face removal.
+    generateCubeData();
+
+    // 3. Upload instance data.
+    uploadInstanceData();
+}
+
+void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // Bind shared VBO and EBO
     glBindBuffer(GL_ARRAY_BUFFER, sharedVBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sharedEBO);
 
@@ -80,33 +120,37 @@ Chunk::Chunk(int worldXindex, int worldZindex, unsigned int sharedVBO,
                           (void*)offsetof(Vertex, normal));
     glEnableVertexAttribArray(3);
 
-    // Unbind the array buffer (EBO remains bound to the VAO)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // Generate the instance buffer (we will fill it later)
+    // Generate the instance VBO.
     glGenBuffers(1, &buffer);
-
-    // We'll bind the instance buffer later after updating the model matrices.
     glBindVertexArray(0);
+}
 
+void Chunk::generateCubeData() {
+    // Prepare 3D boolean grid and column heights.
     std::vector<std::vector<std::vector<bool>>> cubePresent(
         chunkSize, std::vector<std::vector<bool>>(
                        chunkSize, std::vector<bool>(chunkSize, false)));
-
-    // Also store column heights for each (x,z)
     std::vector<std::vector<int>> columnHeights(chunkSize,
                                                 std::vector<int>(chunkSize, 0));
 
-    const float initialCubeX =
-        static_cast<float>(chunkWorldXPosition * chunkSize);
-    const float initialCubeZ =
-        static_cast<float>(chunkWorldZPosition * chunkSize);
+    generateCubePresence(cubePresent, columnHeights);
 
+    // Calculate initial world-space base positions.
+    float initialCubeX = static_cast<float>(chunkWorldXPosition * chunkSize);
+    float initialCubeZ = static_cast<float>(chunkWorldZPosition * chunkSize);
+
+    generateVisibleCubes(cubePresent, initialCubeX, initialCubeZ);
+}
+
+void Chunk::generateCubePresence(
+    std::vector<std::vector<std::vector<bool>>>& cubePresent,
+    std::vector<std::vector<int>>& columnHeights) {
     FastNoiseLite noise;
     noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     noise.SetFrequency(0.01f);
 
-    // First pass: mark cube presence based on noise.
     for (int x = 0; x < chunkSize; x++) {
         for (int z = 0; z < chunkSize; z++) {
             int worldCubeX = chunkWorldXPosition * chunkSize + x;
@@ -121,42 +165,26 @@ Chunk::Chunk(int worldXindex, int worldZindex, unsigned int sharedVBO,
             }
         }
     }
+}
 
-    // Second pass: add only cubes that are exposed (neighbors missing)
-    // We'll use a local vector for visible cubes.
+void Chunk::generateVisibleCubes(
+    const std::vector<std::vector<std::vector<bool>>>& cubePresent,
+    float initialCubeX, float initialCubeZ) {
     std::vector<glm::mat4> initialModels;
-    for (int x = 0; x < chunkSize; x++) {
-        for (int z = 0; z < chunkSize; z++) {
-            for (int y = 0; y < chunkSize; y++) {
-                if (!cubePresent[x][z][y]) continue;
-                bool exposed = false;
-                // Check 6 neighbors. Our 3D array is indexed as [x][z][y]
-                const int dirs[6][3] = {
-                    {1, 0, 0},  {-1, 0, 0}, {0, 1, 0}, // z+
-                    {0, -1, 0},                        // z-
-                    {0, 0, 1},                         // y+
-                    {0, 0, -1}                         // y-
-                };
-                for (int i = 0; i < 6; i++) {
-                    int nx = x + dirs[i][0];
-                    int nz = z + dirs[i][1];
-                    int ny = y + dirs[i][2];
-                    if (nx < 0 || nx >= chunkSize || nz < 0 ||
-                        nz >= chunkSize || ny < 0 || ny >= chunkSize) {
-                        exposed = true;
-                        break;
-                    }
-                    if (!cubePresent[nx][nz][ny]) {
-                        exposed = true;
-                        break;
-                    }
+
+    for (int gridX = 0; gridX < chunkSize; gridX++) {
+        for (int gridZ = 0; gridZ < chunkSize; gridZ++) {
+            for (int gridY = 0; gridY < chunkSize; gridY++) {
+                if (!cubePresent[gridX][gridZ][gridY]) {
+                    continue;
                 }
-                if (exposed) {
-                    // Compute world position.
-                    glm::vec3 cubePos{initialCubeX + static_cast<float>(x),
-                                      static_cast<float>(y),
-                                      initialCubeZ + static_cast<float>(z)};
-                    // Create cube and add its model matrix.
+
+                if (isCubeExposed(cubePresent,
+                                  glm::vec3{gridX, gridY, gridZ})) {
+                    glm::vec3 cubePos{initialCubeX + static_cast<float>(gridX),
+                                      static_cast<float>(gridY),
+                                      initialCubeZ + static_cast<float>(gridZ)};
+
                     cubes.push_back(std::make_unique<Cube>(cubePos));
                     initialModels.push_back(cubes.back()->getModel());
                 }
@@ -164,20 +192,23 @@ Chunk::Chunk(int worldXindex, int worldZindex, unsigned int sharedVBO,
         }
     }
     modelMatrices = initialModels;
-    // Now update the instance buffer with the computed model matrices.
+}
+
+void Chunk::uploadInstanceData() {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
     glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4),
                  modelMatrices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // Bind the VAO again and set up the instanced attribute pointers.
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    // A mat4 is sent as 4 vec4 attributes (locations 4, 5, 6, and 7)
-    for (unsigned int i = 0; i < 4; i++) {
-        glVertexAttribPointer(4 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                              (void*)(i * sizeof(glm::vec4)));
-        glEnableVertexAttribArray(4 + i);
-        glVertexAttribDivisor(4 + i, 1); // This makes the attribute instanced.
+    // A mat4 is represented as 4 vec4 attributes (locations 4-7).
+    for (unsigned int matIdx = 0; matIdx < mat4Length; matIdx++) {
+        glVertexAttribPointer(mat4Length + matIdx, mat4Length, GL_FLOAT,
+                              GL_FALSE, sizeof(glm::mat4),
+                              (void*)(matIdx * sizeof(glm::vec4)));
+        glEnableVertexAttribArray(mat4Length + matIdx);
+        glVertexAttribDivisor(mat4Length + matIdx, 1);
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -222,4 +253,7 @@ void Chunk::updateInstanceBuffer() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-Chunk::~Chunk() {}
+Chunk::~Chunk() {
+    glDeleteBuffers(1, &buffer);
+    glDeleteVertexArrays(1, &vao);
+}

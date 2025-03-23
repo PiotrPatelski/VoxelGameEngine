@@ -13,5 +13,5 @@ class World {
     std::vector<std::vector<std::unique_ptr<Chunk>>> chunks{};
 
    private:
-    static constexpr int worldSize{4};
+    static constexpr int worldSize{6};
 };

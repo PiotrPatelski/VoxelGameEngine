@@ -49,14 +49,11 @@ struct SpotLight {
     vec3 specular;
 };  
 
-// uniform sampler2D texture2;
 uniform vec3 viewPosition;
 uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform SpotLight spotLight;
 uniform float fadeValue;
-// uniform vec3 objectColor;
-// uniform vec3 lightColor;
 uniform Material material;
 uniform float time;
 
