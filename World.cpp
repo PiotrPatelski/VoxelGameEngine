@@ -45,6 +45,15 @@ void World::performFrustumCulling(const Frustum &frustum) {
     }
 }
 
+void World::renderByType(Shader &shader, CubeType type) {
+    shader.use();
+    for (auto &chunkRow : chunks) {
+        for (auto &chunk : chunkRow) {
+            chunk->renderByType(shader, type);
+        }
+    }
+}
+
 void World::render(Shader &shader) {
     shader.use();
     for (auto &chunkRow : chunks) {

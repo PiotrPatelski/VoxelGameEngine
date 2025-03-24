@@ -10,6 +10,7 @@
 #include <vector>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "TextureManager.hpp"
 
 namespace {
 // settings
@@ -19,59 +20,9 @@ std::vector<glm::vec3> pointLightPositions = {
     glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
     glm::vec3(-4.0f, 2.0f, -12.0f), glm::vec3(0.0f, 0.0f, -3.0f)};
 
-unsigned int createTexture(const std::string& path) {
-    unsigned int texture;
-    glGenTextures(1, &texture);
-
-    int width, height, nrChannels;
-    unsigned char* data =
-        stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
-    if (data) {
-        GLenum format;
-        if (nrChannels == 1)
-            format = GL_RED;
-        else if (nrChannels == 3)
-            format = GL_RGB;
-        else if (nrChannels == 4)
-            format = GL_RGBA;
-
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
-                     GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        const float borderColor[] = {1.0f, 1.0f, 0.0f, 1.0f};
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        // GL_LINEAR for smoother look from distance
-        // GL_NEAREST for more detailed zoom
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                        GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    } else {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-
-    stbi_image_free(data);
-    std::cout << "created texture with id: " << texture << std::endl;
-    return texture;
-}
-
 } // namespace
 
-Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
-    : screenWidth{static_cast<float>(width)},
-      screenHeight{static_cast<float>(height)} {
-    std::cout << "Renderer::Init!" << std::endl;
-
-    fontManager = std::make_unique<FontManager>(screenWidth, screenHeight);
-    // load and create a texture
-    // -------------------------
-    stbi_set_flip_vertically_on_load(true);
-    texture1 = createTexture("./textures/container2.png");
-    specularMapContainer = createTexture("./textures/container2_specular.png");
-    emissionMap = createTexture("./textures/matrix.jpg");
-
+void Renderer::setupShaders() {
     cubeShader = std::make_unique<Shader>("shaders/cube_shader.vs",
                                           "shaders/cube_shader.fs");
     // lightCubeShader = std::make_unique<Shader>("shaders/light_source.vs",
@@ -79,24 +30,8 @@ Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
     // lightCubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
     // lightCubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
     cubeShader->use();
-    /////////////////////////////////////////////////////////////
-    // TODO UNIFY INDICES assigned below, INDEX 0 IS ASSIGNED IN FONT MANAGER!
-    /////////////////////////////////////////////////////////////
-    cubeShader->setInt("material.diffuse", 1);
-    cubeShader->setInt("material.specular", 2);
-    // cubeShader->setInt("material.emission", 3);
     cubeShader->setFloat("fadeValue", 0.2f);
 
-    cubeShader->setFloat("material.shininess", 32.0f);
-    /*
-       Here we set all the uniforms for the 5/6 types of lights we have. We
-       have to set them manually and index the proper PointLight struct in
-       the array to set each uniform variable. This can be done more
-       code-friendly by defining light types as classes and set their values
-       in there, or by using a more efficient uniform approach by using
-       'Uniform buffer objects', but that is something we'll discuss in the
-       'Advanced GLSL' tutorial.
-    */
     // directional light
     cubeShader->setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
     cubeShader->setVec3("directionalLight.ambient", 0.2f, 0.2f, 0.2f);
@@ -126,16 +61,41 @@ Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
                          glm::cos(glm::radians(12.5f)));
     cubeShader->setFloat("spotLight.outerCutOff",
                          glm::cos(glm::radians(15.0f)));
+}
 
-    /////////////////////////////////////////////////////////////
-    // TODO UNIFY INDICES assigned below, INDEX 0 IS ASSIGNED IN FONT MANAGER!
-    /////////////////////////////////////////////////////////////
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, specularMapContainer);
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, emissionMap);
+void Renderer::setupMaterials() {
+    materials[CubeType::SAND] = Material{"textures/sand.jpg",
+                                         "./textures/container2_specular.png",
+                                         "./textures/matrix.jpg",
+                                         1,
+                                         2,
+                                         99,
+                                         32.0f};
+    materials[CubeType::DIRT] = Material{"textures/dirt.jpg",
+                                         "./textures/container2_specular.png",
+                                         "./textures/matrix.jpg",
+                                         3,
+                                         4,
+                                         99,
+                                         16.0f};
+    materials[CubeType::GRASS] = Material{"textures/grass.jpg",
+                                          "./textures/container2_specular.png",
+                                          "./textures/matrix.jpg",
+                                          5,
+                                          6,
+                                          99,
+                                          8.0f};
+}
+
+Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
+    : screenWidth{static_cast<float>(width)},
+      screenHeight{static_cast<float>(height)} {
+    std::cout << "Renderer::Init!" << std::endl;
+
+    fontManager = std::make_unique<FontManager>(screenWidth, screenHeight);
+
+    setupShaders();
+    setupMaterials();
 }
 
 Renderer::~Renderer() {
@@ -149,7 +109,6 @@ void Renderer::updateShaders(const Camera& camera) {
     cubeShader->use();
     cubeShader->setFloat("time", glfwGetTime());
     cubeShader->setVec3("viewPosition", camera.getPosition());
-
     // spotLight
     cubeShader->setVec3("spotLight.position", camera.getPosition());
     cubeShader->setVec3("spotLight.direction", camera.getFront());
@@ -165,16 +124,25 @@ void Renderer::updateShaders(const Camera& camera) {
 }
 
 void Renderer::render(unsigned int fps, World& world) {
-    // RENDER
     glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Perform per-cube frustum culling on the world.
+    cubeShader->use();
     world.performFrustumCulling(frustum);
 
-    // Now render the world (each chunk draws only its visible cubes).
-    cubeShader->use();
-    world.render(*cubeShader);
+    // Iterate over the materials map.
+    for (const auto& pair : materials) {
+        CubeType type = pair.first;
+        const Material& mat = pair.second;
+        TextureManager::BindTextureToUnit(mat.diffuseTexturePath,
+                                          mat.diffuseUnit);
+        TextureManager::BindTextureToUnit(mat.specularTexturePath,
+                                          mat.specularUnit);
+        cubeShader->setInt("material.diffuse", mat.diffuseUnit);
+        cubeShader->setInt("material.specular", mat.specularUnit);
+        cubeShader->setFloat("material.shininess", mat.shininess);
+        world.renderByType(*cubeShader, type);
+    }
 
     const std::string fpsCount{"FPS count: " + std::to_string(fps)};
     fontManager->renderText(fpsCount, 25.0f, 25.0f, 1.0f,

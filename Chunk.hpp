@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include <unordered_map>
 #include <glm/gtc/matrix_transform.hpp>
 #include "Cube.hpp"
 #include "Shader.hpp"
@@ -26,14 +27,14 @@ class Chunk {
     }
     void updateInstanceBuffer();
     void render(Shader& shader);
+    void renderByType(Shader& shader, CubeType type);
     void performFrustumCulling(const Frustum& frustum);
 
    private:
     void setupVAO(unsigned int sharedVBO, unsigned int sharedEBO);
+    void generateInstanceBuffersForCubeTypes();
     void generateCubeData();
-    void generateCubePresence(
-        std::vector<std::vector<std::vector<bool>>>& cubePresent,
-        std::vector<std::vector<int>>& columnHeights);
+    std::vector<std::vector<std::vector<bool>>> generateCubePresence();
     void generateVisibleCubes(
         const std::vector<std::vector<std::vector<bool>>>& cubePresent,
         float initialCubeX, float initialCubeZ);
@@ -44,8 +45,11 @@ class Chunk {
     static std::vector<Vertex> vertices;
     static std::vector<unsigned int> indices;
     std::vector<std::unique_ptr<Cube>> cubes{};
-    std::vector<glm::vec3> visibleCubes;
-    std::vector<glm::mat4> modelMatrices{};
-    unsigned int buffer{};
+    std::unordered_map<CubeType, std::vector<glm::mat4>> instanceMatrices;
+    std::unordered_map<CubeType, unsigned int> instanceBuffers;
+
     unsigned int vao{};
+    unsigned int bufferSand{};
+    unsigned int bufferDirt{};
+    unsigned int bufferGrass{};
 };

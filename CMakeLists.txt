@@ -56,11 +56,10 @@ add_executable(
         Clock.cpp 
         Renderer.cpp 
         FontManager.cpp 
+        TextureManager.cpp 
         Shader.cpp 
         Camera.cpp 
         Frustum.cpp
-        Mesh.cpp
-        Model.cpp
         World.cpp 
         Chunk.cpp 
         Cube.cpp)

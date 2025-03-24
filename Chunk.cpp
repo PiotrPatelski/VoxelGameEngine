@@ -54,7 +54,7 @@ std::vector<unsigned int> Chunk::indices = {
 // clang-format on
 
 static bool isCubeExposed(
-    const std::vector<std::vector<std::vector<bool>>>& cubePresent,
+    const std::vector<std::vector<std::vector<bool>>>& cubePresence,
     const glm::vec3& gridPosition) {
     const std::array<std::array<int, 3>, 6> neighborOffsets{{
         {{1, 0, 0}},  // +X
@@ -76,7 +76,7 @@ static bool isCubeExposed(
             return true;
         }
         // If neighbor cell is empty, cube is exposed.
-        if (!cubePresent[neighborX][neighborZ][neighborY]) {
+        if (!cubePresence[neighborX][neighborZ][neighborY]) {
             return true;
         }
     }
@@ -85,14 +85,11 @@ static bool isCubeExposed(
 
 Chunk::Chunk(int worldXindex, int worldZindex, unsigned int sharedVBO,
              unsigned int sharedEBO)
-    : chunkWorldXPosition{worldXindex}, chunkWorldZPosition{worldZindex} {
-    // 1. Set up the VAO.
+    : chunkWorldXPosition(worldXindex), chunkWorldZPosition(worldZindex) {
     setupVAO(sharedVBO, sharedEBO);
 
-    // 2. Generate cubes from noise with hidden-face removal.
+    generateInstanceBuffersForCubeTypes();
     generateCubeData();
-
-    // 3. Upload instance data.
     uploadInstanceData();
 }
 
@@ -121,32 +118,20 @@ void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
     glEnableVertexAttribArray(3);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // Generate the instance VBO.
-    glGenBuffers(1, &buffer);
     glBindVertexArray(0);
 }
 
 void Chunk::generateCubeData() {
-    // Prepare 3D boolean grid and column heights.
-    std::vector<std::vector<std::vector<bool>>> cubePresent(
-        chunkSize, std::vector<std::vector<bool>>(
-                       chunkSize, std::vector<bool>(chunkSize, false)));
-    std::vector<std::vector<int>> columnHeights(chunkSize,
-                                                std::vector<int>(chunkSize, 0));
-
-    generateCubePresence(cubePresent, columnHeights);
-
-    // Calculate initial world-space base positions.
     float initialCubeX = static_cast<float>(chunkWorldXPosition * chunkSize);
     float initialCubeZ = static_cast<float>(chunkWorldZPosition * chunkSize);
-
-    generateVisibleCubes(cubePresent, initialCubeX, initialCubeZ);
+    generateVisibleCubes(generateCubePresence(), initialCubeX, initialCubeZ);
 }
 
-void Chunk::generateCubePresence(
-    std::vector<std::vector<std::vector<bool>>>& cubePresent,
-    std::vector<std::vector<int>>& columnHeights) {
+std::vector<std::vector<std::vector<bool>>> Chunk::generateCubePresence() {
+    std::vector<std::vector<std::vector<bool>>> cubePresence(
+        chunkSize, std::vector<std::vector<bool>>(
+                       chunkSize, std::vector<bool>(chunkSize, false)));
+
     FastNoiseLite noise;
     noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     noise.SetFrequency(0.01f);
@@ -159,101 +144,132 @@ void Chunk::generateCubePresence(
                                                static_cast<float>(worldCubeZ));
             int height =
                 static_cast<int>((heightValue + 1.0f) * 0.5f * chunkSize / 2);
-            columnHeights[x][z] = height;
             for (int y = 0; y < chunkSize; y++) {
-                if (y <= height) cubePresent[x][z][y] = true;
+                if (y <= height) cubePresence[x][z][y] = true;
             }
         }
     }
+    return cubePresence;
 }
 
 void Chunk::generateVisibleCubes(
-    const std::vector<std::vector<std::vector<bool>>>& cubePresent,
+    const std::vector<std::vector<std::vector<bool>>>& cubePresence,
     float initialCubeX, float initialCubeZ) {
-    std::vector<glm::mat4> initialModels;
+    instanceMatrices.clear();
 
     for (int gridX = 0; gridX < chunkSize; gridX++) {
         for (int gridZ = 0; gridZ < chunkSize; gridZ++) {
             for (int gridY = 0; gridY < chunkSize; gridY++) {
-                if (!cubePresent[gridX][gridZ][gridY]) {
+                if (!cubePresence[gridX][gridZ][gridY]) continue;
+                if (!isCubeExposed(cubePresence,
+                                   glm::vec3(static_cast<float>(gridX),
+                                             static_cast<float>(gridY),
+                                             static_cast<float>(gridZ))))
                     continue;
-                }
+                glm::vec3 cubePos{initialCubeX + static_cast<float>(gridX),
+                                  static_cast<float>(gridY),
+                                  initialCubeZ + static_cast<float>(gridZ)};
+                CubeType type;
+                if (gridY < 11)
+                    type = CubeType::SAND;
+                else if (gridY < 14)
+                    type = CubeType::DIRT;
+                else
+                    type = CubeType::GRASS;
 
-                if (isCubeExposed(cubePresent,
-                                  glm::vec3{gridX, gridY, gridZ})) {
-                    glm::vec3 cubePos{initialCubeX + static_cast<float>(gridX),
-                                      static_cast<float>(gridY),
-                                      initialCubeZ + static_cast<float>(gridZ)};
-
-                    cubes.push_back(std::make_unique<Cube>(cubePos));
-                    initialModels.push_back(cubes.back()->getModel());
-                }
+                cubes.push_back(std::make_unique<Cube>(cubePos, type));
+                glm::mat4 model = cubes.back()->getModel();
+                instanceMatrices[type].push_back(model);
             }
         }
     }
-    modelMatrices = initialModels;
+}
+
+void Chunk::generateInstanceBuffersForCubeTypes() {
+    // Generate instance buffers map for each CubeType you plan to support.
+    // Initially create buffers for SAND, DIRT, and GRASS.
+    instanceBuffers[CubeType::SAND] = 0;
+    instanceBuffers[CubeType::DIRT] = 0;
+    instanceBuffers[CubeType::GRASS] = 0;
+    glGenBuffers(1, &instanceBuffers[CubeType::SAND]);
+    glGenBuffers(1, &instanceBuffers[CubeType::DIRT]);
+    glGenBuffers(1, &instanceBuffers[CubeType::GRASS]);
 }
 
 void Chunk::uploadInstanceData() {
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4),
-                 modelMatrices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    for (const auto& pair : instanceMatrices) {
+        CubeType type = pair.first;
+        const auto& matrices = pair.second;
+        unsigned int buffer = instanceBuffers[type];
+        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+        glBufferData(GL_ARRAY_BUFFER, matrices.size() * sizeof(glm::mat4),
+                     matrices.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
 
+void Chunk::renderByType(Shader& shader, CubeType type) {
     glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    // A mat4 is represented as 4 vec4 attributes (locations 4-7).
-    for (unsigned int matIdx = 0; matIdx < mat4Length; matIdx++) {
-        glVertexAttribPointer(mat4Length + matIdx, mat4Length, GL_FLOAT,
-                              GL_FALSE, sizeof(glm::mat4),
-                              (void*)(matIdx * sizeof(glm::vec4)));
-        glEnableVertexAttribArray(mat4Length + matIdx);
-        glVertexAttribDivisor(mat4Length + matIdx, 1);
+    auto it = instanceMatrices.find(type);
+    if (it == instanceMatrices.end() || it->second.empty()) {
+        glBindVertexArray(0);
+        return;
+    }
+    unsigned int instanceCount = it->second.size();
+    // Bind the buffer for this type.
+    glBindBuffer(GL_ARRAY_BUFFER, instanceBuffers[type]);
+    for (unsigned int i = 0; i < mat4Length; i++) {
+        glVertexAttribPointer(4 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                              (void*)(i * sizeof(glm::vec4)));
+        glEnableVertexAttribArray(4 + i);
+        glVertexAttribDivisor(4 + i, 1);
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(indices.size()),
+                            GL_UNSIGNED_INT, 0,
+                            static_cast<GLsizei>(instanceCount));
     glBindVertexArray(0);
 }
 
 void Chunk::render(Shader& shader) {
-    glBindVertexArray(vao);
-    glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0,
-                            cubes.size());
-    glBindVertexArray(0);
+    for (const auto& pair : instanceMatrices) {
+        renderByType(shader, pair.first);
+    }
 }
 
 void Chunk::performFrustumCulling(const Frustum& frustum) {
-    modelMatrices.clear();
+    std::unordered_map<CubeType, std::vector<glm::mat4>> visibleMatrices;
     for (const auto& cube : cubes) {
         if (cube) {
             glm::mat4 model = cube->getModel();
-            glm::vec3 pos = glm::vec3(model[3]); // Extract translation.
+            glm::vec3 pos = glm::vec3(model[3]);
             glm::vec3 aabbMin = pos - glm::vec3(0.5f);
             glm::vec3 aabbMax = pos + glm::vec3(0.5f);
             if (isAABBInsideFrustum(aabbMin, aabbMax, frustum)) {
-                modelMatrices.push_back(model);
+                visibleMatrices[cube->getType()].push_back(model);
             }
         }
     }
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4),
-                 modelMatrices.data(), GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    instanceMatrices = visibleMatrices;
+
+    // Update each instance buffer.
+    for (auto& pair : instanceMatrices) {
+        unsigned int buffer = instanceBuffers[pair.first];
+        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+        glBufferData(GL_ARRAY_BUFFER, pair.second.size() * sizeof(glm::mat4),
+                     pair.second.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
 }
 
 void Chunk::updateInstanceBuffer() {
-    modelMatrices.clear();
-    for (const auto& cube : cubes) {
-        if (cube) {
-            modelMatrices.push_back(cube->getModel());
-        }
-    }
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4),
-                 modelMatrices.data(), GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    generateCubeData();
+    uploadInstanceData();
 }
 
 Chunk::~Chunk() {
-    glDeleteBuffers(1, &buffer);
+    for (auto& pair : instanceBuffers) {
+        glDeleteBuffers(1, &pair.second);
+    }
     glDeleteVertexArrays(1, &vao);
 }

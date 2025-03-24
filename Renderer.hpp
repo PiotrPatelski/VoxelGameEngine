@@ -7,6 +7,7 @@
 #include "Shader.hpp"
 #include "World.hpp"
 #include "Frustum.hpp"
+#include "Material.hpp"
 
 class Renderer {
    public:
@@ -17,15 +18,14 @@ class Renderer {
     void render(unsigned int fps, World& world);
 
    private:
+    void setupShaders();
+    void setupMaterials();
     float screenWidth{0};
     float screenHeight{0};
-    unsigned int totalNumberOfVertices{0};
-    unsigned int texture1{0};
-    unsigned int texture2{0};
-    unsigned int specularMapContainer{0};
-    unsigned int emissionMap{0};
+
     std::unique_ptr<Shader> cubeShader{nullptr};
     std::unique_ptr<Shader> lightCubeShader{nullptr};
     std::unique_ptr<FontManager> fontManager{nullptr};
+    std::unordered_map<CubeType, Material> materials;
     Frustum frustum{};
 };

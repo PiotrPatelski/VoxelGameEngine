@@ -10,6 +10,7 @@ class World {
     ~World();
     void performFrustumCulling(const class Frustum& frustum);
     void render(Shader& shader);
+    void renderByType(Shader& shader, CubeType type);
     std::vector<std::vector<std::unique_ptr<Chunk>>> chunks{};
 
    private:
