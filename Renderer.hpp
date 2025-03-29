@@ -2,6 +2,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <memory>
+#include <unordered_map>
 #include "FontManager.hpp"
 #include "Camera.hpp"
 #include "Shader.hpp"

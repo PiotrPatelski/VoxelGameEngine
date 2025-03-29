@@ -64,6 +64,11 @@ App::App() {
         App* app = static_cast<App*>(glfwGetWindowUserPointer(targetWindow));
         app->scroll_callback(targetWindow, xoffset, yoffset);
     });
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* targetWindow, int button,
+                                          int action, int mods) {
+        App* app = static_cast<App*>(glfwGetWindowUserPointer(targetWindow));
+        app->mouse_button_callback(targetWindow, button, action, mods);
+    });
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -84,7 +89,7 @@ App::App() {
 App::~App() { std::cout << "App::Shutdown!" << std::endl; }
 
 void App::run() {
-    auto gameWorld = std::make_unique<World>();
+    gameWorld = std::make_unique<World>();
     renderer = std::make_unique<Renderer>(SCR_WIDTH, SCR_HEIGHT, *gameWorld);
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
@@ -130,6 +135,59 @@ void App::mouse_callback(GLFWwindow* targetWindow, double xposIn,
 void App::scroll_callback(GLFWwindow* targetWindow, double xoffset,
                           double yoffset) {
     camera.processMouseScroll(static_cast<float>(yoffset));
+}
+
+void App::mouse_button_callback(GLFWwindow* targetWindow, int button,
+                                int action, int mods) {
+    if (action != GLFW_PRESS) return;
+
+    // Left click: place a cube (sand) on the face of the hit block.
+    // Right click: remove the hit cube.
+    glm::vec3 rayOrigin = camera.getPosition();
+    glm::vec3 rayDirection = glm::normalize(camera.getFront());
+    auto hitOpt = gameWorld->raycast(rayOrigin, rayDirection, 5.0f);
+    if (hitOpt.has_value()) {
+        auto hit = hitOpt.value();
+        //-----------------------------
+        // TODO ALIGN WITH CHUNK::ChunkSize
+        const auto chunkSize = 64;
+        //--------------------------------
+        // For demonstration, we use left click to add and right click to
+        // remove.
+        if (button == GLFW_MOUSE_BUTTON_LEFT) {
+            // Place cube: assume we place it adjacent to the hit block.
+            // For simplicity, add in the same chunk using hit position +
+            // (0,1,0) as offset.
+            glm::ivec3 placeLocalPos =
+                hit.position; // block position in world coordinates
+            // Determine chunk indices and local coordinates.
+            int chunkX = placeLocalPos.x / chunkSize;
+            int chunkZ = placeLocalPos.z / chunkSize;
+            glm::ivec3 localPos = {placeLocalPos.x % chunkSize, placeLocalPos.y,
+                                   placeLocalPos.z % chunkSize};
+            // For a better solution, use the hit face normal; here we simply
+            // add one block above.
+            localPos.y += 1;
+            if (Chunk* chunk = gameWorld->getChunk(chunkX, chunkZ)) {
+                if (chunk->addCube(localPos, CubeType::SAND))
+                    std::cout << "Added cube at " << localPos.x << ", "
+                              << localPos.y << ", " << localPos.z << "\n";
+            }
+        } else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+            // Remove cube at hit position.
+            glm::ivec3 removeLocalPos = hit.position;
+            int chunkX = removeLocalPos.x / chunkSize;
+            int chunkZ = removeLocalPos.z / chunkSize;
+            glm::ivec3 localPos = {removeLocalPos.x % chunkSize,
+                                   removeLocalPos.y,
+                                   removeLocalPos.z % chunkSize};
+            if (Chunk* chunk = gameWorld->getChunk(chunkX, chunkZ)) {
+                if (chunk->removeCube(localPos))
+                    std::cout << "Removed cube at " << localPos.x << ", "
+                              << localPos.y << ", " << localPos.z << "\n";
+            }
+        }
+    }
 }
 
 void App::processInput() {

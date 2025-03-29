@@ -15,6 +15,8 @@ class App {
     void mouse_callback(GLFWwindow* targetWindow, double xposIn, double yposIn);
     void scroll_callback(GLFWwindow* targetWindow, double xoffset,
                          double yoffset);
+    void mouse_button_callback(GLFWwindow* window, int button, int action,
+                               int mods);
 
    private:
     void processInput();
@@ -22,6 +24,7 @@ class App {
     GLFWwindow* window{nullptr};
     Camera camera{};
     std::unique_ptr<Renderer> renderer{nullptr};
+    std::unique_ptr<World> gameWorld{nullptr};
     Clock frameTimeClock{};
 
     // settings

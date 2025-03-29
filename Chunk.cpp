@@ -1,7 +1,6 @@
 #include "Chunk.hpp"
 #include "FastNoiseLite.h"
 
-static constexpr int chunkSize{64};
 static constexpr int mat4Length{4};
 
 // clang-format off
@@ -53,43 +52,45 @@ std::vector<unsigned int> Chunk::indices = {
 };
 // clang-format on
 
-static bool isCubeExposed(
-    const std::vector<std::vector<std::vector<bool>>>& cubePresence,
-    const glm::vec3& gridPosition) {
-    const std::array<std::array<int, 3>, 6> neighborOffsets{{
-        {{1, 0, 0}},  // +X
-        {{-1, 0, 0}}, // -X
-        {{0, 1, 0}},  // +Z
-        {{0, -1, 0}}, // -Z
-        {{0, 0, 1}},  // +Y
-        {{0, 0, -1}}  // -Y
-    }};
+// static bool isCubeExposed(
+//     const std::vector<std::vector<std::vector<bool>>>& cubePresence,
+//     const glm::vec3& gridPosition) {
+//     const std::array<std::array<int, 3>, 6> neighborOffsets{{
+//         {{1, 0, 0}},  // +X
+//         {{-1, 0, 0}}, // -X
+//         {{0, 1, 0}},  // +Z
+//         {{0, -1, 0}}, // -Z
+//         {{0, 0, 1}},  // +Y
+//         {{0, 0, -1}}  // -Y
+//     }};
 
-    for (const auto& offset : neighborOffsets) {
-        int neighborX = gridPosition.x + offset[0];
-        int neighborZ = gridPosition.z + offset[1];
-        int neighborY = gridPosition.y + offset[2];
+//     for (const auto& offset : neighborOffsets) {
+//         int neighborX = gridPosition.x + offset[0];
+//         int neighborZ = gridPosition.z + offset[1];
+//         int neighborY = gridPosition.y + offset[2];
 
-        // If neighbor is out-of-bounds, cube is exposed.
-        if (neighborX < 0 || neighborX >= chunkSize || neighborZ < 0 ||
-            neighborZ >= chunkSize || neighborY < 0 || neighborY >= chunkSize) {
-            return true;
-        }
-        // If neighbor cell is empty, cube is exposed.
-        if (!cubePresence[neighborX][neighborZ][neighborY]) {
-            return true;
-        }
-    }
-    return false;
-}
+//         // If neighbor is out-of-bounds, cube is exposed.
+//         if (neighborX < 0 || neighborX >= chunkSize || neighborZ < 0 ||
+//             neighborZ >= chunkSize || neighborY < 0 || neighborY >=
+//             chunkSize) { return true;
+//         }
+//         // If neighbor cell is empty, cube is exposed.
+//         if (!cubePresence[neighborX][neighborZ][neighborY]) {
+//             return true;
+//         }
+//     }
+//     return false;
+// }
 
-Chunk::Chunk(int worldXindex, int worldZindex, unsigned int sharedVBO,
-             unsigned int sharedEBO)
-    : chunkWorldXPosition(worldXindex), chunkWorldZPosition(worldZindex) {
+Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex,
+             unsigned int sharedVBO, unsigned int sharedEBO)
+    : size{chunkSize},
+      chunkWorldXPosition{worldXindex},
+      chunkWorldZPosition{worldZindex} {
     setupVAO(sharedVBO, sharedEBO);
-
+    cubeGrid = generateInitialCubeGrid();
     generateInstanceBuffersForCubeTypes();
-    generateCubeData();
+    rebuildCubesFromGrid();
     uploadInstanceData();
 }
 
@@ -121,65 +122,54 @@ void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
     glBindVertexArray(0);
 }
 
-void Chunk::generateCubeData() {
-    float initialCubeX = static_cast<float>(chunkWorldXPosition * chunkSize);
-    float initialCubeZ = static_cast<float>(chunkWorldZPosition * chunkSize);
-    generateVisibleCubes(generateCubePresence(), initialCubeX, initialCubeZ);
-}
-
-std::vector<std::vector<std::vector<bool>>> Chunk::generateCubePresence() {
-    std::vector<std::vector<std::vector<bool>>> cubePresence(
-        chunkSize, std::vector<std::vector<bool>>(
-                       chunkSize, std::vector<bool>(chunkSize, false)));
+std::vector<std::vector<std::vector<bool>>> Chunk::generateInitialCubeGrid() {
+    std::vector<std::vector<std::vector<bool>>> grid(
+        size,
+        std::vector<std::vector<bool>>(size, std::vector<bool>(size, false)));
 
     FastNoiseLite noise;
     noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     noise.SetFrequency(0.01f);
 
-    for (int x = 0; x < chunkSize; x++) {
-        for (int z = 0; z < chunkSize; z++) {
-            int worldCubeX = chunkWorldXPosition * chunkSize + x;
-            int worldCubeZ = chunkWorldZPosition * chunkSize + z;
+    for (int x = 0; x < size; x++) {
+        for (int z = 0; z < size; z++) {
+            int worldCubeX = chunkWorldXPosition * size + x;
+            int worldCubeZ = chunkWorldZPosition * size + z;
             float heightValue = noise.GetNoise(static_cast<float>(worldCubeX),
                                                static_cast<float>(worldCubeZ));
             int height =
-                static_cast<int>((heightValue + 1.0f) * 0.5f * chunkSize / 2);
-            for (int y = 0; y < chunkSize; y++) {
-                if (y <= height) cubePresence[x][z][y] = true;
+                static_cast<int>((heightValue + 1.0f) * 0.5f * size / 2);
+            for (int y = 0; y < size; y++) {
+                if (y <= height) grid[x][z][y] = true;
             }
         }
     }
-    return cubePresence;
+    return grid;
 }
 
-void Chunk::generateVisibleCubes(
-    const std::vector<std::vector<std::vector<bool>>>& cubePresence,
-    float initialCubeX, float initialCubeZ) {
+void Chunk::rebuildCubesFromGrid() {
+    cubes.clear();
     instanceMatrices.clear();
 
-    for (int gridX = 0; gridX < chunkSize; gridX++) {
-        for (int gridZ = 0; gridZ < chunkSize; gridZ++) {
-            for (int gridY = 0; gridY < chunkSize; gridY++) {
-                if (!cubePresence[gridX][gridZ][gridY]) continue;
-                if (!isCubeExposed(cubePresence,
-                                   glm::vec3(static_cast<float>(gridX),
-                                             static_cast<float>(gridY),
-                                             static_cast<float>(gridZ))))
-                    continue;
-                glm::vec3 cubePos{initialCubeX + static_cast<float>(gridX),
-                                  static_cast<float>(gridY),
-                                  initialCubeZ + static_cast<float>(gridZ)};
+    float initialCubeX = static_cast<float>(chunkWorldXPosition * size);
+    float initialCubeZ = static_cast<float>(chunkWorldZPosition * size);
+    for (int x = 0; x < size; x++) {
+        for (int z = 0; z < size; z++) {
+            for (int y = 0; y < size; y++) {
+                if (!cubeGrid[x][z][y]) continue;
+                glm::vec3 cubePos{initialCubeX + static_cast<float>(x),
+                                  static_cast<float>(y),
+                                  initialCubeZ + static_cast<float>(z)};
                 CubeType type;
-                if (gridY < 11)
+                if (y < 11)
                     type = CubeType::SAND;
-                else if (gridY < 14)
+                else if (y < 14)
                     type = CubeType::DIRT;
                 else
                     type = CubeType::GRASS;
 
                 cubes.push_back(std::make_unique<Cube>(cubePos, type));
-                glm::mat4 model = cubes.back()->getModel();
-                instanceMatrices[type].push_back(model);
+                instanceMatrices[type].push_back(cubes.back()->getModel());
             }
         }
     }
@@ -231,12 +221,6 @@ void Chunk::renderByType(Shader& shader, CubeType type) {
     glBindVertexArray(0);
 }
 
-void Chunk::render(Shader& shader) {
-    for (const auto& pair : instanceMatrices) {
-        renderByType(shader, pair.first);
-    }
-}
-
 void Chunk::performFrustumCulling(const Frustum& frustum) {
     std::unordered_map<CubeType, std::vector<glm::mat4>> visibleMatrices;
     for (const auto& cube : cubes) {
@@ -252,7 +236,6 @@ void Chunk::performFrustumCulling(const Frustum& frustum) {
     }
     instanceMatrices = visibleMatrices;
 
-    // Update each instance buffer.
     for (auto& pair : instanceMatrices) {
         unsigned int buffer = instanceBuffers[pair.first];
         glBindBuffer(GL_ARRAY_BUFFER, buffer);
@@ -263,8 +246,34 @@ void Chunk::performFrustumCulling(const Frustum& frustum) {
 }
 
 void Chunk::updateInstanceBuffer() {
-    generateCubeData();
+    rebuildCubesFromGrid();
     uploadInstanceData();
+}
+
+bool Chunk::addCube(const glm::ivec3& localPos, CubeType type) {
+    if (localPos.x < 0 || localPos.x >= size || localPos.z < 0 ||
+        localPos.z >= size || localPos.y < 0 || localPos.y >= size) {
+        return false;
+    }
+    if (cubeGrid[localPos.x][localPos.z][localPos.y]) {
+        return false;
+    }
+    cubeGrid[localPos.x][localPos.z][localPos.y] = true;
+    updateInstanceBuffer();
+    return true;
+}
+
+bool Chunk::removeCube(const glm::ivec3& localPos) {
+    if (localPos.x < 0 || localPos.x >= size || localPos.z < 0 ||
+        localPos.z >= size || localPos.y < 0 || localPos.y >= size) {
+        return false;
+    }
+    if (!cubeGrid[localPos.x][localPos.z][localPos.y]) {
+        return false;
+    }
+    cubeGrid[localPos.x][localPos.z][localPos.y] = false;
+    updateInstanceBuffer();
+    return true;
 }
 
 Chunk::~Chunk() {
