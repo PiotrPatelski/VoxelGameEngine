@@ -20,11 +20,10 @@ class World {
                                      const glm::vec3& direction,
                                      float maxDistance = 5.0f) const;
     void performFrustumCulling(const class Frustum& frustum);
-    void render(Shader& shader);
     void renderByType(Shader& shader, CubeType type);
     Chunk* getChunk(int chunkX, int chunkZ);
 
    private:
     std::vector<std::vector<std::unique_ptr<Chunk>>> chunks{};
-    static constexpr int worldSize{6};
+    static constexpr int worldSize{8};
 };

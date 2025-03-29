@@ -222,22 +222,42 @@ void Chunk::renderByType(Shader& shader, CubeType type) {
 }
 
 void Chunk::performFrustumCulling(const Frustum& frustum) {
+    // Compute the chunk's AABB in world space.
+    glm::vec3 chunkMin, chunkMax;
+    computeChunkAABB(chunkMin, chunkMax);
+
+    // If the whole chunk is outside the frustum, clear instance matrices.
+    if (!isAABBInsideFrustum(chunkMin, chunkMax, frustum)) {
+        for (auto& pair : instanceMatrices) {
+            pair.second.clear();
+        }
+        for (auto& pair : instanceBuffers) {
+            glBindBuffer(GL_ARRAY_BUFFER, pair.second);
+            glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
+        return;
+    }
+
+    // Otherwise, rebuild the visible instance matrices every frame.
     std::unordered_map<CubeType, std::vector<glm::mat4>> visibleMatrices;
     for (const auto& cube : cubes) {
         if (cube) {
             glm::mat4 model = cube->getModel();
             glm::vec3 pos = glm::vec3(model[3]);
-            glm::vec3 aabbMin = pos - glm::vec3(0.5f);
-            glm::vec3 aabbMax = pos + glm::vec3(0.5f);
-            if (isAABBInsideFrustum(aabbMin, aabbMax, frustum)) {
+            glm::vec3 voxelMin = pos - glm::vec3(0.5f);
+            glm::vec3 voxelMax = pos + glm::vec3(0.5f);
+            if (isAABBInsideFrustum(voxelMin, voxelMax, frustum)) {
                 visibleMatrices[cube->getType()].push_back(model);
             }
         }
     }
-    instanceMatrices = visibleMatrices;
+    instanceMatrices = std::move(visibleMatrices);
 
-    for (auto& pair : instanceMatrices) {
-        unsigned int buffer = instanceBuffers[pair.first];
+    // Update GPU instance buffers with the visible matrices.
+    for (const auto& pair : instanceMatrices) {
+        CubeType type = pair.first;
+        unsigned int buffer = instanceBuffers[type];
         glBindBuffer(GL_ARRAY_BUFFER, buffer);
         glBufferData(GL_ARRAY_BUFFER, pair.second.size() * sizeof(glm::mat4),
                      pair.second.data(), GL_DYNAMIC_DRAW);

@@ -58,38 +58,59 @@ void World::renderByType(Shader &shader, CubeType type) {
 std::optional<HitResult> World::raycast(const glm::vec3 &origin,
                                         const glm::vec3 &direction,
                                         float maxDistance) const {
-    glm::vec3 rayPos = origin;
     glm::vec3 rayDir = glm::normalize(direction);
-    float t = 0.0f;
-    const float delta = 0.1f;
-    while (t < maxDistance) {
-        glm::ivec3 blockPos = glm::floor(rayPos);
+
+    // Convert start position to integer voxel coordinates
+    glm::ivec3 blockPos = glm::floor(origin);
+    glm::ivec3 step = glm::sign(rayDir);
+
+    // Precompute inverse direction for efficiency
+    glm::vec3 invRayDir = 1.0f / rayDir;
+
+    // Compute first intersection distances
+    glm::vec3 tMax =
+        (glm::vec3(blockPos) + glm::vec3(step) * 0.5f - origin) * invRayDir;
+    glm::vec3 tDelta = glm::abs(invRayDir);
+
+    float distanceTraveled = 0.0f;
+
+    while (distanceTraveled < maxDistance) {
+        // Compute chunk coordinates
         int chunkX = blockPos.x / chunkSize;
         int chunkZ = blockPos.z / chunkSize;
+
+        // Check if out of world bounds early
         if (chunkX < 0 || chunkX >= worldSize || chunkZ < 0 ||
-            chunkZ >= worldSize) {
-            t += delta;
-            rayPos = origin + t * rayDir;
-            continue;
-        }
+            chunkZ >= worldSize)
+            return std::nullopt;
+
+        // Retrieve chunk
         const Chunk *chunk = chunks[chunkX][chunkZ].get();
         const auto &grid = chunk->getCubeGrid();
-        int localX = blockPos.x % chunkSize;
-        int localZ = blockPos.z % chunkSize;
+
+        // Convert world-space to chunk-local coordinates (avoiding modulo)
+        int localX =
+            blockPos.x &
+            (chunkSize -
+             1); // Faster than `% chunkSize` if chunkSize is power of 2
+        int localZ = blockPos.z & (chunkSize - 1);
         int localY = blockPos.y;
-        if (localX < 0) localX += chunkSize;
-        if (localZ < 0) localZ += chunkSize;
+
+        // Check if voxel is solid
         if (localY >= 0 && localY < chunkSize && grid[localX][localZ][localY]) {
-            HitResult result;
-            result.position = blockPos;
-            result.chunkX = chunkX;
-            result.chunkZ = chunkZ;
-            result.hit = true;
-            return result;
+            return HitResult{blockPos, chunkX, chunkZ, true};
         }
-        t += delta;
-        rayPos = origin + t * rayDir;
+
+        // Move to next voxel along the ray
+        int axis = (tMax.x < tMax.y) ? ((tMax.x < tMax.z) ? 0 : 2)
+                                     : ((tMax.y < tMax.z) ? 1 : 2);
+        blockPos[axis] += step[axis];
+        tMax[axis] += tDelta[axis];
+
+        // Instead of glm::length(), track accumulated distance manually
+        distanceTraveled += tDelta[axis];
     }
+
     return std::nullopt;
 }
 
