@@ -4,37 +4,32 @@
 static constexpr int mat4Length{4};
 
 // clang-format off
-//Pos: {X, Y, Z} Color:{R, G, B} TexCord:{X, Y} Normal{X, Y, Z}
+//Pos: {X, Y, Z} TexCord:{X, Y} Normal{X, Y, Z}
 std::vector<Vertex> Chunk::vertices = {
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-    {{0.5f,  0.5f,  -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-    {{0.5f,  -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-    {{-0.5f, 0.5f,  -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-
-    {{-0.5f, -0.5f, 0.5f},  {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f},{ 0.0f, 0.0f, 1.0f}},
-    {{0.5f,  -0.5f, 0.5f},  {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f},{ 0.0f, 0.0f, 1.0f}},
-    {{0.5f,  0.5f,  0.5f},  {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f},{ 0.0f, 0.0f, 1.0f}}, 
-    {{-0.5f, 0.5f,  0.5f},  {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f},{ 0.0f, 0.0f, 1.0f}}, 
-
-    {{-0.5f, 0.5f,  0.5f},  {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f},{-1.0f, 0.0f, 0.0f}},
-    {{-0.5f, 0.5f, -0.5f},  {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f},{-1.0f, 0.0f, 0.0f}},
-    {{-0.5f, -0.5f,-0.5f},  {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f},{-1.0f, 0.0f, 0.0f}},
-    {{-0.5f, -0.5f, 0.5f},  {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f},{-1.0f, 0.0f, 0.0f}},
-
-    {{0.5f,  0.5f,  0.5f},  {0.5f, 0.5f, 0.0f}, {1.0f, 0.0f},{ 1.0f, 0.0f, 0.0f}},
-    {{0.5f,  -0.5f,-0.5f},  {0.5f, 0.5f, 0.0f}, {0.0f, 1.0f},{ 1.0f, 0.0f, 0.0f}},
-    {{0.5f,  0.5f, -0.5f},  {0.5f, 0.5f, 0.0f}, {1.0f, 1.0f},{ 1.0f, 0.0f, 0.0f}},
-    {{0.5f,  -0.5f, 0.5f},  {0.5f, 0.5f, 0.0f}, {0.0f, 0.0f},{ 1.0f, 0.0f, 0.0f}},
-
-    {{-0.5f, -0.5f,-0.5f},  {0.5f, 0.0f, 0.5f}, {0.0f, 1.0f},{ 0.0f, -1.0f, 0.0f}},
-    {{0.5f,  -0.5f,-0.5f},  {0.5f, 0.0f, 0.5f}, {1.0f, 1.0f},{ 0.0f, -1.0f, 0.0f}},
-    {{0.5f,  -0.5f, 0.5f},  {0.5f, 0.0f, 0.5f}, {1.0f, 0.0f},{ 0.0f, -1.0f, 0.0f}},
-    {{-0.5f, -0.5f, 0.5f},  {0.5f, 0.0f, 0.5f}, {0.0f, 0.0f},{ 0.0f, -1.0f, 0.0f}},
-
-    {{-0.5f, 0.5f, -0.5f},  {0.0f, 0.5f, 0.5f}, {0.0f, 1.0f},{ 0.0f, 1.0f, 0.0f}},
-    {{0.5f,  0.5f,  0.5f},  {0.0f, 0.5f, 0.5f}, {1.0f, 0.0f},{ 0.0f, 1.0f, 0.0f}},
-    {{0.5f,  0.5f, -0.5f},  {0.0f, 0.5f, 0.5f}, {1.0f, 1.0f},{ 0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f,  0.5f},  {0.0f, 0.5f, 0.5f}, {0.0f, 0.0f},{ 0.0f, 1.0f, 0.0f}}};
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+    {{0.5f,  0.5f,  -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
+    {{0.5f,  -0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+    {{-0.5f, 0.5f,  -0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
+    {{-0.5f, -0.5f, 0.5f},  {0.0f, 0.0f},{ 0.0f, 0.0f, 1.0f}},
+    {{0.5f,  -0.5f, 0.5f},  {1.0f, 0.0f},{ 0.0f, 0.0f, 1.0f}},
+    {{0.5f,  0.5f,  0.5f},  {1.0f, 1.0f},{ 0.0f, 0.0f, 1.0f}}, 
+    {{-0.5f, 0.5f,  0.5f},  {0.0f, 1.0f},{ 0.0f, 0.0f, 1.0f}}, 
+    {{-0.5f, 0.5f,  0.5f},  {1.0f, 0.0f},{-1.0f, 0.0f, 0.0f}},
+    {{-0.5f, 0.5f, -0.5f},  {1.0f, 1.0f},{-1.0f, 0.0f, 0.0f}},
+    {{-0.5f, -0.5f,-0.5f},  {0.0f, 1.0f},{-1.0f, 0.0f, 0.0f}},
+    {{-0.5f, -0.5f, 0.5f},  {0.0f, 0.0f},{-1.0f, 0.0f, 0.0f}},
+    {{0.5f,  0.5f,  0.5f},  {1.0f, 0.0f},{ 1.0f, 0.0f, 0.0f}},
+    {{0.5f,  -0.5f,-0.5f},  {0.0f, 1.0f},{ 1.0f, 0.0f, 0.0f}},
+    {{0.5f,  0.5f, -0.5f},  {1.0f, 1.0f},{ 1.0f, 0.0f, 0.0f}},
+    {{0.5f,  -0.5f, 0.5f},  {0.0f, 0.0f},{ 1.0f, 0.0f, 0.0f}},
+    {{-0.5f, -0.5f,-0.5f},  {0.0f, 1.0f},{ 0.0f, -1.0f, 0.0f}},
+    {{0.5f,  -0.5f,-0.5f},  {1.0f, 1.0f},{ 0.0f, -1.0f, 0.0f}},
+    {{0.5f,  -0.5f, 0.5f},  {1.0f, 0.0f},{ 0.0f, -1.0f, 0.0f}},
+    {{-0.5f, -0.5f, 0.5f},  {0.0f, 0.0f},{ 0.0f, -1.0f, 0.0f}},
+    {{-0.5f, 0.5f, -0.5f},  {0.0f, 1.0f},{ 0.0f, 1.0f, 0.0f}},
+    {{0.5f,  0.5f,  0.5f},  {1.0f, 0.0f},{ 0.0f, 1.0f, 0.0f}},
+    {{0.5f,  0.5f, -0.5f},  {1.0f, 1.0f},{ 0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f,  0.5f},  {0.0f, 0.0f},{ 0.0f, 1.0f, 0.0f}}};
 
 std::vector<unsigned int> Chunk::indices = {
     // Front face (z = -0.5)
@@ -105,18 +100,14 @@ void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
     // POSITION attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
-    // COLOR attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride,
-                          (void*)offsetof(Vertex, color));
-    glEnableVertexAttribArray(1);
     // TEXCOORD attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride,
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride,
                           (void*)offsetof(Vertex, texCoord));
-    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(1);
     // NORMAL attribute
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride,
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride,
                           (void*)offsetof(Vertex, normal));
-    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -209,10 +200,10 @@ void Chunk::renderByType(Shader& shader, CubeType type) {
     // Bind the buffer for this type.
     glBindBuffer(GL_ARRAY_BUFFER, instanceBuffers[type]);
     for (unsigned int i = 0; i < mat4Length; i++) {
-        glVertexAttribPointer(4 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+        glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
                               (void*)(i * sizeof(glm::vec4)));
-        glEnableVertexAttribArray(4 + i);
-        glVertexAttribDivisor(4 + i, 1);
+        glEnableVertexAttribArray(3 + i);
+        glVertexAttribDivisor(3 + i, 1);
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(indices.size()),

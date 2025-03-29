@@ -36,7 +36,6 @@ void Renderer::setupShaders() {
     cubeShader->setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
     cubeShader->setVec3("directionalLight.ambient", 0.2f, 0.2f, 0.2f);
     cubeShader->setVec3("directionalLight.diffuse", 0.5f, 0.5f, 0.5f);
-    cubeShader->setVec3("directionalLight.specular", 0.5f, 0.5f, 0.5f);
     // point lights
     for (unsigned int lightPosIndex = 0;
          lightPosIndex < pointLightPositions.size(); lightPosIndex++) {
@@ -46,14 +45,12 @@ void Renderer::setupShaders() {
                             pointLightPositions[lightPosIndex]);
         cubeShader->setVec3(uniformName + ".ambient", 0.05f, 0.05f, 0.05f);
         cubeShader->setVec3(uniformName + ".diffuse", 0.8f, 0.8f, 0.8f);
-        cubeShader->setVec3(uniformName + ".specular", 1.0f, 1.0f, 1.0f);
         cubeShader->setFloat(uniformName + ".constant", 1.0f);
         cubeShader->setFloat(uniformName + ".linear", 0.09f);
         cubeShader->setFloat(uniformName + ".quadratic", 0.032f);
     }
     cubeShader->setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
     cubeShader->setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    cubeShader->setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
     cubeShader->setFloat("spotLight.constant", 1.0f);
     cubeShader->setFloat("spotLight.linear", 0.09f);
     cubeShader->setFloat("spotLight.quadratic", 0.032f);
@@ -64,27 +61,12 @@ void Renderer::setupShaders() {
 }
 
 void Renderer::setupMaterials() {
-    materials[CubeType::SAND] = Material{"textures/sand.jpg",
-                                         "./textures/container2_specular.png",
-                                         "./textures/matrix.jpg",
-                                         1,
-                                         2,
-                                         99,
-                                         32.0f};
-    materials[CubeType::DIRT] = Material{"textures/dirt.jpg",
-                                         "./textures/container2_specular.png",
-                                         "./textures/matrix.jpg",
-                                         3,
-                                         4,
-                                         99,
-                                         16.0f};
-    materials[CubeType::GRASS] = Material{"textures/grass.jpg",
-                                          "./textures/container2_specular.png",
-                                          "./textures/matrix.jpg",
-                                          5,
-                                          6,
-                                          99,
-                                          8.0f};
+    materials[CubeType::SAND] =
+        Material{"textures/sand.jpg", "./textures/matrix.jpg", 1, 99, 32.0f};
+    materials[CubeType::DIRT] =
+        Material{"textures/dirt.jpg", "./textures/matrix.jpg", 2, 99, 16.0f};
+    materials[CubeType::GRASS] =
+        Material{"textures/grass.jpg", "./textures/matrix.jpg", 3, 99, 8.0f};
 }
 
 Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
@@ -136,10 +118,7 @@ void Renderer::render(unsigned int fps, World& world) {
         const Material& mat = pair.second;
         TextureManager::BindTextureToUnit(mat.diffuseTexturePath,
                                           mat.diffuseUnit);
-        TextureManager::BindTextureToUnit(mat.specularTexturePath,
-                                          mat.specularUnit);
         cubeShader->setInt("material.diffuse", mat.diffuseUnit);
-        cubeShader->setInt("material.specular", mat.specularUnit);
         cubeShader->setFloat("material.shininess", mat.shininess);
         world.renderByType(*cubeShader, type);
     }
