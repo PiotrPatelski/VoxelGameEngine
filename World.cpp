@@ -1,14 +1,16 @@
 #include "World.hpp"
+#include "FastNoiseLite.h"
+#include "Raycaster.hpp"
+#include <cstdio>
+#include <cmath>
+#include <glm/gtc/matrix_transform.hpp>
 
-static constexpr int chunkSize{64};
-// BUFFER DEFAULTS
-unsigned int vertexBufferObjects,
-    elementBufferObjects; // must be overwritten before use
-// unsigned int lightSourceVAO;
-const unsigned int amountOfVBOBuffers{1};
-const unsigned int amountOfEBOBuffers{1};
+// Global shared buffers
+unsigned int vertexBufferObjects, elementBufferObjects;
+const unsigned int amountOfVBOBuffers = 1;
+const unsigned int amountOfEBOBuffers = 1;
 
-void setupVertexBufferData() {
+static void setupVertexBufferData() {
     glGenBuffers(amountOfVBOBuffers, &vertexBufferObjects);
     glGenBuffers(amountOfEBOBuffers, &elementBufferObjects);
 
@@ -29,95 +31,98 @@ World::World() {
     printf("World::Init!\n");
     setupVertexBufferData();
 
-    for (int x{0}; x < worldSize; x++) {
-        chunks.emplace_back(std::vector<std::unique_ptr<Chunk>>{});
-        for (int z{0}; z < worldSize; z++) {
-            chunks[x].emplace_back(std::make_unique<Chunk>(
-                chunkSize, x, z, vertexBufferObjects, elementBufferObjects));
+    // Initially load chunks around (0,0) using renderDistance.
+    for (int x = -renderDistance; x <= renderDistance; x++) {
+        for (int z = -renderDistance; z <= renderDistance; z++) {
+            ChunkCoord coord{x, z};
+            loadedChunks[coord] = std::make_unique<Chunk>(
+                chunkSize, x, z, vertexBufferObjects, elementBufferObjects);
         }
+    }
+    lastCameraChunk = {0, 0};
+}
+
+bool World::addCubeFromRaycast(const Camera& camera, CubeType type,
+                               float maxDistance) {
+    auto hitOpt =
+        Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
+    if (hitOpt.has_value()) {
+        HitResult hit = hitOpt.value();
+        // For this example, we add a cube above the hit block.
+        glm::ivec3 worldBlockPos = hit.position;
+        worldBlockPos.y += 1;
+        int chunkX = worldBlockPos.x / chunkSize;
+        int chunkZ = worldBlockPos.z / chunkSize;
+        int localX = worldBlockPos.x % chunkSize;
+        int localZ = worldBlockPos.z % chunkSize;
+        int localY = worldBlockPos.y;
+        Chunk* chunk = getChunk({chunkX, chunkZ});
+        if (chunk) {
+            return chunk->addCube(glm::ivec3(localX, localY, localZ), type);
+        }
+    }
+    return false;
+}
+
+bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
+    auto hitOpt =
+        Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
+    if (hitOpt.has_value()) {
+        HitResult hit = hitOpt.value();
+        glm::ivec3 worldBlockPos = hit.position;
+        int chunkX = worldBlockPos.x / chunkSize;
+        int chunkZ = worldBlockPos.z / chunkSize;
+        int localX = worldBlockPos.x % chunkSize;
+        int localZ = worldBlockPos.z % chunkSize;
+        int localY = worldBlockPos.y;
+        Chunk* chunk = getChunk({chunkX, chunkZ});
+        if (chunk) {
+            return chunk->removeCube(glm::ivec3(localX, localY, localZ));
+        }
+    }
+    return false;
+}
+
+Chunk* World::getChunk(const ChunkCoord& coord) const {
+    auto it = loadedChunks.find(coord);
+    return (it != loadedChunks.end()) ? it->second.get() : nullptr;
+}
+
+void World::updateLoadedChunks(const glm::vec3& camPos) {
+    int camChunkX = static_cast<int>(std::floor(camPos.x / chunkSize));
+    int camChunkZ = static_cast<int>(std::floor(camPos.z / chunkSize));
+    ChunkCoord camCoord{camChunkX, camChunkZ};
+    if (camCoord == lastCameraChunk) return;
+    lastCameraChunk = camCoord;
+
+    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> newLoaded;
+    for (int x = camChunkX - renderDistance; x <= camChunkX + renderDistance;
+         x++) {
+        for (int z = camChunkZ - renderDistance;
+             z <= camChunkZ + renderDistance; z++) {
+            ChunkCoord coord{x, z};
+            if (loadedChunks.find(coord) != loadedChunks.end()) {
+                newLoaded[coord] = std::move(loadedChunks[coord]);
+            } else {
+                newLoaded[coord] = std::make_unique<Chunk>(
+                    chunkSize, x, z, vertexBufferObjects, elementBufferObjects);
+            }
+        }
+    }
+    loadedChunks = std::move(newLoaded);
+}
+
+void World::performFrustumCulling(const Frustum& frustum) {
+    for (auto& kv : loadedChunks) {
+        kv.second->performFrustumCulling(frustum);
     }
 }
 
-void World::performFrustumCulling(const Frustum &frustum) {
-    for (auto &chunkRow : chunks) {
-        for (auto &chunk : chunkRow) {
-            chunk->performFrustumCulling(frustum);
-        }
-    }
-}
-
-void World::renderByType(Shader &shader, CubeType type) {
+void World::renderByType(Shader& shader, CubeType type) {
     shader.use();
-    for (auto &chunkRow : chunks) {
-        for (auto &chunk : chunkRow) {
-            chunk->renderByType(shader, type);
-        }
+    for (auto& kv : loadedChunks) {
+        kv.second->renderByType(shader, type);
     }
-}
-
-std::optional<HitResult> World::raycast(const glm::vec3 &origin,
-                                        const glm::vec3 &direction,
-                                        float maxDistance) const {
-    glm::vec3 rayDir = glm::normalize(direction);
-
-    // Convert start position to integer voxel coordinates
-    glm::ivec3 blockPos = glm::floor(origin);
-    glm::ivec3 step = glm::sign(rayDir);
-
-    // Precompute inverse direction for efficiency
-    glm::vec3 invRayDir = 1.0f / rayDir;
-
-    // Compute first intersection distances
-    glm::vec3 tMax =
-        (glm::vec3(blockPos) + glm::vec3(step) * 0.5f - origin) * invRayDir;
-    glm::vec3 tDelta = glm::abs(invRayDir);
-
-    float distanceTraveled = 0.0f;
-
-    while (distanceTraveled < maxDistance) {
-        // Compute chunk coordinates
-        int chunkX = blockPos.x / chunkSize;
-        int chunkZ = blockPos.z / chunkSize;
-
-        // Check if out of world bounds early
-        if (chunkX < 0 || chunkX >= worldSize || chunkZ < 0 ||
-            chunkZ >= worldSize)
-            return std::nullopt;
-
-        // Retrieve chunk
-        const Chunk *chunk = chunks[chunkX][chunkZ].get();
-        const auto &grid = chunk->getCubeGrid();
-
-        // Convert world-space to chunk-local coordinates (avoiding modulo)
-        int localX =
-            blockPos.x &
-            (chunkSize -
-             1); // Faster than `% chunkSize` if chunkSize is power of 2
-        int localZ = blockPos.z & (chunkSize - 1);
-        int localY = blockPos.y;
-
-        // Check if voxel is solid
-        if (localY >= 0 && localY < chunkSize && grid[localX][localZ][localY]) {
-            return HitResult{blockPos, chunkX, chunkZ, true};
-        }
-
-        // Move to next voxel along the ray
-        int axis = (tMax.x < tMax.y) ? ((tMax.x < tMax.z) ? 0 : 2)
-                                     : ((tMax.y < tMax.z) ? 1 : 2);
-        blockPos[axis] += step[axis];
-        tMax[axis] += tDelta[axis];
-
-        // Instead of glm::length(), track accumulated distance manually
-        distanceTraveled += tDelta[axis];
-    }
-
-    return std::nullopt;
-}
-
-Chunk *World::getChunk(int chunkX, int chunkZ) {
-    if (chunkX < 0 || chunkX >= worldSize || chunkZ < 0 || chunkZ >= worldSize)
-        return nullptr;
-    return chunks[chunkX][chunkZ].get();
 }
 
 World::~World() {

@@ -62,7 +62,8 @@ add_executable(
         Frustum.cpp
         World.cpp 
         Chunk.cpp 
-        Cube.cpp)
+        Cube.cpp
+        Raycaster.cpp)
 target_link_libraries(OpenGLTutorial ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory

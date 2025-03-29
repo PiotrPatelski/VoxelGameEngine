@@ -1,29 +1,29 @@
 #pragma once
 #include <vector>
 #include <optional>
+#include <unordered_map>
+#include <memory>
 #include "Chunk.hpp"
 #include "Shader.hpp"
 #include "Frustum.hpp"
-
-struct HitResult {
-    glm::ivec3 position;
-    int chunkX;
-    int chunkZ;
-    bool hit = false;
-};
+#include "HitResult.hpp"
+#include "Camera.hpp"
 
 class World {
    public:
     World();
     ~World();
-    std::optional<HitResult> raycast(const glm::vec3& origin,
-                                     const glm::vec3& direction,
-                                     float maxDistance = 5.0f) const;
-    void performFrustumCulling(const class Frustum& frustum);
+    bool addCubeFromRaycast(const Camera& camera, CubeType type,
+                            float maxDistance);
+    bool removeCubeFromRaycast(const Camera& camera, float maxDistance);
+    void updateLoadedChunks(const glm::vec3& camPos);
+    void performFrustumCulling(const Frustum& frustum);
     void renderByType(Shader& shader, CubeType type);
-    Chunk* getChunk(int chunkX, int chunkZ);
+    Chunk* getChunk(const ChunkCoord& coord) const;
 
    private:
-    std::vector<std::vector<std::unique_ptr<Chunk>>> chunks{};
-    static constexpr int worldSize{8};
+    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> loadedChunks;
+    ChunkCoord lastCameraChunk{-1000, -1000};
+    int renderDistance{4};
+    static constexpr int chunkSize = 64;
 };
