@@ -12,6 +12,10 @@ class Chunk {
     Chunk(int size, int worldXindex, int worldZindex,
           unsigned vertexBufferObjects, unsigned elementBufferObjects);
     ~Chunk();
+    Chunk(const Chunk&) = delete;
+    Chunk(Chunk&&) = delete;
+    Chunk& operator=(const Chunk&) = delete;
+    Chunk& operator=(Chunk&&) = delete;
     inline bool isCubeInGrid(const glm::vec3& position) const {
         return cubeGrid[position.x][position.z][position.y];
     }

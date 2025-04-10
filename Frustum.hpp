@@ -5,6 +5,10 @@
 class Frustum {
    public:
     Frustum();
+    Frustum(const Frustum &) = delete;
+    Frustum(Frustum &&) = delete;
+    Frustum &operator=(const Frustum &) = delete;
+    Frustum &operator=(Frustum &&) = delete;
     // Each plane is defined as: normal.x*x + normal.y*y + normal.z*z + d = 0
     struct Plane {
         glm::vec3 normal;

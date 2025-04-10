@@ -11,6 +11,10 @@ class App {
    public:
     App();
     ~App();
+    App(const App&) = delete;
+    App(App&&) = delete;
+    App& operator=(const App&) = delete;
+    App& operator=(App&&) = delete;
     void run();
     void mouse_callback(GLFWwindow* targetWindow, double xposIn, double yposIn);
     void scroll_callback(GLFWwindow* targetWindow, double xoffset,

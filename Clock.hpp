@@ -2,8 +2,12 @@
 
 class Clock {
    public:
-    Clock();
-    ~Clock();
+    Clock() = default;
+    ~Clock() = default;
+    Clock(const Clock&) = delete;
+    Clock(Clock&&) = delete;
+    Clock& operator=(const Clock&) = delete;
+    Clock& operator=(Clock&&) = delete;
     inline float getDeltaTime() const { return deltaTime; }
     unsigned int calculateFps();
 

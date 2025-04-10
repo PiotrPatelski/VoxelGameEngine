@@ -90,7 +90,7 @@ App::~App() { std::cout << "App::Shutdown!" << std::endl; }
 
 void App::run() {
     gameWorld = std::make_unique<World>();
-    renderer = std::make_unique<Renderer>(SCR_WIDTH, SCR_HEIGHT, *gameWorld);
+    renderer = std::make_unique<Renderer>(SCR_WIDTH, SCR_HEIGHT);
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
         const auto currentFps = frameTimeClock.calculateFps();

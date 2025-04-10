@@ -12,6 +12,10 @@ class Shader {
    public:
     // constructor reads and builds the shader
     Shader(const char* vertexPath, const char* fragmentPath);
+    Shader(const Shader&) = delete;
+    Shader(Shader&&) = delete;
+    Shader& operator=(const Shader&) = delete;
+    Shader& operator=(Shader&&) = delete;
     // use/activate the shader
     inline void use() { glUseProgram(ID); }
     // utility uniform functions

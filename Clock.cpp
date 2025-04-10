@@ -1,8 +1,6 @@
 #include "Clock.hpp"
 #include <GLFW/glfw3.h>
 
-Clock::Clock() {}
-
 unsigned int Clock::calculateFps() {
     float currentFrame = static_cast<float>(glfwGetTime());
     deltaTime = currentFrame - lastFrame;
@@ -20,5 +18,3 @@ unsigned int Clock::calculateFps() {
     }
     return currentFps;
 }
-
-Clock::~Clock() {}

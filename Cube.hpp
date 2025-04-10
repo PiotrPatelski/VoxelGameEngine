@@ -7,6 +7,10 @@ enum class CubeType { SAND, DIRT, GRASS };
 class Cube {
    public:
     Cube(const glm::vec3& position, CubeType type);
+    Cube(const Cube&) = delete;
+    Cube(Cube&&) = delete;
+    Cube& operator=(const Cube&) = delete;
+    Cube& operator=(Cube&&) = delete;
     ~Cube();
     inline glm::vec3 getPosition() const { return position; }
     inline glm::mat4 getModel() const { return model; }

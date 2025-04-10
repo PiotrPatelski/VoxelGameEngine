@@ -15,7 +15,10 @@ enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT };
 class Camera {
    public:
     Camera();
-
+    Camera(const Camera&) = delete;
+    Camera(Camera&&) = delete;
+    Camera& operator=(const Camera&) = delete;
+    Camera& operator=(Camera&&) = delete;
     // returns the view matrix calculated using Euler Angles and the LookAt
     // Matrix
     inline glm::mat4 getViewMatrix() const {

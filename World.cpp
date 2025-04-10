@@ -6,12 +6,12 @@
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 
-// Global shared buffers
-unsigned int vertexBufferObjects, elementBufferObjects;
-const unsigned int amountOfVBOBuffers = 1;
-const unsigned int amountOfEBOBuffers = 1;
+namespace {
+unsigned int vertexBufferObjects{}, elementBufferObjects{};
+constexpr unsigned int amountOfVBOBuffers{1};
+constexpr unsigned int amountOfEBOBuffers{1};
 
-static void setupVertexBufferData() {
+void setupVertexBufferData() {
     glGenBuffers(amountOfVBOBuffers, &vertexBufferObjects);
     glGenBuffers(amountOfEBOBuffers, &elementBufferObjects);
 
@@ -26,6 +26,7 @@ static void setupVertexBufferData() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
+} // namespace
 
 World::World() {
     printf("World::Init!\n");

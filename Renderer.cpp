@@ -69,7 +69,7 @@ void Renderer::setupMaterials() {
         Material{"textures/grass.jpg", "./textures/matrix.jpg", 3, 99, 8.0f};
 }
 
-Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
+Renderer::Renderer(unsigned int width, unsigned int height)
     : screenWidth{static_cast<float>(width)},
       screenHeight{static_cast<float>(height)} {
     std::cout << "Renderer::Init!" << std::endl;
@@ -82,8 +82,6 @@ Renderer::Renderer(unsigned int width, unsigned int height, const World& world)
 
 Renderer::~Renderer() {
     std::cout << "Renderer::Shutdown!" << std::endl;
-    // CLEANUP
-
     glfwTerminate();
 }
 

@@ -12,9 +12,12 @@
 
 class Renderer {
    public:
-    Renderer(unsigned int screenWidth, unsigned int screenHeight,
-             const World& world);
+    Renderer(unsigned int screenWidth, unsigned int screenHeight);
     ~Renderer();
+    Renderer(const Renderer&) = delete;
+    Renderer(Renderer&&) = delete;
+    Renderer& operator=(const Renderer&) = delete;
+    Renderer& operator=(Renderer&&) = delete;
     void updateShaders(const Camera& camera);
     void render(unsigned int fps, World& world);
 

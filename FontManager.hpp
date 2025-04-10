@@ -19,6 +19,10 @@ struct Character {
 class FontManager {
    public:
     FontManager(float screenWidth, float screenHeight);
+    FontManager(const FontManager&) = delete;
+    FontManager(FontManager&&) = delete;
+    FontManager& operator=(const FontManager&) = delete;
+    FontManager& operator=(FontManager&&) = delete;
     ~FontManager();
     void renderText(const std::string& text, float x, float y, float scale,
                     const glm::vec3& color);
