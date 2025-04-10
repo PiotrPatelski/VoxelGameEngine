@@ -17,8 +17,7 @@ class World {
     World(World&&) = delete;
     World& operator=(const World&) = delete;
     World& operator=(World&&) = delete;
-    bool addCubeFromRaycast(const Camera& camera, CubeType type,
-                            float maxDistance);
+    bool addCubeFromRaycast(const Camera& camera, float maxDistance);
     bool removeCubeFromRaycast(const Camera& camera, float maxDistance);
     void updateLoadedChunks(const glm::vec3& camPos);
     void performFrustumCulling(const Frustum& frustum);

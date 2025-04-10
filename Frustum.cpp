@@ -1,8 +1,7 @@
 #include "Frustum.hpp"
 
-bool isAABBInsideFrustum(const glm::vec3 &min, const glm::vec3 &max,
-                         const Frustum &frustum) {
-    for (const auto &plane : frustum.planes) {
+bool Frustum::isAABBInside(const glm::vec3 &min, const glm::vec3 &max) const {
+    for (const auto &plane : planes) {
         // Compute the vertex in the AABB that is farthest along the plane
         // normal.
         glm::vec3 positive = min;

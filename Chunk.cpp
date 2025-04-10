@@ -1,92 +1,60 @@
 #include "Chunk.hpp"
 #include "FastNoiseLite.h"
+#include "VertexData.hpp"
 
 static constexpr int mat4Length{4};
 
-// clang-format off
-//Pos: {X, Y, Z} TexCord:{X, Y} Normal{X, Y, Z}
-std::vector<Vertex> Chunk::vertices = {
-    {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-    {{0.5f,  0.5f,  -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-    {{0.5f,  -0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-    {{-0.5f, 0.5f,  -0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-    {{-0.5f, -0.5f, 0.5f},  {0.0f, 0.0f},{ 0.0f, 0.0f, 1.0f}},
-    {{0.5f,  -0.5f, 0.5f},  {1.0f, 0.0f},{ 0.0f, 0.0f, 1.0f}},
-    {{0.5f,  0.5f,  0.5f},  {1.0f, 1.0f},{ 0.0f, 0.0f, 1.0f}}, 
-    {{-0.5f, 0.5f,  0.5f},  {0.0f, 1.0f},{ 0.0f, 0.0f, 1.0f}}, 
-    {{-0.5f, 0.5f,  0.5f},  {1.0f, 0.0f},{-1.0f, 0.0f, 0.0f}},
-    {{-0.5f, 0.5f, -0.5f},  {1.0f, 1.0f},{-1.0f, 0.0f, 0.0f}},
-    {{-0.5f, -0.5f,-0.5f},  {0.0f, 1.0f},{-1.0f, 0.0f, 0.0f}},
-    {{-0.5f, -0.5f, 0.5f},  {0.0f, 0.0f},{-1.0f, 0.0f, 0.0f}},
-    {{0.5f,  0.5f,  0.5f},  {1.0f, 0.0f},{ 1.0f, 0.0f, 0.0f}},
-    {{0.5f,  -0.5f,-0.5f},  {0.0f, 1.0f},{ 1.0f, 0.0f, 0.0f}},
-    {{0.5f,  0.5f, -0.5f},  {1.0f, 1.0f},{ 1.0f, 0.0f, 0.0f}},
-    {{0.5f,  -0.5f, 0.5f},  {0.0f, 0.0f},{ 1.0f, 0.0f, 0.0f}},
-    {{-0.5f, -0.5f,-0.5f},  {0.0f, 1.0f},{ 0.0f, -1.0f, 0.0f}},
-    {{0.5f,  -0.5f,-0.5f},  {1.0f, 1.0f},{ 0.0f, -1.0f, 0.0f}},
-    {{0.5f,  -0.5f, 0.5f},  {1.0f, 0.0f},{ 0.0f, -1.0f, 0.0f}},
-    {{-0.5f, -0.5f, 0.5f},  {0.0f, 0.0f},{ 0.0f, -1.0f, 0.0f}},
-    {{-0.5f, 0.5f, -0.5f},  {0.0f, 1.0f},{ 0.0f, 1.0f, 0.0f}},
-    {{0.5f,  0.5f,  0.5f},  {1.0f, 0.0f},{ 0.0f, 1.0f, 0.0f}},
-    {{0.5f,  0.5f, -0.5f},  {1.0f, 1.0f},{ 0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f,  0.5f},  {0.0f, 0.0f},{ 0.0f, 1.0f, 0.0f}}};
+namespace {
+constexpr CubeType getCubeTypeBasedOnHeight(int height) {
+    if (height < 11)
+        return CubeType::SAND;
+    else if (height < 14)
+        return CubeType::DIRT;
+    else
+        return CubeType::GRASS;
+}
 
-std::vector<unsigned int> Chunk::indices = {
-    // Front face (z = -0.5)
-    0, 1, 2, 1, 0, 3,
-    // Back face (z = 0.5)
-    4, 5, 6, 6, 7, 4,
-    // Left face (x = -0.5)
-    8, 9, 10, 10, 11, 8,
-    // Right face (x = 0.5)
-    12, 13, 14, 13, 12, 15,
-    // Top face (y = -0.5)
-    16, 17, 18, 18, 19, 16,
-    // Bottom face (y = 0.5)
-    20, 21, 22, 21, 20, 23
+constexpr std::array<glm::ivec3, 6> neighborOffsets = {
+    glm::ivec3(1, 0, 0),  // +X
+    glm::ivec3(-1, 0, 0), // -X
+    glm::ivec3(0, 0, 1),  // +Z
+    glm::ivec3(0, 0, -1), // -Z
+    glm::ivec3(0, 1, 0),  // +Y
+    glm::ivec3(0, -1, 0)  // -Y
 };
-// clang-format on
 
-// static bool isCubeExposed(
-//     const std::vector<std::vector<std::vector<bool>>>& cubePresence,
-//     const glm::vec3& gridPosition) {
-//     const std::array<std::array<int, 3>, 6> neighborOffsets{{
-//         {{1, 0, 0}},  // +X
-//         {{-1, 0, 0}}, // -X
-//         {{0, 1, 0}},  // +Z
-//         {{0, -1, 0}}, // -Z
-//         {{0, 0, 1}},  // +Y
-//         {{0, 0, -1}}  // -Y
-//     }};
-
-//     for (const auto& offset : neighborOffsets) {
-//         int neighborX = gridPosition.x + offset[0];
-//         int neighborZ = gridPosition.z + offset[1];
-//         int neighborY = gridPosition.y + offset[2];
-
-//         // If neighbor is out-of-bounds, cube is exposed.
-//         if (neighborX < 0 || neighborX >= chunkSize || neighborZ < 0 ||
-//             neighborZ >= chunkSize || neighborY < 0 || neighborY >=
-//             chunkSize) { return true;
-//         }
-//         // If neighbor cell is empty, cube is exposed.
-//         if (!cubePresence[neighborX][neighborZ][neighborY]) {
-//             return true;
-//         }
-//     }
-//     return false;
-// }
+bool isCubeExposed(const std::vector<std::vector<std::vector<bool>>>& grid,
+                   const glm::ivec3& pos) {
+    const auto chunkSize = static_cast<int>(grid.size());
+    for (const auto& offset : neighborOffsets) {
+        glm::ivec3 neighbor = pos + offset;
+        // If neighbor is out of bounds, we consider the cube exposed.
+        if (neighbor.x < 0 or neighbor.x >= chunkSize or neighbor.z < 0 or
+            neighbor.z >= chunkSize or neighbor.y < 0 or
+            neighbor.y >= chunkSize) {
+            return true;
+        }
+        // If neighbor cell is false (i.e. no cube present), then current cube
+        // is exposed.
+        if (!grid[neighbor.x][neighbor.z][neighbor.y]) {
+            return true;
+        }
+    }
+    return false;
+}
+} // namespace
 
 Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex,
              unsigned int sharedVBO, unsigned int sharedEBO)
     : size{chunkSize},
       chunkWorldXPosition{worldXindex},
-      chunkWorldZPosition{worldZindex} {
+      chunkWorldZPosition{worldZindex},
+      modified{true} {
     setupVAO(sharedVBO, sharedEBO);
     cubeGrid = generateInitialCubeGrid();
     generateInstanceBuffersForCubeTypes();
     rebuildCubesFromGrid();
-    uploadInstanceData();
+    uploadInstanceBuffer();
 }
 
 void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
@@ -141,63 +109,76 @@ std::vector<std::vector<std::vector<bool>>> Chunk::generateInitialCubeGrid() {
 void Chunk::rebuildCubesFromGrid() {
     cubes.clear();
     instanceMatrices.clear();
-
-    float initialCubeX = static_cast<float>(chunkWorldXPosition * size);
-    float initialCubeZ = static_cast<float>(chunkWorldZPosition * size);
+    const auto initialCubeX = static_cast<float>(chunkWorldXPosition * size);
+    const auto initialCubeZ = static_cast<float>(chunkWorldZPosition * size);
     for (int x = 0; x < size; x++) {
         for (int z = 0; z < size; z++) {
             for (int y = 0; y < size; y++) {
-                if (!cubeGrid[x][z][y]) continue;
+                if (not cubeGrid[x][z][y] or
+                    not isCubeExposed(cubeGrid, {x, y, z})) {
+                    continue;
+                }
                 glm::vec3 cubePos{initialCubeX + static_cast<float>(x),
                                   static_cast<float>(y),
                                   initialCubeZ + static_cast<float>(z)};
-                CubeType type;
-                if (y < 11)
-                    type = CubeType::SAND;
-                else if (y < 14)
-                    type = CubeType::DIRT;
-                else
-                    type = CubeType::GRASS;
+                const auto cubeType = getCubeTypeBasedOnHeight(y);
+                cubes.push_back(std::make_unique<Cube>(cubePos, cubeType));
+                instanceMatrices[cubeType].push_back(cubes.back()->getModel());
+            }
+        }
+    }
+}
 
-                cubes.push_back(std::make_unique<Cube>(cubePos, type));
-                instanceMatrices[type].push_back(cubes.back()->getModel());
+void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
+    instanceMatrices.clear();
+    for (const auto& cube : cubes) {
+        if (cube) {
+            glm::mat4 model = cube->getModel();
+            glm::vec3 pos = glm::vec3(model[3]);
+            glm::vec3 voxelMin = pos - glm::vec3(0.5f);
+            glm::vec3 voxelMax = pos + glm::vec3(0.5f);
+            if (frustum.isAABBInside(voxelMin, voxelMax)) {
+                instanceMatrices[cube->getType()].push_back(model);
             }
         }
     }
 }
 
 void Chunk::generateInstanceBuffersForCubeTypes() {
-    // Generate instance buffers map for each CubeType you plan to support.
-    // Initially create buffers for SAND, DIRT, and GRASS.
-    instanceBuffers[CubeType::SAND] = 0;
-    instanceBuffers[CubeType::DIRT] = 0;
-    instanceBuffers[CubeType::GRASS] = 0;
-    glGenBuffers(1, &instanceBuffers[CubeType::SAND]);
-    glGenBuffers(1, &instanceBuffers[CubeType::DIRT]);
-    glGenBuffers(1, &instanceBuffers[CubeType::GRASS]);
+    const std::array<CubeType, 3> cubeTypes = {CubeType::SAND, CubeType::DIRT,
+                                               CubeType::GRASS};
+    for (const auto& type : cubeTypes) {
+        instanceBuffers[type] = 0;
+        glGenBuffers(1, &instanceBuffers[type]);
+    }
 }
 
-void Chunk::uploadInstanceData() {
-    for (const auto& pair : instanceMatrices) {
-        CubeType type = pair.first;
-        const auto& matrices = pair.second;
-        unsigned int buffer = instanceBuffers[type];
-        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+void Chunk::uploadInstanceBuffer() {
+    for (const auto& [cubeType, matrices] : instanceMatrices) {
+        glBindBuffer(GL_ARRAY_BUFFER, instanceBuffers[cubeType]);
         glBufferData(GL_ARRAY_BUFFER, matrices.size() * sizeof(glm::mat4),
-                     matrices.data(), GL_STATIC_DRAW);
+                     matrices.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
 
-void Chunk::renderByType(Shader& shader, CubeType type) {
+void Chunk::clearInstanceBuffer() {
+    for (auto& [cubeType, matrices] : instanceMatrices) {
+        matrices.clear();
+        glBindBuffer(GL_ARRAY_BUFFER, instanceBuffers[cubeType]);
+        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
+void Chunk::renderByType(Shader& shader, CubeType type, size_t indicesSize) {
     glBindVertexArray(vao);
     auto it = instanceMatrices.find(type);
-    if (it == instanceMatrices.end() || it->second.empty()) {
+    if (it == instanceMatrices.end() or it->second.empty()) {
         glBindVertexArray(0);
         return;
     }
     unsigned int instanceCount = it->second.size();
-    // Bind the buffer for this type.
     glBindBuffer(GL_ARRAY_BUFFER, instanceBuffers[type]);
     for (unsigned int i = 0; i < mat4Length; i++) {
         glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
@@ -206,84 +187,65 @@ void Chunk::renderByType(Shader& shader, CubeType type) {
         glVertexAttribDivisor(3 + i, 1);
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(indices.size()),
+    glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(indicesSize),
                             GL_UNSIGNED_INT, 0,
                             static_cast<GLsizei>(instanceCount));
     glBindVertexArray(0);
 }
 
-void Chunk::performFrustumCulling(const Frustum& frustum) {
-    // Compute the chunk's AABB in world space.
-    glm::vec3 chunkMin, chunkMax;
-    computeChunkAABB(chunkMin, chunkMax);
+std::pair<glm::vec3, glm::vec3> Chunk::computeChunkAABB() const {
+    const auto chunkOriginBlockPositionX = chunkWorldXPosition * size;
+    const auto chunkOriginBlockPositionY = 0.0f;
+    const auto chunkOriginBlockPositionZ = chunkWorldZPosition * size;
+    const glm::vec3 chunkBoundsMin{chunkOriginBlockPositionX,
+                                   chunkOriginBlockPositionY,
+                                   chunkOriginBlockPositionZ};
+    const auto chunkBoundsMax = chunkBoundsMin + glm::vec3(size);
+    return {chunkBoundsMin, chunkBoundsMax};
+}
 
-    // If the whole chunk is outside the frustum, clear instance matrices.
-    if (!isAABBInsideFrustum(chunkMin, chunkMax, frustum)) {
-        for (auto& pair : instanceMatrices) {
-            pair.second.clear();
-        }
-        for (auto& pair : instanceBuffers) {
-            glBindBuffer(GL_ARRAY_BUFFER, pair.second);
-            glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
+void Chunk::performFrustumCulling(const Frustum& frustum) {
+    const auto [chunkMin, chunkMax] = computeChunkAABB();
+    if (not frustum.isAABBInside(chunkMin, chunkMax)) {
+        clearInstanceBuffer();
         return;
     }
+    rebuildVisibleInstances(frustum);
+    uploadInstanceBuffer();
+}
 
-    // Otherwise, rebuild the visible instance matrices every frame.
-    std::unordered_map<CubeType, std::vector<glm::mat4>> visibleMatrices;
-    for (const auto& cube : cubes) {
-        if (cube) {
-            glm::mat4 model = cube->getModel();
-            glm::vec3 pos = glm::vec3(model[3]);
-            glm::vec3 voxelMin = pos - glm::vec3(0.5f);
-            glm::vec3 voxelMax = pos + glm::vec3(0.5f);
-            if (isAABBInsideFrustum(voxelMin, voxelMax, frustum)) {
-                visibleMatrices[cube->getType()].push_back(model);
-            }
-        }
-    }
-    instanceMatrices = std::move(visibleMatrices);
-
-    // Update GPU instance buffers with the visible matrices.
-    for (const auto& pair : instanceMatrices) {
-        CubeType type = pair.first;
-        unsigned int buffer = instanceBuffers[type];
-        glBindBuffer(GL_ARRAY_BUFFER, buffer);
-        glBufferData(GL_ARRAY_BUFFER, pair.second.size() * sizeof(glm::mat4),
-                     pair.second.data(), GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+void Chunk::updateInstanceData() {
+    if (modified) {
+        rebuildCubesFromGrid();
+        uploadInstanceBuffer();
+        modified = false;
     }
 }
 
-void Chunk::updateInstanceBuffer() {
-    rebuildCubesFromGrid();
-    uploadInstanceData();
+bool Chunk::isPositionWithinBounds(const glm::ivec3& pos) const {
+    return (pos.x >= 0 and pos.x < size and pos.z >= 0 and pos.z < size and
+            pos.y >= 0 and pos.y < size);
 }
 
-bool Chunk::addCube(const glm::ivec3& localPos, CubeType type) {
-    if (localPos.x < 0 || localPos.x >= size || localPos.z < 0 ||
-        localPos.z >= size || localPos.y < 0 || localPos.y >= size) {
-        return false;
-    }
-    if (cubeGrid[localPos.x][localPos.z][localPos.y]) {
+bool Chunk::addCube(const glm::ivec3& localPos) {
+    if (not isPositionWithinBounds(localPos) or
+        cubeGrid[localPos.x][localPos.z][localPos.y]) {
         return false;
     }
     cubeGrid[localPos.x][localPos.z][localPos.y] = true;
-    updateInstanceBuffer();
+    modified = true;
+    updateInstanceData();
     return true;
 }
 
 bool Chunk::removeCube(const glm::ivec3& localPos) {
-    if (localPos.x < 0 || localPos.x >= size || localPos.z < 0 ||
-        localPos.z >= size || localPos.y < 0 || localPos.y >= size) {
-        return false;
-    }
-    if (!cubeGrid[localPos.x][localPos.z][localPos.y]) {
+    if (not isPositionWithinBounds(localPos) or
+        not cubeGrid[localPos.x][localPos.z][localPos.y]) {
         return false;
     }
     cubeGrid[localPos.x][localPos.z][localPos.y] = false;
-    updateInstanceBuffer();
+    modified = true;
+    updateInstanceData();
     return true;
 }
 

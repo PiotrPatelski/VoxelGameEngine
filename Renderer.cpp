@@ -112,15 +112,12 @@ void Renderer::render(unsigned int fps, World& world) {
     cubeShader->use();
     world.performFrustumCulling(frustum);
 
-    // Iterate over the materials map.
-    for (const auto& pair : materials) {
-        CubeType type = pair.first;
-        const Material& mat = pair.second;
-        TextureManager::BindTextureToUnit(mat.diffuseTexturePath,
-                                          mat.diffuseUnit);
-        cubeShader->setInt("material.diffuse", mat.diffuseUnit);
-        cubeShader->setFloat("material.shininess", mat.shininess);
-        world.renderByType(*cubeShader, type);
+    for (const auto& [cubeType, cubeMaterial] : materials) {
+        TextureManager::BindTextureToUnit(cubeMaterial.diffuseTexturePath,
+                                          cubeMaterial.diffuseUnit);
+        cubeShader->setInt("material.diffuse", cubeMaterial.diffuseUnit);
+        cubeShader->setFloat("material.shininess", cubeMaterial.shininess);
+        world.renderByType(*cubeShader, cubeType);
     }
 
     const std::string fpsCount{"FPS count: " + std::to_string(fps)};

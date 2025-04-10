@@ -144,7 +144,7 @@ void App::mouse_button_callback(GLFWwindow* targetWindow, int button,
 
     bool result = false;
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        result = gameWorld->addCubeFromRaycast(camera, CubeType::SAND, 5.0f);
+        result = gameWorld->addCubeFromRaycast(camera, 5.0f);
         if (result) std::cout << "Cube added via raycast." << std::endl;
     } else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         result = gameWorld->removeCubeFromRaycast(camera, 5.0f);

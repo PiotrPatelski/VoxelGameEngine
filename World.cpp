@@ -1,6 +1,7 @@
 #include "World.hpp"
 #include "FastNoiseLite.h"
 #include "Raycaster.hpp"
+#include "VertexData.hpp"
 #include <cstdio>
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
@@ -15,13 +16,12 @@ static void setupVertexBufferData() {
     glGenBuffers(amountOfEBOBuffers, &elementBufferObjects);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
-    glBufferData(GL_ARRAY_BUFFER, Chunk::getVertices().size() * sizeof(Vertex),
-                 Chunk::getVertices().data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex),
+                 vertices.data(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObjects);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 Chunk::getIndices().size() * sizeof(unsigned int),
-                 Chunk::getIndices().data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
+                 indices.data(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -42,8 +42,7 @@ World::World() {
     lastCameraChunk = {0, 0};
 }
 
-bool World::addCubeFromRaycast(const Camera& camera, CubeType type,
-                               float maxDistance) {
+bool World::addCubeFromRaycast(const Camera& camera, float maxDistance) {
     auto hitOpt =
         Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
     if (hitOpt.has_value()) {
@@ -51,6 +50,7 @@ bool World::addCubeFromRaycast(const Camera& camera, CubeType type,
         // For this example, we add a cube above the hit block.
         glm::ivec3 worldBlockPos = hit.position;
         worldBlockPos.y += 1;
+        // TODO REFACTOR DUPLICATE WITH THE ONE FROM removeCubeFromRaycast
         int chunkX = worldBlockPos.x / chunkSize;
         int chunkZ = worldBlockPos.z / chunkSize;
         int localX = worldBlockPos.x % chunkSize;
@@ -58,7 +58,7 @@ bool World::addCubeFromRaycast(const Camera& camera, CubeType type,
         int localY = worldBlockPos.y;
         Chunk* chunk = getChunk({chunkX, chunkZ});
         if (chunk) {
-            return chunk->addCube(glm::ivec3(localX, localY, localZ), type);
+            return chunk->addCube(glm::ivec3(localX, localY, localZ));
         }
     }
     return false;
@@ -113,15 +113,15 @@ void World::updateLoadedChunks(const glm::vec3& camPos) {
 }
 
 void World::performFrustumCulling(const Frustum& frustum) {
-    for (auto& kv : loadedChunks) {
-        kv.second->performFrustumCulling(frustum);
+    for (auto& [_, chunk] : loadedChunks) {
+        chunk->performFrustumCulling(frustum);
     }
 }
 
 void World::renderByType(Shader& shader, CubeType type) {
     shader.use();
-    for (auto& kv : loadedChunks) {
-        kv.second->renderByType(shader, type);
+    for (auto& [_, chunk] : loadedChunks) {
+        chunk->renderByType(shader, type, indices.size());
     }
 }
 
