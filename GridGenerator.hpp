@@ -6,8 +6,12 @@
 class GridGenerator {
    public:
     GridGenerator(int chunkSize, int worldXIndex, int worldZIndex);
-
-    std::vector<std::vector<std::vector<bool>>> generateGrid();
+    GridGenerator(const GridGenerator&) = delete;
+    GridGenerator(GridGenerator&&) = delete;
+    GridGenerator& operator=(const GridGenerator&) = delete;
+    GridGenerator& operator=(GridGenerator&&) = delete;
+    using Grid = std::vector<std::vector<std::vector<bool>>>;
+    Grid generateGrid();
 
    private:
     int chunkSize;
