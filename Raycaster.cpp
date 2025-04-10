@@ -51,21 +51,21 @@ std::optional<HitResult> Raycaster::raycast(
         const Chunk* chunk = findChunkAtCurrentRayPos(loadedChunks, coord);
 
         if (chunk) {
-            const auto& grid = chunk->getCubeGrid();
             // Use bitwise & if chunkSize is a power of 2.
             int localX = blockPos.x & (size - 1);
             int localZ = blockPos.z & (size - 1);
             int localY = blockPos.y;
-            if (localY >= 0 && localY < size && grid[localX][localZ][localY]) {
+            if (localY >= 0 && localY < size &&
+                chunk->isCubeInGrid({localX, localY, localZ})) {
                 return HitResult{blockPos, coord, true};
             }
         }
-        advanceRay();
+        incrementRayStep();
     }
     return std::nullopt;
 }
 
-void Raycaster::advanceRay() {
+void Raycaster::incrementRayStep() {
     // Advance the ray: choose the smallest tMax value.
     if (tMax.x < tMax.y && tMax.x < tMax.z) {
         blockPos.x += step.x;

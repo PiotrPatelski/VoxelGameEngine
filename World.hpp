@@ -13,6 +13,10 @@ class World {
    public:
     World();
     ~World();
+    World(const World&) = delete;
+    World(World&&) = delete;
+    World& operator=(const World&) = delete;
+    World& operator=(World&&) = delete;
     bool addCubeFromRaycast(const Camera& camera, CubeType type,
                             float maxDistance);
     bool removeCubeFromRaycast(const Camera& camera, float maxDistance);
@@ -22,8 +26,8 @@ class World {
     Chunk* getChunk(const ChunkCoord& coord) const;
 
    private:
-    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> loadedChunks;
+    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> loadedChunks{};
     ChunkCoord lastCameraChunk{-1000, -1000};
-    int renderDistance{4};
-    static constexpr int chunkSize = 64;
+    int renderDistance{5};
+    static constexpr int chunkSize{64};
 };

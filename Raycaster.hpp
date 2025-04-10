@@ -9,7 +9,11 @@
 
 class Raycaster {
    public:
-    Raycaster(const Camera& camera, int chunkSize);
+    explicit Raycaster(const Camera& camera, int chunkSize);
+    Raycaster(const Raycaster&) = delete;
+    Raycaster(Raycaster&&) = delete;
+    Raycaster& operator=(const Raycaster&) = delete;
+    Raycaster& operator=(Raycaster&&) = delete;
     // Performs a DDA raycast through the world.
     // Returns a HitResult if a solid voxel is hit.
     std::optional<HitResult> raycast(
@@ -18,7 +22,7 @@ class Raycaster {
         float maxDistance);
 
    private:
-    void advanceRay();
+    void incrementRayStep();
     // Helper functions for DDA calculations.
     int size{};
     float distanceTraveled{0.0f};
