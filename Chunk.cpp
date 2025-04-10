@@ -1,6 +1,7 @@
 #include "Chunk.hpp"
 #include "FastNoiseLite.h"
 #include "VertexData.hpp"
+#include "GridGenerator.hpp"
 
 static constexpr int mat4Length{4};
 
@@ -82,28 +83,8 @@ void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
 }
 
 std::vector<std::vector<std::vector<bool>>> Chunk::generateInitialCubeGrid() {
-    std::vector<std::vector<std::vector<bool>>> grid(
-        size,
-        std::vector<std::vector<bool>>(size, std::vector<bool>(size, false)));
-
-    FastNoiseLite noise;
-    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    noise.SetFrequency(0.04f);
-
-    for (int x = 0; x < size; x++) {
-        for (int z = 0; z < size; z++) {
-            int worldCubeX = chunkWorldXPosition * size + x;
-            int worldCubeZ = chunkWorldZPosition * size + z;
-            float heightValue = noise.GetNoise(static_cast<float>(worldCubeX),
-                                               static_cast<float>(worldCubeZ));
-            int height =
-                static_cast<int>((heightValue + 1.0f) * 0.4f * size / 2);
-            for (int y = 0; y < size; y++) {
-                if (y <= height) grid[x][z][y] = true;
-            }
-        }
-    }
-    return grid;
+    GridGenerator generator(size, chunkWorldXPosition, chunkWorldZPosition);
+    return generator.generateGrid();
 }
 
 void Chunk::rebuildCubesFromGrid() {

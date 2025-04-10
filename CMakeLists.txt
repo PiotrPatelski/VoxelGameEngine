@@ -60,6 +60,7 @@ add_executable(
         Shader.cpp 
         Camera.cpp 
         Frustum.cpp
+        GridGenerator.cpp
         World.cpp 
         Chunk.cpp 
         Cube.cpp

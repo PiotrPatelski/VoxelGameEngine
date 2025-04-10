@@ -1,5 +1,4 @@
 #include "World.hpp"
-#include "FastNoiseLite.h"
 #include "Raycaster.hpp"
 #include "VertexData.hpp"
 #include <cstdio>
