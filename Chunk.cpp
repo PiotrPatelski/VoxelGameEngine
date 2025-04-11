@@ -50,6 +50,7 @@ Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex,
     : size{chunkSize},
       chunkWorldXPosition{worldXindex},
       chunkWorldZPosition{worldZindex},
+      waterHeight{14},
       modified{true} {
     setupVAO(sharedVBO, sharedEBO);
     cubeGrid = generateInitialCubeGrid();
@@ -87,6 +88,11 @@ std::vector<std::vector<std::vector<bool>>> Chunk::generateInitialCubeGrid() {
     return generator.generateGrid();
 }
 
+void Chunk::createCube(const glm::vec3& pos, CubeType type) {
+    cubes.push_back(std::make_unique<Cube>(pos, type));
+    instanceMatrices[type].push_back(cubes.back()->getModel());
+}
+
 void Chunk::rebuildCubesFromGrid() {
     cubes.clear();
     instanceMatrices.clear();
@@ -95,16 +101,15 @@ void Chunk::rebuildCubesFromGrid() {
     for (int x = 0; x < size; x++) {
         for (int z = 0; z < size; z++) {
             for (int y = 0; y < size; y++) {
-                if (not cubeGrid[x][z][y] or
-                    not isCubeExposed(cubeGrid, {x, y, z})) {
-                    continue;
-                }
                 glm::vec3 cubePos{initialCubeX + static_cast<float>(x),
                                   static_cast<float>(y),
                                   initialCubeZ + static_cast<float>(z)};
-                const auto cubeType = getCubeTypeBasedOnHeight(y);
-                cubes.push_back(std::make_unique<Cube>(cubePos, cubeType));
-                instanceMatrices[cubeType].push_back(cubes.back()->getModel());
+                if (cubeGrid[x][z][y] and isCubeExposed(cubeGrid, {x, y, z})) {
+                    createCube(cubePos, getCubeTypeBasedOnHeight(y));
+                } else if (not cubeGrid[x][z][y] and y <= waterHeight) {
+                    cubeGrid[x][z][y] = true;
+                    createCube(cubePos, CubeType::WATER);
+                }
             }
         }
     }
@@ -126,8 +131,8 @@ void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
 }
 
 void Chunk::generateInstanceBuffersForCubeTypes() {
-    const std::array<CubeType, 3> cubeTypes = {CubeType::SAND, CubeType::DIRT,
-                                               CubeType::GRASS};
+    const std::array<CubeType, 4> cubeTypes = {
+        CubeType::SAND, CubeType::DIRT, CubeType::GRASS, CubeType::WATER};
     for (const auto& type : cubeTypes) {
         instanceBuffers[type] = 0;
         glGenBuffers(1, &instanceBuffers[type]);

@@ -35,6 +35,7 @@ class Chunk {
     void updateInstanceData();
     void uploadInstanceBuffer();
     void clearInstanceBuffer();
+    void createCube(const glm::vec3& pos, CubeType type);
 
     std::vector<std::vector<std::vector<bool>>> generateInitialCubeGrid();
     std::pair<glm::vec3, glm::vec3> computeChunkAABB() const;
@@ -42,6 +43,7 @@ class Chunk {
     int size{0};
     int chunkWorldXPosition{0};
     int chunkWorldZPosition{0};
+    int waterHeight{0};
     std::vector<std::vector<std::vector<bool>>> cubeGrid{};
     std::vector<std::unique_ptr<Cube>> cubes{};
     std::unordered_map<CubeType, std::vector<glm::mat4>> instanceMatrices{};

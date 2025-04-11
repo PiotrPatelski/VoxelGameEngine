@@ -10,6 +10,7 @@ in vec3 normal;
 struct Material {
     sampler2D diffuse;
     float shininess;
+    float alpha;
 };
 
 struct DirectionalLight {
@@ -114,6 +115,6 @@ void main()
     // phase 3: Spot light
     result += CalcSpotLight(spotLight, norm, fragPos, viewDirection);
     // FragColor = vec4(result + emission, 1.0);
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(result, material.alpha);
  
 } 

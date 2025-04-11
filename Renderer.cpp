@@ -61,12 +61,14 @@ void Renderer::setupShaders() {
 }
 
 void Renderer::setupMaterials() {
-    materials[CubeType::SAND] =
-        Material{"textures/sand.jpg", "./textures/matrix.jpg", 1, 99, 32.0f};
-    materials[CubeType::DIRT] =
-        Material{"textures/dirt.jpg", "./textures/matrix.jpg", 2, 99, 16.0f};
-    materials[CubeType::GRASS] =
-        Material{"textures/grass.jpg", "./textures/matrix.jpg", 3, 99, 8.0f};
+    materials[CubeType::SAND] = Material{
+        "textures/sand.jpg", "./textures/matrix.jpg", 1, 99, 32.0f, 1.f};
+    materials[CubeType::DIRT] = Material{
+        "textures/dirt.jpg", "./textures/matrix.jpg", 2, 99, 16.0f, 1.f};
+    materials[CubeType::GRASS] = Material{
+        "textures/grass.jpg", "./textures/matrix.jpg", 3, 99, 8.0f, 1.f};
+    materials[CubeType::WATER] = Material{
+        "textures/water.jpg", "./textures/matrix.jpg", 4, 99, 64.0f, 0.5f};
 }
 
 Renderer::Renderer(unsigned int width, unsigned int height)
@@ -111,12 +113,26 @@ void Renderer::render(unsigned int fps, World& world) {
     world.performFrustumCulling(frustum);
 
     for (const auto& [cubeType, cubeMaterial] : materials) {
+        if (cubeType == CubeType::WATER) {
+            continue;
+        }
         TextureManager::BindTextureToUnit(cubeMaterial.diffuseTexturePath,
                                           cubeMaterial.diffuseUnit);
         cubeShader->setInt("material.diffuse", cubeMaterial.diffuseUnit);
         cubeShader->setFloat("material.shininess", cubeMaterial.shininess);
+        cubeShader->setFloat("material.alpha", cubeMaterial.alpha);
         world.renderByType(*cubeShader, cubeType);
     }
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    const Material& waterMat = materials[CubeType::WATER];
+    TextureManager::BindTextureToUnit(waterMat.diffuseTexturePath,
+                                      waterMat.diffuseUnit);
+    cubeShader->setInt("material.diffuse", waterMat.diffuseUnit);
+    cubeShader->setFloat("material.shininess", waterMat.shininess);
+    cubeShader->setFloat("material.alpha", waterMat.alpha);
+    world.renderByType(*cubeShader, CubeType::WATER);
 
     const std::string fpsCount{"FPS count: " + std::to_string(fps)};
     fontManager->renderText(fpsCount, 25.0f, 25.0f, 1.0f,
