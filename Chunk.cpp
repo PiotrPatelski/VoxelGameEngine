@@ -1,4 +1,5 @@
 #include "Chunk.hpp"
+#include <cstdlib>
 #include "FastNoiseLite.h"
 #include "VertexData.hpp"
 #include "GridGenerator.hpp"
@@ -12,7 +13,7 @@ constexpr CubeType getCubeTypeBasedOnHeight(int height) {
     else if (height < 14)
         return CubeType::DIRT;
     else
-        return CubeType::LOG;
+        return CubeType::GRASS;
 }
 
 constexpr std::array<glm::ivec3, 6> neighborOffsets = {
@@ -116,6 +117,61 @@ void Chunk::rebuildCubesFromGrid() {
             }
         }
     }
+    generateTrees(initialCubeX, initialCubeZ);
+}
+
+int Chunk::findHighestCubeYval(int x, int z) const {
+    for (int y = size - 1; y >= 0; y--) {
+        if (voxelGrid[x][z][y]) {
+            return y;
+        }
+    }
+    return -1;
+}
+
+void Chunk::placeTreeAt(int x, int y, int z) {
+    const auto trunkHeight = 4 + (rand() % 4);
+    for (int i = 1; i <= trunkHeight; i++) {
+        const auto newY = y + i;
+        if (newY < size) {
+            glm::ivec3 pos{x, newY, z};
+            treeTrunkPositions.insert(pos);
+            voxelGrid[x][z][newY] = true;
+        }
+    }
+}
+
+void Chunk::applyInitialTreeGrid() {
+    for (int x = 0; x < size; x++) {
+        for (int z = 0; z < size; z++) {
+            const auto highestY = findHighestCubeYval(x, z);
+            if (highestY > 16) {
+                const auto probability =
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+                if (probability < 0.02f) {
+                    placeTreeAt(x, highestY, z);
+                }
+            }
+        }
+    }
+}
+
+void Chunk::reApplyExistingTrees(float initialCubeX, float initialCubeZ) {
+    for (const auto& pos : treeTrunkPositions) {
+        if (pos.y < size) {
+            glm::vec3 worldPos{initialCubeX + static_cast<float>(pos.x),
+                               static_cast<float>(pos.y),
+                               initialCubeZ + static_cast<float>(pos.z)};
+            createCube(worldPos, CubeType::LOG);
+        }
+    }
+}
+
+void Chunk::generateTrees(float initialCubeX, float initialCubeZ) {
+    if (treeTrunkPositions.empty()) {
+        applyInitialTreeGrid();
+    }
+    reApplyExistingTrees(initialCubeX, initialCubeZ);
 }
 
 void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
@@ -189,7 +245,6 @@ void Chunk::drawElements(CubeType type, unsigned int amount) {
 }
 
 void Chunk::renderByType(Shader& shader, CubeType type) {
-    // If no instances for this type => skip
     auto it = instanceModelMatrices.find(type);
     if (it == instanceModelMatrices.end() || it->second.empty()) {
         return;
@@ -253,6 +308,7 @@ bool Chunk::removeCube(const glm::ivec3& localPos) {
         return false;
     }
     voxelGrid[localPos.x][localPos.z][localPos.y] = false;
+    treeTrunkPositions.erase(localPos);
     modified = true;
     updateInstanceData();
     return true;
