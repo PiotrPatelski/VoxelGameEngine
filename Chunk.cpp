@@ -1,5 +1,6 @@
 #include "Chunk.hpp"
 #include <cstdlib>
+#include <functional>
 #include "FastNoiseLite.h"
 #include "VertexData.hpp"
 #include "GridGenerator.hpp"
@@ -53,6 +54,7 @@ Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex,
       chunkWorldXPosition{worldXindex},
       chunkWorldZPosition{worldZindex},
       waterHeight{14},
+      treeManager{chunkSize},
       modified{true},
       regularCubeEBO{sharedEBO},
       waterEBO{sharedWaterEBO} {
@@ -100,78 +102,29 @@ void Chunk::createCube(const glm::vec3& pos, CubeType type) {
 void Chunk::rebuildCubesFromGrid() {
     cubes.clear();
     instanceModelMatrices.clear();
-    const auto initialCubeX = static_cast<float>(chunkWorldXPosition * size);
-    const auto initialCubeZ = static_cast<float>(chunkWorldZPosition * size);
+    const float initialCubeX = static_cast<float>(chunkWorldXPosition * size);
+    const float initialCubeZ = static_cast<float>(chunkWorldZPosition * size);
     for (int x = 0; x < size; x++) {
         for (int z = 0; z < size; z++) {
             for (int y = 0; y < size; y++) {
                 glm::vec3 cubePos{initialCubeX + static_cast<float>(x),
                                   static_cast<float>(y),
                                   initialCubeZ + static_cast<float>(z)};
-                if (voxelGrid[x][z][y] and
-                    isCubeExposed(voxelGrid, {x, y, z})) {
+                if (voxelGrid[x][z][y] && isCubeExposed(voxelGrid, {x, y, z})) {
                     createCube(cubePos, getCubeTypeBasedOnHeight(y));
-                } else if ((not voxelGrid[x][z][y]) and (y == waterHeight)) {
+                } else if (!voxelGrid[x][z][y] && (y == waterHeight)) {
                     createCube(cubePos, CubeType::WATER);
                 }
             }
         }
     }
-    generateTrees(initialCubeX, initialCubeZ);
-}
 
-int Chunk::findHighestCubeYval(int x, int z) const {
-    for (int y = size - 1; y >= 0; y--) {
-        if (voxelGrid[x][z][y]) {
-            return y;
-        }
-    }
-    return -1;
-}
-
-void Chunk::placeTreeAt(int x, int y, int z) {
-    const auto trunkHeight = 4 + (rand() % 4);
-    for (int i = 1; i <= trunkHeight; i++) {
-        const auto newY = y + i;
-        if (newY < size) {
-            glm::ivec3 pos{x, newY, z};
-            treeTrunkPositions.insert(pos);
-            voxelGrid[x][z][newY] = true;
-        }
-    }
-}
-
-void Chunk::applyInitialTreeGrid() {
-    for (int x = 0; x < size; x++) {
-        for (int z = 0; z < size; z++) {
-            const auto highestY = findHighestCubeYval(x, z);
-            if (highestY > 16) {
-                const auto probability =
-                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-                if (probability < 0.02f) {
-                    placeTreeAt(x, highestY, z);
-                }
-            }
-        }
-    }
-}
-
-void Chunk::reApplyExistingTrees(float initialCubeX, float initialCubeZ) {
-    for (const auto& pos : treeTrunkPositions) {
-        if (pos.y < size) {
-            glm::vec3 worldPos{initialCubeX + static_cast<float>(pos.x),
-                               static_cast<float>(pos.y),
-                               initialCubeZ + static_cast<float>(pos.z)};
-            createCube(worldPos, CubeType::LOG);
-        }
-    }
-}
-
-void Chunk::generateTrees(float initialCubeX, float initialCubeZ) {
-    if (treeTrunkPositions.empty()) {
-        applyInitialTreeGrid();
-    }
-    reApplyExistingTrees(initialCubeX, initialCubeZ);
+    treeManager.generateTrees(voxelGrid);
+    auto createCubeCallback = [this](const glm::vec3& worldPos, CubeType type) {
+        createCube(worldPos, type);
+    };
+    treeManager.reapplyTrunks(initialCubeX, initialCubeZ, createCubeCallback);
+    treeManager.reapplyCrowns(initialCubeX, initialCubeZ, createCubeCallback);
 }
 
 void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
@@ -190,9 +143,9 @@ void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
 }
 
 void Chunk::generateInstanceBuffersForCubeTypes() {
-    const std::array<CubeType, 5> cubeTypes = {CubeType::SAND, CubeType::DIRT,
-                                               CubeType::GRASS, CubeType::WATER,
-                                               CubeType::LOG};
+    const std::array<CubeType, 6> cubeTypes = {
+        CubeType::SAND,  CubeType::DIRT, CubeType::GRASS,
+        CubeType::WATER, CubeType::LOG,  CubeType::LEAVES};
     for (const auto& type : cubeTypes) {
         instanceVBOs[type] = 0;
         glGenBuffers(1, &instanceVBOs[type]);
@@ -308,7 +261,7 @@ bool Chunk::removeCube(const glm::ivec3& localPos) {
         return false;
     }
     voxelGrid[localPos.x][localPos.z][localPos.y] = false;
-    treeTrunkPositions.erase(localPos);
+    treeManager.removeTreeCubeAt(localPos);
     modified = true;
     updateInstanceData();
     return true;

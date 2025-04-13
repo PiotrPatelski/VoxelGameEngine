@@ -109,6 +109,15 @@ void Renderer::setupMaterials() {
                                         32.0f,
                                         1.f,
                                         true};
+    materials[CubeType::LEAVES] = Material{"textures/leaves.jpg",
+                                           "",
+                                           "./textures/matrix.jpg",
+                                           7,
+                                           99,
+                                           99,
+                                           8.0f,
+                                           1.f,
+                                           false};
 }
 
 Renderer::Renderer(unsigned int width, unsigned int height)

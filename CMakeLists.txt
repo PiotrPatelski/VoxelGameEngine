@@ -64,6 +64,7 @@ add_executable(
         World.cpp 
         Chunk.cpp 
         Cube.cpp
+        TreeManager.cpp
         Raycaster.cpp)
 target_link_libraries(OpenGLTutorial ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
