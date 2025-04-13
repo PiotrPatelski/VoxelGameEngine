@@ -56,3 +56,10 @@ const std::vector<unsigned int> indices = {
     20, 21, 22, 21, 20, 23
 };
 // clang-format on
+
+const std::vector<unsigned int> waterIndices = {
+    // Tri 1
+    20, 21, 22,
+    // Tri 2
+    21, 20, 23};
+const size_t waterIndicesCount = waterIndices.size();

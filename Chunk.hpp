@@ -10,7 +10,8 @@
 class Chunk {
    public:
     Chunk(int size, int worldXindex, int worldZindex,
-          unsigned vertexBufferObjects, unsigned elementBufferObjects);
+          unsigned vertexBufferObjects, unsigned elementBufferObjects,
+          unsigned waterElementBufferObjects);
     ~Chunk();
     Chunk(const Chunk&) = delete;
     Chunk(Chunk&&) = delete;
@@ -23,7 +24,7 @@ class Chunk {
     bool addCube(const glm::ivec3& localPos);
     bool removeCube(const glm::ivec3& localPos);
 
-    void renderByType(Shader& shader, CubeType type, size_t indicesSize);
+    void renderByType(Shader& shader, CubeType type);
     void performFrustumCulling(const Frustum& frustum);
 
    private:
@@ -50,4 +51,6 @@ class Chunk {
     std::unordered_map<CubeType, unsigned int> instanceBuffers{};
     bool modified{true};
     unsigned int vao{};
+    unsigned int ebo{};
+    unsigned int waterEBO{};
 };

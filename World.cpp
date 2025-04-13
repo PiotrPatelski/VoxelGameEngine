@@ -7,6 +7,7 @@
 
 namespace {
 unsigned int vertexBufferObjects{}, elementBufferObjects{};
+unsigned int waterElementBufferObjects{};
 constexpr unsigned int amountOfVBOBuffers{1};
 constexpr unsigned int amountOfEBOBuffers{1};
 
@@ -24,6 +25,13 @@ void setupVertexBufferData() {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    glGenBuffers(1, &waterElementBufferObjects);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, waterElementBufferObjects);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 waterIndices.size() * sizeof(unsigned int),
+                 waterIndices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 } // namespace
 
@@ -36,7 +44,8 @@ World::World() {
         for (int z = -renderDistance; z <= renderDistance; z++) {
             ChunkCoord coord{x, z};
             loadedChunks[coord] = std::make_unique<Chunk>(
-                chunkSize, x, z, vertexBufferObjects, elementBufferObjects);
+                chunkSize, x, z, vertexBufferObjects, elementBufferObjects,
+                waterElementBufferObjects);
         }
     }
     lastCameraChunk = {0, 0};
@@ -105,7 +114,8 @@ void World::updateLoadedChunks(const glm::vec3& camPos) {
                 newLoaded[coord] = std::move(loadedChunks[coord]);
             } else {
                 newLoaded[coord] = std::make_unique<Chunk>(
-                    chunkSize, x, z, vertexBufferObjects, elementBufferObjects);
+                    chunkSize, x, z, vertexBufferObjects, elementBufferObjects,
+                    waterElementBufferObjects);
             }
         }
     }
@@ -121,11 +131,12 @@ void World::performFrustumCulling(const Frustum& frustum) {
 void World::renderByType(Shader& shader, CubeType type) {
     shader.use();
     for (auto& [_, chunk] : loadedChunks) {
-        chunk->renderByType(shader, type, indices.size());
+        chunk->renderByType(shader, type);
     }
 }
 
 World::~World() {
     glDeleteBuffers(amountOfVBOBuffers, &vertexBufferObjects);
     glDeleteBuffers(amountOfEBOBuffers, &elementBufferObjects);
+    glDeleteBuffers(1, &waterElementBufferObjects);
 }

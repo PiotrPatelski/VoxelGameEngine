@@ -46,12 +46,15 @@ bool isCubeExposed(const std::vector<std::vector<std::vector<bool>>>& grid,
 } // namespace
 
 Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex,
-             unsigned int sharedVBO, unsigned int sharedEBO)
+             unsigned int sharedVBO, unsigned int sharedEBO,
+             unsigned int sharedWaterEBO)
     : size{chunkSize},
       chunkWorldXPosition{worldXindex},
       chunkWorldZPosition{worldZindex},
       waterHeight{14},
-      modified{true} {
+      modified{true},
+      ebo{sharedEBO},
+      waterEBO{sharedWaterEBO} {
     setupVAO(sharedVBO, sharedEBO);
     cubeGrid = generateInitialCubeGrid();
     generateInstanceBuffersForCubeTypes();
@@ -104,10 +107,14 @@ void Chunk::rebuildCubesFromGrid() {
                 glm::vec3 cubePos{initialCubeX + static_cast<float>(x),
                                   static_cast<float>(y),
                                   initialCubeZ + static_cast<float>(z)};
+                // Ground cubes: only create if the grid cell is set and the
+                // cube is exposed.
                 if (cubeGrid[x][z][y] and isCubeExposed(cubeGrid, {x, y, z})) {
                     createCube(cubePos, getCubeTypeBasedOnHeight(y));
-                } else if (not cubeGrid[x][z][y] and y <= waterHeight) {
-                    cubeGrid[x][z][y] = true;
+                }
+                // Water cubes: only create water at the water–surface (y ==
+                // waterHeight)
+                else if ((not cubeGrid[x][z][y]) and (y == waterHeight)) {
                     createCube(cubePos, CubeType::WATER);
                 }
             }
@@ -157,14 +164,17 @@ void Chunk::clearInstanceBuffer() {
     }
 }
 
-void Chunk::renderByType(Shader& shader, CubeType type, size_t indicesSize) {
-    glBindVertexArray(vao);
+void Chunk::renderByType(Shader& shader, CubeType type) {
+    // If no instances for this type => skip
     auto it = instanceMatrices.find(type);
-    if (it == instanceMatrices.end() or it->second.empty()) {
-        glBindVertexArray(0);
+    if (it == instanceMatrices.end() || it->second.empty()) {
         return;
     }
     unsigned int instanceCount = it->second.size();
+
+    glBindVertexArray(vao);
+
+    // Bind the instance buffer for this type
     glBindBuffer(GL_ARRAY_BUFFER, instanceBuffers[type]);
     for (unsigned int i = 0; i < mat4Length; i++) {
         glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
@@ -173,9 +183,22 @@ void Chunk::renderByType(Shader& shader, CubeType type, size_t indicesSize) {
         glVertexAttribDivisor(3 + i, 1);
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(indicesSize),
-                            GL_UNSIGNED_INT, 0,
-                            static_cast<GLsizei>(instanceCount));
+
+    // Choose the correct EBO for water vs. non-water
+    if (type == CubeType::WATER) {
+        glDisable(GL_CULL_FACE);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, waterEBO);
+        glDrawElementsInstanced(
+            GL_TRIANGLES, static_cast<GLsizei>(waterIndicesCount),
+            GL_UNSIGNED_INT, 0, static_cast<GLsizei>(instanceCount));
+        glEnable(GL_CULL_FACE);
+    } else {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glDrawElementsInstanced(
+            GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT,
+            0, static_cast<GLsizei>(instanceCount));
+    }
+
     glBindVertexArray(0);
 }
 
