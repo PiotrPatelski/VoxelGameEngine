@@ -66,7 +66,8 @@ add_executable(
         Cube.cpp
         TreeManager.cpp
         Raycaster.cpp
-        Material.cpp)
+        Material.cpp
+        ChunkLoader.cpp)
 target_link_libraries(OpenGLTutorial ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory

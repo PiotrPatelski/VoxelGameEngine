@@ -20,9 +20,3 @@ struct hash<ChunkCoord> {
     }
 };
 } // namespace std
-
-struct HitResult {
-    glm::ivec3 position;
-    ChunkCoord chunkCoord;
-    bool hit = false;
-};

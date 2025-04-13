@@ -5,47 +5,15 @@
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace {
-unsigned int vertexBufferObjects{}, elementBufferObjects{};
-unsigned int waterElementBufferObjects{};
-constexpr unsigned int amountOfVBOBuffers{1};
-constexpr unsigned int amountOfEBOBuffers{1};
-
-void setupVertexBufferData() {
-    glGenBuffers(amountOfVBOBuffers, &vertexBufferObjects);
-    glGenBuffers(amountOfEBOBuffers, &elementBufferObjects);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex),
-                 vertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObjects);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
-                 indices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    glGenBuffers(1, &waterElementBufferObjects);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, waterElementBufferObjects);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 waterIndices.size() * sizeof(unsigned int),
-                 waterIndices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-} // namespace
-
 World::World() {
     printf("World::Init!\n");
-    setupVertexBufferData();
-
+    chunkLoader = std::make_unique<ChunkLoader>(renderDistance, chunkSize);
+    std::lock_guard<std::mutex> lock(loadedChunksMutex);
     // Initially load chunks around (0,0) using renderDistance.
     for (int x = -renderDistance; x <= renderDistance; x++) {
         for (int z = -renderDistance; z <= renderDistance; z++) {
             ChunkCoord coord{x, z};
-            loadedChunks[coord] = std::make_unique<Chunk>(
-                chunkSize, x, z, vertexBufferObjects, elementBufferObjects,
-                waterElementBufferObjects);
+            loadedChunks[coord] = chunkLoader->createChunk(x, z);
         }
     }
     lastCameraChunk = {0, 0};
@@ -92,34 +60,53 @@ bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
     return false;
 }
 
-Chunk* World::getChunk(const ChunkCoord& coord) const {
+Chunk* World::getChunk(const ChunkCoord& coord) {
+    std::lock_guard<std::mutex> lock(loadedChunksMutex);
     auto it = loadedChunks.find(coord);
     return (it != loadedChunks.end()) ? it->second.get() : nullptr;
 }
 
-void World::updateLoadedChunks(const glm::vec3& camPos) {
-    int camChunkX = static_cast<int>(std::floor(camPos.x / chunkSize));
-    int camChunkZ = static_cast<int>(std::floor(camPos.z / chunkSize));
-    ChunkCoord camCoord{camChunkX, camChunkZ};
-    if (camCoord == lastCameraChunk) return;
-    lastCameraChunk = camCoord;
-
-    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> newLoaded;
-    for (int x = camChunkX - renderDistance; x <= camChunkX + renderDistance;
-         x++) {
-        for (int z = camChunkZ - renderDistance;
-             z <= camChunkZ + renderDistance; z++) {
-            ChunkCoord coord{x, z};
-            if (loadedChunks.find(coord) != loadedChunks.end()) {
-                newLoaded[coord] = std::move(loadedChunks[coord]);
-            } else {
-                newLoaded[coord] = std::make_unique<Chunk>(
-                    chunkSize, x, z, vertexBufferObjects, elementBufferObjects,
-                    waterElementBufferObjects);
-            }
-        }
+bool World::updateCameraChunk(const ChunkCoord& currentCamCoord) {
+    std::lock_guard<std::mutex> lock(loadedChunksMutex);
+    if (currentCamCoord != lastCameraChunk) {
+        lastCameraChunk = currentCamCoord;
+        return true;
     }
-    loadedChunks = std::move(newLoaded);
+    return false;
+}
+
+std::unordered_set<ChunkCoord> World::getLoadedChunkKeys() {
+    std::unordered_set<ChunkCoord> keys;
+    std::lock_guard<std::mutex> lock(loadedChunksMutex);
+    for (const auto& [chunkCoord, _] : loadedChunks) {
+        keys.insert(chunkCoord);
+    }
+    return keys;
+}
+
+void World::mergeNewChunks(
+    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>& newChunks) {
+    std::lock_guard<std::mutex> lock(loadedChunksMutex);
+    for (auto& [chunkCoord, chunk] : newChunks) {
+        loadedChunks.try_emplace(chunkCoord, std::move(chunk));
+    }
+}
+
+void World::updateLoadedChunks(const glm::vec3& camPos) {
+    const auto camChunkX = static_cast<int>(std::floor(camPos.x / chunkSize));
+    const auto camChunkZ = static_cast<int>(std::floor(camPos.z / chunkSize));
+    ChunkCoord currentCamCoord{camChunkX, camChunkZ};
+
+    const auto isCameraMoved = updateCameraChunk(currentCamCoord);
+    const auto existingKeys = getLoadedChunkKeys();
+
+    if (chunkLoader->isTaskRunning() and chunkLoader->isFinished()) {
+        auto newChunks = chunkLoader->retrieveNewChunks();
+        mergeNewChunks(newChunks);
+    }
+    if (isCameraMoved and not chunkLoader->isTaskRunning()) {
+        chunkLoader->launchTask(camChunkX, camChunkZ, existingKeys);
+    }
 }
 
 void World::performFrustumCulling(const Frustum& frustum) {
@@ -133,10 +120,4 @@ void World::renderByType(Shader& shader, CubeType type) {
     for (auto& [_, chunk] : loadedChunks) {
         chunk->renderByType(shader, type);
     }
-}
-
-World::~World() {
-    glDeleteBuffers(amountOfVBOBuffers, &vertexBufferObjects);
-    glDeleteBuffers(amountOfEBOBuffers, &elementBufferObjects);
-    glDeleteBuffers(1, &waterElementBufferObjects);
 }

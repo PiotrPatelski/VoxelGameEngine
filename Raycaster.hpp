@@ -3,9 +3,15 @@
 #include <memory>
 #include <unordered_map>
 #include <glm/glm.hpp>
-#include "HitResult.hpp"
+#include "ChunkCoord.hpp"
 #include "Chunk.hpp"
 #include "Camera.hpp"
+
+struct HitResult {
+    glm::ivec3 position;
+    ChunkCoord chunkCoord;
+    bool hit = false;
+};
 
 class Raycaster {
    public:
