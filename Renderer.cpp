@@ -22,21 +22,13 @@ std::vector<glm::vec3> pointLightPositions = {
 
 } // namespace
 
-void Renderer::setupShaders() {
-    cubeShader = std::make_unique<Shader>("shaders/cube_shader.vs",
-                                          "shaders/cube_shader.fs");
-    // lightCubeShader = std::make_unique<Shader>("shaders/light_source.vs",
-    //                                            "shaders/light_source.fs");
-    // lightCubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-    // lightCubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-    cubeShader->use();
-    cubeShader->setFloat("fadeValue", 0.2f);
-
-    // directional light
+void Renderer::setupDirectionalLightConfig() {
     cubeShader->setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
     cubeShader->setVec3("directionalLight.ambient", 0.2f, 0.2f, 0.2f);
     cubeShader->setVec3("directionalLight.diffuse", 0.5f, 0.5f, 0.5f);
-    // point lights
+}
+
+void Renderer::setupPointLightsConfig() {
     for (unsigned int lightPosIndex = 0;
          lightPosIndex < pointLightPositions.size(); lightPosIndex++) {
         const std::string uniformName =
@@ -49,6 +41,9 @@ void Renderer::setupShaders() {
         cubeShader->setFloat(uniformName + ".linear", 0.09f);
         cubeShader->setFloat(uniformName + ".quadratic", 0.032f);
     }
+}
+
+void Renderer::setupSpotlightConfig() {
     cubeShader->setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
     cubeShader->setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
     cubeShader->setFloat("spotLight.constant", 1.0f);
@@ -58,66 +53,23 @@ void Renderer::setupShaders() {
                          glm::cos(glm::radians(12.5f)));
     cubeShader->setFloat("spotLight.outerCutOff",
                          glm::cos(glm::radians(15.0f)));
-
+}
+void Renderer::setupWaterTintConfig() {
     cubeShader->setVec3("underwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
     cubeShader->setFloat("underwaterMix", 0.0f);
 }
 
-void Renderer::setupMaterials() {
-    materials[CubeType::SAND] = Material{"textures/sand.jpg",
-                                         "./textures/matrix.jpg",
-                                         "",
-                                         1,
-                                         99,
-                                         99,
-                                         32.0f,
-                                         1.f,
-                                         false};
-    materials[CubeType::DIRT] = Material{"textures/dirt.jpg",
-                                         "",
-                                         "./textures/matrix.jpg",
-                                         2,
-                                         99,
-                                         99,
-                                         16.0f,
-                                         1.f,
-                                         false};
-    materials[CubeType::GRASS] = Material{"textures/grass.jpg",
-                                          "",
-                                          "./textures/matrix.jpg",
-                                          3,
-                                          99,
-                                          99,
-                                          8.0f,
-                                          1.f,
-                                          false};
-    materials[CubeType::WATER] = Material{"textures/water.jpg",
-                                          "",
-                                          "./textures/matrix.jpg",
-                                          4,
-                                          99,
-                                          99,
-                                          64.0f,
-                                          0.5f,
-                                          false};
-    materials[CubeType::LOG] = Material{"textures/logBark.jpg",
-                                        "textures/logInside.jpg",
-                                        "textures/matrix.jpg",
-                                        5,
-                                        6,
-                                        99,
-                                        32.0f,
-                                        1.f,
-                                        true};
-    materials[CubeType::LEAVES] = Material{"textures/leaves.jpg",
-                                           "",
-                                           "./textures/matrix.jpg",
-                                           7,
-                                           99,
-                                           99,
-                                           8.0f,
-                                           1.f,
-                                           false};
+void Renderer::applyCubeShaderInitialConfig() {
+    // lightCubeShader = std::make_unique<Shader>("shaders/light_source.vs",
+    //                                            "shaders/light_source.fs");
+    // lightCubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    // lightCubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+    cubeShader->use();
+    cubeShader->setFloat("fadeValue", 0.2f);
+    setupDirectionalLightConfig();
+    setupPointLightsConfig();
+    setupSpotlightConfig();
+    setupWaterTintConfig();
 }
 
 Renderer::Renderer(unsigned int width, unsigned int height)
@@ -126,9 +78,9 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     std::cout << "Renderer::Init!" << std::endl;
 
     fontManager = std::make_unique<FontManager>(screenWidth, screenHeight);
-
-    setupShaders();
-    setupMaterials();
+    cubeShader = std::make_unique<Shader>("shaders/cube_shader.vs",
+                                          "shaders/cube_shader.fs");
+    applyCubeShaderInitialConfig();
 }
 
 Renderer::~Renderer() {
@@ -136,23 +88,22 @@ Renderer::~Renderer() {
     glfwTerminate();
 }
 
-void Renderer::updateShaders(const Camera& camera) {
-    cubeShader->use();
-    cubeShader->setFloat("time", glfwGetTime());
-    cubeShader->setVec3("viewPosition", camera.getPosition());
-
-    // water
+void Renderer::updateWaterShaderParams(const Camera& camera) {
     const float underwaterEffectHeight = 14.5f;
     const bool underwater = (camera.getPosition().y < underwaterEffectHeight);
     cubeShader->setBool("isUnderwater", underwater);
     cubeShader->setVec3("underwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
     cubeShader->setFloat("underwaterMix", underwater ? 0.5f : 0.0f);
     cubeShader->setBool("shouldAnimateWater", 0);
+}
 
-    // spotLight
+void Renderer::updateSpotlightShaderParams(const Camera& camera) {
     cubeShader->setVec3("spotLight.position", camera.getPosition());
     cubeShader->setVec3("spotLight.direction", camera.getFront());
+}
 
+void Renderer::updateProjectionViewShaderParams(const Camera& camera) {
+    cubeShader->setVec3("viewPosition", camera.getPosition());
     glm::mat4 projection =
         glm::perspective(glm::radians(camera.getZoom()),
                          screenWidth / screenHeight, 0.1f, 100.0f);
@@ -163,14 +114,17 @@ void Renderer::updateShaders(const Camera& camera) {
     frustum.update(projView);
 }
 
-void Renderer::render(unsigned int fps, World& world) {
-    glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+void Renderer::updateShaders(const Camera& camera) {
     cubeShader->use();
-    world.performFrustumCulling(frustum);
+    cubeShader->setFloat("time", glfwGetTime());
 
-    for (const auto& [cubeType, cubeMaterial] : materials) {
+    updateWaterShaderParams(camera);
+    updateSpotlightShaderParams(camera);
+    updateProjectionViewShaderParams(camera);
+}
+
+void Renderer::renderOpaqueCubes(World& world) {
+    for (const auto& [cubeType, cubeMaterial] : materials.get()) {
         if (cubeType == CubeType::WATER) continue;
         TextureManager::BindTextureToUnit(cubeMaterial.mainDiffuseTexturePath,
                                           cubeMaterial.mainDiffuseUnit);
@@ -189,10 +143,12 @@ void Renderer::render(unsigned int fps, World& world) {
         cubeShader->setFloat("material.alpha", cubeMaterial.alpha);
         world.renderByType(*cubeShader, cubeType);
     }
+}
 
+void Renderer::renderWater(World& world) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    const Material& waterMat = materials[CubeType::WATER];
+    const Material& waterMat = materials.get(CubeType::WATER);
     TextureManager::BindTextureToUnit(waterMat.mainDiffuseTexturePath,
                                       waterMat.mainDiffuseUnit);
     cubeShader->setInt("material.diffuseMain", waterMat.mainDiffuseUnit);
@@ -201,10 +157,23 @@ void Renderer::render(unsigned int fps, World& world) {
     cubeShader->setInt("shouldAnimateWater", 1);
     world.renderByType(*cubeShader, CubeType::WATER);
     cubeShader->setInt("shouldAnimateWater", 0);
+}
 
+void Renderer::renderFpsCount(unsigned int fps) {
     const std::string fpsCount{"FPS count: " + std::to_string(fps)};
     fontManager->renderText(fpsCount, 25.0f, 25.0f, 1.0f,
                             glm::vec3(0.5, 0.8f, 0.2f));
     fontManager->renderText("Pioter Craft Project", 1640.0f, 1010.0f, 0.5f,
                             glm::vec3(0.3, 0.7f, 0.9f));
+}
+
+void Renderer::render(unsigned int fps, World& world) {
+    glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    world.performFrustumCulling(frustum);
+    cubeShader->use();
+    renderOpaqueCubes(world);
+    renderWater(world);
+    renderFpsCount(fps);
 }

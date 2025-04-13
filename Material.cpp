@@ -1,0 +1,58 @@
+#include "Material.hpp"
+
+Materials::Materials() {
+    materials[CubeType::SAND] = Material{"textures/sand.jpg",
+                                         "./textures/matrix.jpg",
+                                         "",
+                                         1,
+                                         99,
+                                         99,
+                                         32.0f,
+                                         1.f,
+                                         false};
+    materials[CubeType::DIRT] = Material{"textures/dirt.jpg",
+                                         "",
+                                         "./textures/matrix.jpg",
+                                         2,
+                                         99,
+                                         99,
+                                         16.0f,
+                                         1.f,
+                                         false};
+    materials[CubeType::GRASS] = Material{"textures/grass.jpg",
+                                          "",
+                                          "./textures/matrix.jpg",
+                                          3,
+                                          99,
+                                          99,
+                                          8.0f,
+                                          1.f,
+                                          false};
+    materials[CubeType::WATER] = Material{"textures/water.jpg",
+                                          "",
+                                          "./textures/matrix.jpg",
+                                          4,
+                                          99,
+                                          99,
+                                          64.0f,
+                                          0.5f,
+                                          false};
+    materials[CubeType::LOG] = Material{"textures/logBark.jpg",
+                                        "textures/logInside.jpg",
+                                        "textures/matrix.jpg",
+                                        5,
+                                        6,
+                                        99,
+                                        32.0f,
+                                        1.f,
+                                        true};
+    materials[CubeType::LEAVES] = Material{"textures/leaves.jpg",
+                                           "",
+                                           "./textures/matrix.jpg",
+                                           7,
+                                           99,
+                                           99,
+                                           8.0f,
+                                           1.f,
+                                           false};
+}

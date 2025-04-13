@@ -2,7 +2,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <memory>
-#include <unordered_map>
 #include "FontManager.hpp"
 #include "Camera.hpp"
 #include "Shader.hpp"
@@ -22,14 +21,24 @@ class Renderer {
     void render(unsigned int fps, World& world);
 
    private:
-    void setupShaders();
-    void setupMaterials();
+    void applyCubeShaderInitialConfig();
+    void setupDirectionalLightConfig();
+    void setupPointLightsConfig();
+    void setupSpotlightConfig();
+    void setupWaterTintConfig();
+    void updateWaterShaderParams(const Camera& camera);
+    void updateSpotlightShaderParams(const Camera& camera);
+    void updateProjectionViewShaderParams(const Camera& camera);
+    void renderOpaqueCubes(World& world);
+    void renderWater(World& world);
+    void renderFpsCount(unsigned int fps);
+
     float screenWidth{0};
     float screenHeight{0};
 
     std::unique_ptr<Shader> cubeShader{nullptr};
     std::unique_ptr<Shader> lightCubeShader{nullptr};
     std::unique_ptr<FontManager> fontManager{nullptr};
-    std::unordered_map<CubeType, Material> materials;
+    Materials materials{};
     Frustum frustum{};
 };
