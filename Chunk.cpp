@@ -12,7 +12,7 @@ constexpr CubeType getCubeTypeBasedOnHeight(int height) {
     else if (height < 14)
         return CubeType::DIRT;
     else
-        return CubeType::GRASS;
+        return CubeType::LOG;
 }
 
 constexpr std::array<glm::ivec3, 6> neighborOffsets = {
@@ -134,8 +134,9 @@ void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
 }
 
 void Chunk::generateInstanceBuffersForCubeTypes() {
-    const std::array<CubeType, 4> cubeTypes = {
-        CubeType::SAND, CubeType::DIRT, CubeType::GRASS, CubeType::WATER};
+    const std::array<CubeType, 5> cubeTypes = {CubeType::SAND, CubeType::DIRT,
+                                               CubeType::GRASS, CubeType::WATER,
+                                               CubeType::LOG};
     for (const auto& type : cubeTypes) {
         instanceVBOs[type] = 0;
         glGenBuffers(1, &instanceVBOs[type]);

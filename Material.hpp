@@ -3,10 +3,13 @@
 #include <string>
 
 struct Material {
-    std::string diffuseTexturePath{};
+    std::string mainDiffuseTexturePath{};
+    std::string secondaryDiffuseTexturePath{};
     std::string emissionTexturePath{};
-    int diffuseUnit{};
+    int mainDiffuseUnit{};
+    int secondaryDiffuseUnit{};
     int emissionUnit{};
     float shininess{};
     float alpha{};
+    bool useSecondaryTexture{};
 };

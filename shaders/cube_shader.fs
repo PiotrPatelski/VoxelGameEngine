@@ -8,9 +8,11 @@ in vec3 fragPos;
 in vec3 normal;
 
 struct Material {
-    sampler2D diffuse;
+    sampler2D diffuseMain;
+    sampler2D diffuseSecondary;
     float shininess;
     float alpha;
+    bool useSecondaryTexture;
 };
 
 struct DirectionalLight {
@@ -53,34 +55,45 @@ uniform float fadeValue;
 uniform Material material;
 uniform float time;
 
-uniform bool uUnderwater;
-uniform vec3 uUnderwaterTint;
-uniform float uUnderwaterMix; // Blend factor: 0.0 means no tint, 1.0 means full tint.
-uniform bool uAnimateWater;
+uniform bool isUnderwater;
+uniform vec3 underwaterTint;
+uniform float underwaterMix; // Blend factor: 0.0 means no tint, 1.0 means full tint.
+uniform bool shouldAnimateWater;
+
+vec3 sampleCubeTexture(vec2 texCoord, vec3 normal)
+{
+    // If the face's normal has a high absolute Y component, consider it top/bottom.
+    const bool isFaceTopOrBottom = abs(normal.y) >= 0.5;
+    if(material.useSecondaryTexture && isFaceTopOrBottom)
+    {
+        return texture(material.diffuseSecondary, texCoord).rgb;
+    }
+    return texture(material.diffuseMain, texCoord).rgb;
+}
 
 vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDirection, vec2 texCoord)
 {
-    vec3 lightDirection = normalize(-light.direction);
+    const vec3 lightDirection = normalize(-light.direction);
     // diffuse shading
-    float diff = max(dot(normal, lightDirection), 0.0);
+    const float diff = max(dot(normal, lightDirection), 0.0);
     // combine results
-    vec3 ambient  = light.ambient  * texture(material.diffuse, texCoord).rgb;
-    vec3 diffuse  = light.diffuse  * diff * texture(material.diffuse, texCoord).rgb;
+    const vec3 ambient  = light.ambient  * sampleCubeTexture(texCoord, normal);
+    const vec3 diffuse  = light.diffuse  * diff * sampleCubeTexture(texCoord, normal);
     return (ambient + diffuse);
 } 
 
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDirection, vec2 texCoord)
 {
-    vec3 lightDir = normalize(light.position - fragPos);
+    const vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
-    float diff = max(dot(normal, lightDir), 0.0);
+    const float diff = max(dot(normal, lightDir), 0.0);
     // attenuation
-    float distance = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
+    const float distance = length(light.position - fragPos);
+    const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
     // combine results
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, texCoord));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, texCoord));
+    vec3 ambient = light.ambient * sampleCubeTexture(texCoord, normal);
+    vec3 diffuse = light.diffuse * diff * sampleCubeTexture(texCoord, normal);
     ambient *= attenuation;
     diffuse *= attenuation;
     return (ambient + diffuse);
@@ -88,19 +101,19 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDirect
 
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDirection, vec2 texCoord)
 {
-    vec3 lightDir = normalize(light.position - fragPos);
+    const vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
-    float diff = max(dot(normal, lightDir), 0.0);
+    const float diff = max(dot(normal, lightDir), 0.0);
     // attenuation
-    float distance = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
+    const float distance = length(light.position - fragPos);
+    const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
     // spotlight intensity
-    float theta = dot(lightDir, normalize(-light.direction)); 
-    float epsilon = light.innerCutOff - light.outerCutOff;
-    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+    const float theta = dot(lightDir, normalize(-light.direction)); 
+    const float epsilon = light.innerCutOff - light.outerCutOff;
+    const float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
     // combine results
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, texCoord));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, texCoord));
+    vec3 ambient = light.ambient * sampleCubeTexture(texCoord, normal);
+    vec3 diffuse = light.diffuse * diff * sampleCubeTexture(texCoord, normal);
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
 
@@ -109,13 +122,13 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDirectio
 
 void main()
 {
-    vec3 norm = normalize(normal);
-    vec3 viewDirection = normalize(viewPosition - fragPos);
+    const vec3 norm = normalize(normal);
+    const vec3 viewDirection = normalize(viewPosition - fragPos);
     vec2 outTexCoord = TexCoord;
-    if(uAnimateWater)
+    if(shouldAnimateWater)
     {
         // A simple scrolling effect.
-        float waterSpeed = 0.05; // Adjust speed as needed.
+        const float waterSpeed = 0.05;
         outTexCoord += vec2(time * waterSpeed, time * waterSpeed);
     }
     // phase 1: Directional lighting
@@ -126,8 +139,8 @@ void main()
     // phase 3: Spot light
     result += CalcSpotLight(spotLight, norm, fragPos, viewDirection, outTexCoord);
     // FragColor = vec4(result + emission, 1.0);
-    if (uUnderwater) {
-        result = mix(result, uUnderwaterTint, uUnderwaterMix);
+    if (isUnderwater) {
+        result = mix(result, underwaterTint, underwaterMix);
     }
     FragColor = vec4(result, material.alpha);
  

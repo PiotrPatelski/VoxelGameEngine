@@ -59,19 +59,56 @@ void Renderer::setupShaders() {
     cubeShader->setFloat("spotLight.outerCutOff",
                          glm::cos(glm::radians(15.0f)));
 
-    cubeShader->setVec3("uUnderwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
-    cubeShader->setFloat("uUnderwaterMix", 0.0f);
+    cubeShader->setVec3("underwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
+    cubeShader->setFloat("underwaterMix", 0.0f);
 }
 
 void Renderer::setupMaterials() {
-    materials[CubeType::SAND] = Material{
-        "textures/sand.jpg", "./textures/matrix.jpg", 1, 99, 32.0f, 1.f};
-    materials[CubeType::DIRT] = Material{
-        "textures/dirt.jpg", "./textures/matrix.jpg", 2, 99, 16.0f, 1.f};
-    materials[CubeType::GRASS] = Material{
-        "textures/grass.jpg", "./textures/matrix.jpg", 3, 99, 8.0f, 1.f};
-    materials[CubeType::WATER] = Material{
-        "textures/water.jpg", "./textures/matrix.jpg", 4, 99, 64.0f, 0.5f};
+    materials[CubeType::SAND] = Material{"textures/sand.jpg",
+                                         "./textures/matrix.jpg",
+                                         "",
+                                         1,
+                                         99,
+                                         99,
+                                         32.0f,
+                                         1.f,
+                                         false};
+    materials[CubeType::DIRT] = Material{"textures/dirt.jpg",
+                                         "",
+                                         "./textures/matrix.jpg",
+                                         2,
+                                         99,
+                                         99,
+                                         16.0f,
+                                         1.f,
+                                         false};
+    materials[CubeType::GRASS] = Material{"textures/grass.jpg",
+                                          "",
+                                          "./textures/matrix.jpg",
+                                          3,
+                                          99,
+                                          99,
+                                          8.0f,
+                                          1.f,
+                                          false};
+    materials[CubeType::WATER] = Material{"textures/water.jpg",
+                                          "",
+                                          "./textures/matrix.jpg",
+                                          4,
+                                          99,
+                                          99,
+                                          64.0f,
+                                          0.5f,
+                                          false};
+    materials[CubeType::LOG] = Material{"textures/logBark.jpg",
+                                        "textures/logInside.jpg",
+                                        "textures/matrix.jpg",
+                                        5,
+                                        6,
+                                        99,
+                                        32.0f,
+                                        1.f,
+                                        true};
 }
 
 Renderer::Renderer(unsigned int width, unsigned int height)
@@ -96,12 +133,12 @@ void Renderer::updateShaders(const Camera& camera) {
     cubeShader->setVec3("viewPosition", camera.getPosition());
 
     // water
-    float underwaterEffectHeight = 14.5f;
-    bool underwater = (camera.getPosition().y < underwaterEffectHeight);
-    cubeShader->setInt("uUnderwater", underwater ? 1 : 0);
-    cubeShader->setVec3("uUnderwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
-    cubeShader->setFloat("uUnderwaterMix", underwater ? 0.5f : 0.0f);
-    cubeShader->setInt("uAnimateWater", 0);
+    const float underwaterEffectHeight = 14.5f;
+    const bool underwater = (camera.getPosition().y < underwaterEffectHeight);
+    cubeShader->setBool("isUnderwater", underwater);
+    cubeShader->setVec3("underwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
+    cubeShader->setFloat("underwaterMix", underwater ? 0.5f : 0.0f);
+    cubeShader->setBool("shouldAnimateWater", 0);
 
     // spotLight
     cubeShader->setVec3("spotLight.position", camera.getPosition());
@@ -125,12 +162,20 @@ void Renderer::render(unsigned int fps, World& world) {
     world.performFrustumCulling(frustum);
 
     for (const auto& [cubeType, cubeMaterial] : materials) {
-        if (cubeType == CubeType::WATER) {
-            continue;
+        if (cubeType == CubeType::WATER) continue;
+        TextureManager::BindTextureToUnit(cubeMaterial.mainDiffuseTexturePath,
+                                          cubeMaterial.mainDiffuseUnit);
+        cubeShader->setInt("material.diffuseMain",
+                           cubeMaterial.mainDiffuseUnit);
+        cubeShader->setBool("material.useSecondaryTexture",
+                            cubeMaterial.useSecondaryTexture);
+        if (cubeType == CubeType::LOG) {
+            TextureManager::BindTextureToUnit(
+                cubeMaterial.secondaryDiffuseTexturePath,
+                cubeMaterial.secondaryDiffuseUnit);
+            cubeShader->setInt("material.diffuseSecondary",
+                               cubeMaterial.secondaryDiffuseUnit);
         }
-        TextureManager::BindTextureToUnit(cubeMaterial.diffuseTexturePath,
-                                          cubeMaterial.diffuseUnit);
-        cubeShader->setInt("material.diffuse", cubeMaterial.diffuseUnit);
         cubeShader->setFloat("material.shininess", cubeMaterial.shininess);
         cubeShader->setFloat("material.alpha", cubeMaterial.alpha);
         world.renderByType(*cubeShader, cubeType);
@@ -139,14 +184,14 @@ void Renderer::render(unsigned int fps, World& world) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     const Material& waterMat = materials[CubeType::WATER];
-    TextureManager::BindTextureToUnit(waterMat.diffuseTexturePath,
-                                      waterMat.diffuseUnit);
-    cubeShader->setInt("material.diffuse", waterMat.diffuseUnit);
+    TextureManager::BindTextureToUnit(waterMat.mainDiffuseTexturePath,
+                                      waterMat.mainDiffuseUnit);
+    cubeShader->setInt("material.diffuseMain", waterMat.mainDiffuseUnit);
     cubeShader->setFloat("material.shininess", waterMat.shininess);
     cubeShader->setFloat("material.alpha", waterMat.alpha);
-    cubeShader->setInt("uAnimateWater", 1);
+    cubeShader->setInt("shouldAnimateWater", 1);
     world.renderByType(*cubeShader, CubeType::WATER);
-    cubeShader->setInt("uAnimateWater", 0);
+    cubeShader->setInt("shouldAnimateWater", 0);
 
     const std::string fpsCount{"FPS count: " + std::to_string(fps)};
     fontManager->renderText(fpsCount, 25.0f, 25.0f, 1.0f,
