@@ -18,7 +18,7 @@ class Chunk {
     Chunk& operator=(const Chunk&) = delete;
     Chunk& operator=(Chunk&&) = delete;
     inline bool isCubeInGrid(const glm::vec3& position) const {
-        return cubeGrid[position.x][position.z][position.y];
+        return voxelGrid[position.x][position.z][position.y];
     }
 
     bool addCube(const glm::ivec3& localPos);
@@ -31,26 +31,29 @@ class Chunk {
     bool isPositionWithinBounds(const glm::ivec3& pos) const;
     void setupVAO(unsigned int sharedVBO, unsigned int sharedEBO);
     void generateInstanceBuffersForCubeTypes();
+    void bindInstanceAttributesForType(CubeType cubeType);
     void rebuildCubesFromGrid();
     void rebuildVisibleInstances(const Frustum& frustum);
     void updateInstanceData();
     void uploadInstanceBuffer();
     void clearInstanceBuffer();
     void createCube(const glm::vec3& pos, CubeType type);
+    void drawElements(CubeType type, unsigned int amount);
 
-    std::vector<std::vector<std::vector<bool>>> generateInitialCubeGrid();
+    std::vector<std::vector<std::vector<bool>>> generateInitialVoxelGrid();
     std::pair<glm::vec3, glm::vec3> computeChunkAABB() const;
 
     int size{0};
     int chunkWorldXPosition{0};
     int chunkWorldZPosition{0};
     int waterHeight{0};
-    std::vector<std::vector<std::vector<bool>>> cubeGrid{};
+    std::vector<std::vector<std::vector<bool>>> voxelGrid{};
     std::vector<std::unique_ptr<Cube>> cubes{};
-    std::unordered_map<CubeType, std::vector<glm::mat4>> instanceMatrices{};
-    std::unordered_map<CubeType, unsigned int> instanceBuffers{};
+    std::unordered_map<CubeType, std::vector<glm::mat4>>
+        instanceModelMatrices{};
+    std::unordered_map<CubeType, unsigned int> instanceVBOs{};
     bool modified{true};
     unsigned int vao{};
-    unsigned int ebo{};
+    unsigned int regularCubeEBO{};
     unsigned int waterEBO{};
 };

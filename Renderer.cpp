@@ -58,6 +58,9 @@ void Renderer::setupShaders() {
                          glm::cos(glm::radians(12.5f)));
     cubeShader->setFloat("spotLight.outerCutOff",
                          glm::cos(glm::radians(15.0f)));
+
+    cubeShader->setVec3("uUnderwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
+    cubeShader->setFloat("uUnderwaterMix", 0.0f);
 }
 
 void Renderer::setupMaterials() {
@@ -91,6 +94,15 @@ void Renderer::updateShaders(const Camera& camera) {
     cubeShader->use();
     cubeShader->setFloat("time", glfwGetTime());
     cubeShader->setVec3("viewPosition", camera.getPosition());
+
+    // water
+    float underwaterEffectHeight = 14.5f;
+    bool underwater = (camera.getPosition().y < underwaterEffectHeight);
+    cubeShader->setInt("uUnderwater", underwater ? 1 : 0);
+    cubeShader->setVec3("uUnderwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
+    cubeShader->setFloat("uUnderwaterMix", underwater ? 0.5f : 0.0f);
+    cubeShader->setInt("uAnimateWater", 0);
+
     // spotLight
     cubeShader->setVec3("spotLight.position", camera.getPosition());
     cubeShader->setVec3("spotLight.direction", camera.getFront());
@@ -132,7 +144,9 @@ void Renderer::render(unsigned int fps, World& world) {
     cubeShader->setInt("material.diffuse", waterMat.diffuseUnit);
     cubeShader->setFloat("material.shininess", waterMat.shininess);
     cubeShader->setFloat("material.alpha", waterMat.alpha);
+    cubeShader->setInt("uAnimateWater", 1);
     world.renderByType(*cubeShader, CubeType::WATER);
+    cubeShader->setInt("uAnimateWater", 0);
 
     const std::string fpsCount{"FPS count: " + std::to_string(fps)};
     fontManager->renderText(fpsCount, 25.0f, 25.0f, 1.0f,

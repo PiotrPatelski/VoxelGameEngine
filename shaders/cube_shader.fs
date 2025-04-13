@@ -53,19 +53,24 @@ uniform float fadeValue;
 uniform Material material;
 uniform float time;
 
-vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDirection)
+uniform bool uUnderwater;
+uniform vec3 uUnderwaterTint;
+uniform float uUnderwaterMix; // Blend factor: 0.0 means no tint, 1.0 means full tint.
+uniform bool uAnimateWater;
+
+vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDirection, vec2 texCoord)
 {
     vec3 lightDirection = normalize(-light.direction);
     // diffuse shading
     float diff = max(dot(normal, lightDirection), 0.0);
     // combine results
-    vec3 ambient  = light.ambient  * texture(material.diffuse, TexCoord).rgb;
-    vec3 diffuse  = light.diffuse  * diff * texture(material.diffuse, TexCoord).rgb;
+    vec3 ambient  = light.ambient  * texture(material.diffuse, texCoord).rgb;
+    vec3 diffuse  = light.diffuse  * diff * texture(material.diffuse, texCoord).rgb;
     return (ambient + diffuse);
 } 
 
 
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDirection)
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDirection, vec2 texCoord)
 {
     vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
@@ -74,14 +79,14 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDirect
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
     // combine results
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoord));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, TexCoord));
+    vec3 ambient = light.ambient * vec3(texture(material.diffuse, texCoord));
+    vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, texCoord));
     ambient *= attenuation;
     diffuse *= attenuation;
     return (ambient + diffuse);
 }
 
-vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDirection)
+vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDirection, vec2 texCoord)
 {
     vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
@@ -94,8 +99,8 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDirectio
     float epsilon = light.innerCutOff - light.outerCutOff;
     float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
     // combine results
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoord));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, TexCoord));
+    vec3 ambient = light.ambient * vec3(texture(material.diffuse, texCoord));
+    vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, texCoord));
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
 
@@ -106,15 +111,24 @@ void main()
 {
     vec3 norm = normalize(normal);
     vec3 viewDirection = normalize(viewPosition - fragPos);
-    
+    vec2 outTexCoord = TexCoord;
+    if(uAnimateWater)
+    {
+        // A simple scrolling effect.
+        float waterSpeed = 0.05; // Adjust speed as needed.
+        outTexCoord += vec2(time * waterSpeed, time * waterSpeed);
+    }
     // phase 1: Directional lighting
-    vec3 result = CalcDirectionalLight(directionalLight, norm, viewDirection);
+    vec3 result = CalcDirectionalLight(directionalLight, norm, viewDirection, outTexCoord);
     // phase 2: Point lights
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights[i], norm, fragPos, viewDirection);    
+        result += CalcPointLight(pointLights[i], norm, fragPos, viewDirection, outTexCoord);
     // phase 3: Spot light
-    result += CalcSpotLight(spotLight, norm, fragPos, viewDirection);
+    result += CalcSpotLight(spotLight, norm, fragPos, viewDirection, outTexCoord);
     // FragColor = vec4(result + emission, 1.0);
+    if (uUnderwater) {
+        result = mix(result, uUnderwaterTint, uUnderwaterMix);
+    }
     FragColor = vec4(result, material.alpha);
  
 } 

@@ -3,7 +3,7 @@
 #include "VertexData.hpp"
 #include "GridGenerator.hpp"
 
-static constexpr int mat4Length{4};
+static constexpr int matrixAttributeCount{4};
 
 namespace {
 constexpr CubeType getCubeTypeBasedOnHeight(int height) {
@@ -37,7 +37,7 @@ bool isCubeExposed(const std::vector<std::vector<std::vector<bool>>>& grid,
         }
         // If neighbor cell is false (i.e. no cube present), then current cube
         // is exposed.
-        if (!grid[neighbor.x][neighbor.z][neighbor.y]) {
+        if (not grid[neighbor.x][neighbor.z][neighbor.y]) {
             return true;
         }
     }
@@ -53,10 +53,10 @@ Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex,
       chunkWorldZPosition{worldZindex},
       waterHeight{14},
       modified{true},
-      ebo{sharedEBO},
+      regularCubeEBO{sharedEBO},
       waterEBO{sharedWaterEBO} {
     setupVAO(sharedVBO, sharedEBO);
-    cubeGrid = generateInitialCubeGrid();
+    voxelGrid = generateInitialVoxelGrid();
     generateInstanceBuffersForCubeTypes();
     rebuildCubesFromGrid();
     uploadInstanceBuffer();
@@ -86,19 +86,19 @@ void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
     glBindVertexArray(0);
 }
 
-std::vector<std::vector<std::vector<bool>>> Chunk::generateInitialCubeGrid() {
+std::vector<std::vector<std::vector<bool>>> Chunk::generateInitialVoxelGrid() {
     GridGenerator generator(size, chunkWorldXPosition, chunkWorldZPosition);
     return generator.generateGrid();
 }
 
 void Chunk::createCube(const glm::vec3& pos, CubeType type) {
     cubes.push_back(std::make_unique<Cube>(pos, type));
-    instanceMatrices[type].push_back(cubes.back()->getModel());
+    instanceModelMatrices[type].push_back(cubes.back()->getModel());
 }
 
 void Chunk::rebuildCubesFromGrid() {
     cubes.clear();
-    instanceMatrices.clear();
+    instanceModelMatrices.clear();
     const auto initialCubeX = static_cast<float>(chunkWorldXPosition * size);
     const auto initialCubeZ = static_cast<float>(chunkWorldZPosition * size);
     for (int x = 0; x < size; x++) {
@@ -107,14 +107,10 @@ void Chunk::rebuildCubesFromGrid() {
                 glm::vec3 cubePos{initialCubeX + static_cast<float>(x),
                                   static_cast<float>(y),
                                   initialCubeZ + static_cast<float>(z)};
-                // Ground cubes: only create if the grid cell is set and the
-                // cube is exposed.
-                if (cubeGrid[x][z][y] and isCubeExposed(cubeGrid, {x, y, z})) {
+                if (voxelGrid[x][z][y] and
+                    isCubeExposed(voxelGrid, {x, y, z})) {
                     createCube(cubePos, getCubeTypeBasedOnHeight(y));
-                }
-                // Water cubes: only create water at the water–surface (y ==
-                // waterHeight)
-                else if ((not cubeGrid[x][z][y]) and (y == waterHeight)) {
+                } else if ((not voxelGrid[x][z][y]) and (y == waterHeight)) {
                     createCube(cubePos, CubeType::WATER);
                 }
             }
@@ -123,7 +119,7 @@ void Chunk::rebuildCubesFromGrid() {
 }
 
 void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
-    instanceMatrices.clear();
+    instanceModelMatrices.clear();
     for (const auto& cube : cubes) {
         if (cube) {
             glm::mat4 model = cube->getModel();
@@ -131,7 +127,7 @@ void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
             glm::vec3 voxelMin = pos - glm::vec3(0.5f);
             glm::vec3 voxelMax = pos + glm::vec3(0.5f);
             if (frustum.isAABBInside(voxelMin, voxelMax)) {
-                instanceMatrices[cube->getType()].push_back(model);
+                instanceModelMatrices[cube->getType()].push_back(model);
             }
         }
     }
@@ -141,64 +137,67 @@ void Chunk::generateInstanceBuffersForCubeTypes() {
     const std::array<CubeType, 4> cubeTypes = {
         CubeType::SAND, CubeType::DIRT, CubeType::GRASS, CubeType::WATER};
     for (const auto& type : cubeTypes) {
-        instanceBuffers[type] = 0;
-        glGenBuffers(1, &instanceBuffers[type]);
+        instanceVBOs[type] = 0;
+        glGenBuffers(1, &instanceVBOs[type]);
     }
 }
 
 void Chunk::uploadInstanceBuffer() {
-    for (const auto& [cubeType, matrices] : instanceMatrices) {
-        glBindBuffer(GL_ARRAY_BUFFER, instanceBuffers[cubeType]);
+    for (const auto& [cubeType, matrices] : instanceModelMatrices) {
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBOs[cubeType]);
         glBufferData(GL_ARRAY_BUFFER, matrices.size() * sizeof(glm::mat4),
                      matrices.data(), GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void Chunk::clearInstanceBuffer() {
-    for (auto& [cubeType, matrices] : instanceMatrices) {
+    for (auto& [cubeType, matrices] : instanceModelMatrices) {
         matrices.clear();
-        glBindBuffer(GL_ARRAY_BUFFER, instanceBuffers[cubeType]);
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBOs[cubeType]);
         glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Chunk::renderByType(Shader& shader, CubeType type) {
-    // If no instances for this type => skip
-    auto it = instanceMatrices.find(type);
-    if (it == instanceMatrices.end() || it->second.empty()) {
-        return;
-    }
-    unsigned int instanceCount = it->second.size();
-
-    glBindVertexArray(vao);
-
-    // Bind the instance buffer for this type
-    glBindBuffer(GL_ARRAY_BUFFER, instanceBuffers[type]);
-    for (unsigned int i = 0; i < mat4Length; i++) {
+void Chunk::bindInstanceAttributesForType(CubeType cubeType) {
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBOs[cubeType]);
+    for (unsigned int i = 0; i < matrixAttributeCount; i++) {
         glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
                               (void*)(i * sizeof(glm::vec4)));
         glEnableVertexAttribArray(3 + i);
         glVertexAttribDivisor(3 + i, 1);
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 
-    // Choose the correct EBO for water vs. non-water
+void Chunk::drawElements(CubeType type, unsigned int amount) {
     if (type == CubeType::WATER) {
         glDisable(GL_CULL_FACE);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, waterEBO);
-        glDrawElementsInstanced(
-            GL_TRIANGLES, static_cast<GLsizei>(waterIndicesCount),
-            GL_UNSIGNED_INT, 0, static_cast<GLsizei>(instanceCount));
+        glDrawElementsInstanced(GL_TRIANGLES,
+                                static_cast<GLsizei>(waterIndicesCount),
+                                GL_UNSIGNED_INT, 0, amount);
         glEnable(GL_CULL_FACE);
     } else {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glDrawElementsInstanced(
-            GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT,
-            0, static_cast<GLsizei>(instanceCount));
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, regularCubeEBO);
+        glDrawElementsInstanced(GL_TRIANGLES,
+                                static_cast<GLsizei>(indices.size()),
+                                GL_UNSIGNED_INT, 0, amount);
     }
+}
 
+void Chunk::renderByType(Shader& shader, CubeType type) {
+    // If no instances for this type => skip
+    auto it = instanceModelMatrices.find(type);
+    if (it == instanceModelMatrices.end() || it->second.empty()) {
+        return;
+    }
+    unsigned int instanceCount = it->second.size();
+
+    glBindVertexArray(vao);
+    bindInstanceAttributesForType(type);
+    drawElements(type, instanceCount);
     glBindVertexArray(0);
 }
 
@@ -238,10 +237,10 @@ bool Chunk::isPositionWithinBounds(const glm::ivec3& pos) const {
 
 bool Chunk::addCube(const glm::ivec3& localPos) {
     if (not isPositionWithinBounds(localPos) or
-        cubeGrid[localPos.x][localPos.z][localPos.y]) {
+        voxelGrid[localPos.x][localPos.z][localPos.y]) {
         return false;
     }
-    cubeGrid[localPos.x][localPos.z][localPos.y] = true;
+    voxelGrid[localPos.x][localPos.z][localPos.y] = true;
     modified = true;
     updateInstanceData();
     return true;
@@ -249,18 +248,18 @@ bool Chunk::addCube(const glm::ivec3& localPos) {
 
 bool Chunk::removeCube(const glm::ivec3& localPos) {
     if (not isPositionWithinBounds(localPos) or
-        not cubeGrid[localPos.x][localPos.z][localPos.y]) {
+        not voxelGrid[localPos.x][localPos.z][localPos.y]) {
         return false;
     }
-    cubeGrid[localPos.x][localPos.z][localPos.y] = false;
+    voxelGrid[localPos.x][localPos.z][localPos.y] = false;
     modified = true;
     updateInstanceData();
     return true;
 }
 
 Chunk::~Chunk() {
-    for (auto& pair : instanceBuffers) {
-        glDeleteBuffers(1, &pair.second);
+    for (auto& [cubeType, instanceBufferID] : instanceVBOs) {
+        glDeleteBuffers(1, &instanceBufferID);
     }
     glDeleteVertexArrays(1, &vao);
 }
