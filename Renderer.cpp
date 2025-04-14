@@ -77,7 +77,8 @@ Renderer::Renderer(unsigned int width, unsigned int height)
       screenHeight{static_cast<float>(height)} {
     std::cout << "Renderer::Init!" << std::endl;
 
-    fontManager = std::make_unique<FontManager>(screenWidth, screenHeight);
+    statusTextRenderer =
+        std::make_unique<StatusTextRenderer>(screenWidth, screenHeight);
     cubeShader = std::make_unique<Shader>("shaders/cube_shader.vs",
                                           "shaders/cube_shader.fs");
     applyCubeShaderInitialConfig();
@@ -121,6 +122,7 @@ void Renderer::updateShaders(const Camera& camera) {
     updateWaterShaderParams(camera);
     updateSpotlightShaderParams(camera);
     updateProjectionViewShaderParams(camera);
+    lastCameraPosition = camera.getPosition();
 }
 
 void Renderer::renderOpaqueCubes(World& world) {
@@ -159,14 +161,6 @@ void Renderer::renderWater(World& world) {
     cubeShader->setInt("shouldAnimateWater", 0);
 }
 
-void Renderer::renderFpsCount(unsigned int fps) {
-    const std::string fpsCount{"FPS count: " + std::to_string(fps)};
-    fontManager->renderText(fpsCount, 25.0f, 25.0f, 1.0f,
-                            glm::vec3(0.5, 0.8f, 0.2f));
-    fontManager->renderText("Pioter Craft Project", 1640.0f, 1010.0f, 0.5f,
-                            glm::vec3(0.3, 0.7f, 0.9f));
-}
-
 void Renderer::render(unsigned int fps, World& world) {
     glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -175,5 +169,5 @@ void Renderer::render(unsigned int fps, World& world) {
     cubeShader->use();
     renderOpaqueCubes(world);
     renderWater(world);
-    renderFpsCount(fps);
+    statusTextRenderer->renderStatus(fps, lastCameraPosition);
 }

@@ -8,6 +8,7 @@
 #include "World.hpp"
 #include "Frustum.hpp"
 #include "Material.hpp"
+#include "StatusTextRenderer.hpp"
 
 class Renderer {
    public:
@@ -31,14 +32,14 @@ class Renderer {
     void updateProjectionViewShaderParams(const Camera& camera);
     void renderOpaqueCubes(World& world);
     void renderWater(World& world);
-    void renderFpsCount(unsigned int fps);
 
     float screenWidth{0};
     float screenHeight{0};
 
     std::unique_ptr<Shader> cubeShader{nullptr};
     std::unique_ptr<Shader> lightCubeShader{nullptr};
-    std::unique_ptr<FontManager> fontManager{nullptr};
+    std::unique_ptr<StatusTextRenderer> statusTextRenderer;
     Materials materials{};
     Frustum frustum{};
+    glm::vec3 lastCameraPosition{0.0f, 0.0f, 0.0f};
 };
