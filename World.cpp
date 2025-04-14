@@ -29,17 +29,15 @@ bool World::addCubeFromRaycast(const Camera& camera, float maxDistance) {
     const auto hitOpt =
         Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
     if (hitOpt.has_value()) {
-        HitResult hit = hitOpt.value();
-        // For this example, we add a cube above the hit block.
-        glm::ivec3 worldBlockPos = hit.position;
-        worldBlockPos.y += 1;
-        int chunkX = floorDiv(worldBlockPos.x, chunkSize);
-        int chunkZ = floorDiv(worldBlockPos.z, chunkSize);
-        int localX = mod(worldBlockPos.x, chunkSize);
-        int localZ = mod(worldBlockPos.z, chunkSize);
-        const auto localY = worldBlockPos.y;
+        const auto hit = hitOpt.value();
+        const auto newCubePos = hit.position + hit.normal;
+        const auto chunkX = floorDivide(newCubePos.x, chunkSize);
+        const auto chunkZ = floorDivide(newCubePos.z, chunkSize);
         Chunk* chunk = getChunk({chunkX, chunkZ});
         if (chunk) {
+            const auto localX = negativeSafeModulo(newCubePos.x, chunkSize);
+            const auto localZ = negativeSafeModulo(newCubePos.z, chunkSize);
+            const auto localY = newCubePos.y;
             return chunk->addCube(glm::ivec3(localX, localY, localZ));
         }
     }
@@ -50,15 +48,15 @@ bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
     const auto hitOpt =
         Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
     if (hitOpt.has_value()) {
-        HitResult hit = hitOpt.value();
-        glm::ivec3 worldBlockPos = hit.position;
-        int chunkX = floorDiv(worldBlockPos.x, chunkSize);
-        int chunkZ = floorDiv(worldBlockPos.z, chunkSize);
-        int localX = mod(worldBlockPos.x, chunkSize);
-        int localZ = mod(worldBlockPos.z, chunkSize);
-        const auto localY = worldBlockPos.y;
+        const auto hit = hitOpt.value();
+        const auto worldCubePos = hit.position;
+        const auto chunkX = floorDivide(worldCubePos.x, chunkSize);
+        const auto chunkZ = floorDivide(worldCubePos.z, chunkSize);
         Chunk* chunk = getChunk({chunkX, chunkZ});
         if (chunk) {
+            const auto localX = negativeSafeModulo(worldCubePos.x, chunkSize);
+            const auto localZ = negativeSafeModulo(worldCubePos.z, chunkSize);
+            const auto localY = worldCubePos.y;
             return chunk->removeCube(glm::ivec3(localX, localY, localZ));
         }
     }

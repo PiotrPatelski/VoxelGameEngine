@@ -7,12 +7,13 @@
 #include "Chunk.hpp"
 #include "Camera.hpp"
 
-int floorDiv(int a, int b);
-int mod(int a, int b);
+int floorDivide(int a, int b);
+int negativeSafeModulo(int a, int b);
 
 struct HitResult {
     glm::ivec3 position;
     ChunkCoord chunkCoord;
+    glm::ivec3 normal;
     bool hit = false;
 };
 
@@ -35,7 +36,7 @@ class Raycaster {
     // Helper functions for DDA calculations.
     int size{};
     float distanceTraveled{0.0f};
-    glm::vec3 rayOrigin{};
+    glm::ivec3 lastStep{0};
     glm::vec3 rayDirection{};
     glm::vec3 rayDir{};
     glm::ivec3 blockPos{};

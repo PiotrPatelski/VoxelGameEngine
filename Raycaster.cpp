@@ -30,10 +30,10 @@ Chunk* findChunkAtCurrentRayPos(
 }
 } // namespace
 
-int floorDiv(int a, int b) { return (a >= 0) ? (a / b) : ((a - b + 1) / b); }
-int mod(int a, int b) {
-    int r = a % b;
-    return (r < 0) ? r + b : r;
+int floorDivide(int a, int b) { return (a >= 0) ? (a / b) : ((a - b + 1) / b); }
+int negativeSafeModulo(int a, int b) {
+    int remainder = a % b;
+    return (remainder < 0) ? remainder + b : remainder;
 }
 
 Raycaster::Raycaster(const Camera& camera, int chunkSize)
@@ -51,19 +51,19 @@ std::optional<HitResult> Raycaster::raycast(
     distanceTraveled = 0.0f;
 
     while (distanceTraveled < maxDistance) {
-        int chunkX = floorDiv(blockPos.x, size);
-        int chunkZ = floorDiv(blockPos.z, size);
+        int chunkX = floorDivide(blockPos.x, size);
+        int chunkZ = floorDivide(blockPos.z, size);
         ChunkCoord coord{chunkX, chunkZ};
         const Chunk* chunk = findChunkAtCurrentRayPos(loadedChunks, coord);
-
         if (chunk) {
-            // Use bitwise & if chunkSize is a power of 2.
-            int localX = mod(blockPos.x, size);
-            int localZ = mod(blockPos.z, size);
+            int localX = negativeSafeModulo(blockPos.x, size);
+            int localZ = negativeSafeModulo(blockPos.z, size);
             int localY = blockPos.y;
             if (localY >= 0 && localY < size &&
                 chunk->isCubeInGrid({localX, localY, localZ})) {
-                return HitResult{blockPos, coord, true};
+                const bool isHit{true};
+                const auto normal = -lastStep;
+                return HitResult{blockPos, coord, normal, isHit};
             }
         }
         incrementRayStep();
@@ -77,13 +77,16 @@ void Raycaster::incrementRayStep() {
         blockPos.x += step.x;
         distanceTraveled = tMax.x;
         tMax.x += tDelta.x;
+        lastStep = glm::ivec3(step.x, 0, 0);
     } else if (tMax.y < tMax.z) {
         blockPos.y += step.y;
         distanceTraveled = tMax.y;
         tMax.y += tDelta.y;
+        lastStep = glm::ivec3(0, step.y, 0);
     } else {
         blockPos.z += step.z;
         distanceTraveled = tMax.z;
         tMax.z += tDelta.z;
+        lastStep = glm::ivec3(0, 0, step.z);
     }
 }
