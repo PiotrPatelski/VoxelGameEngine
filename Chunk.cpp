@@ -26,15 +26,18 @@ constexpr std::array<glm::ivec3, 6> neighborOffsets = {
     glm::ivec3(0, -1, 0)  // -Y
 };
 
+bool isPositionWithinBounds(const glm::ivec3& pos, int chunkSize) {
+    return (pos.x >= 0 and pos.x < chunkSize and pos.z >= 0 and
+            pos.z < chunkSize and pos.y >= 0 and pos.y < chunkSize);
+}
+
 bool isCubeExposed(const std::vector<std::vector<std::vector<bool>>>& grid,
                    const glm::ivec3& pos) {
     const auto chunkSize = static_cast<int>(grid.size());
     for (const auto& offset : neighborOffsets) {
         glm::ivec3 neighbor = pos + offset;
         // If neighbor is out of bounds, we consider the cube exposed.
-        if (neighbor.x < 0 or neighbor.x >= chunkSize or neighbor.z < 0 or
-            neighbor.z >= chunkSize or neighbor.y < 0 or
-            neighbor.y >= chunkSize) {
+        if (not isPositionWithinBounds(neighbor, chunkSize)) {
             return true;
         }
         // If neighbor cell is false (i.e. no cube present), then current cube
@@ -99,32 +102,50 @@ void Chunk::createCube(const glm::vec3& pos, CubeType type) {
     instanceModelMatrices[type].push_back(cubes.back()->getModel());
 }
 
-void Chunk::rebuildCubesFromGrid() {
-    cubes.clear();
-    instanceModelMatrices.clear();
-    const float initialCubeX = static_cast<float>(chunkWorldXPosition * size);
-    const float initialCubeZ = static_cast<float>(chunkWorldZPosition * size);
+void Chunk::processVoxelGrid(float chunkOriginBlockPositionX,
+                             float chunkOriginBlockPositionZ,
+                             const CubeCreator& applyCube) {
     for (int x = 0; x < size; x++) {
         for (int z = 0; z < size; z++) {
             for (int y = 0; y < size; y++) {
-                glm::vec3 cubePos{initialCubeX + static_cast<float>(x),
-                                  static_cast<float>(y),
-                                  initialCubeZ + static_cast<float>(z)};
-                if (voxelGrid[x][z][y] && isCubeExposed(voxelGrid, {x, y, z})) {
-                    createCube(cubePos, getCubeTypeBasedOnHeight(y));
+                glm::vec3 cubePos(
+                    chunkOriginBlockPositionX + static_cast<float>(x),
+                    static_cast<float>(y),
+                    chunkOriginBlockPositionZ + static_cast<float>(z));
+                if (voxelGrid[x][z][y] &&
+                    isCubeExposed(voxelGrid, glm::ivec3{x, y, z})) {
+                    applyCube(cubePos, getCubeTypeBasedOnHeight(y));
                 } else if (!voxelGrid[x][z][y] && (y == waterHeight)) {
-                    createCube(cubePos, CubeType::WATER);
+                    applyCube(cubePos, CubeType::WATER);
                 }
             }
         }
     }
+}
+
+void Chunk::regenerateChunk(const CubeCreator& applier) {
+    const float chunkOriginBlockPositionX =
+        static_cast<float>(chunkWorldXPosition * size);
+    const float chunkOriginBlockPositionZ =
+        static_cast<float>(chunkWorldZPosition * size);
+
+    processVoxelGrid(chunkOriginBlockPositionX, chunkOriginBlockPositionZ,
+                     applier);
 
     treeManager.generateTrees(voxelGrid);
-    auto createCubeCallback = [this](const glm::vec3& worldPos, CubeType type) {
+    treeManager.reapplyTrunks(chunkOriginBlockPositionX,
+                              chunkOriginBlockPositionZ, applier);
+    treeManager.reapplyCrowns(chunkOriginBlockPositionX,
+                              chunkOriginBlockPositionZ, applier);
+}
+
+void Chunk::rebuildCubesFromGrid() {
+    cubes.clear();
+    instanceModelMatrices.clear();
+    auto cubeCreator = [this](const glm::vec3& worldPos, CubeType type) {
         createCube(worldPos, type);
     };
-    treeManager.reapplyTrunks(initialCubeX, initialCubeZ, createCubeCallback);
-    treeManager.reapplyCrowns(initialCubeX, initialCubeZ, createCubeCallback);
+    regenerateChunk(cubeCreator);
 }
 
 void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
@@ -231,39 +252,42 @@ void Chunk::performFrustumCulling(const Frustum& frustum) {
     uploadInstanceBuffer();
 }
 
-void Chunk::updateInstanceData() {
-    if (modified) {
-        rebuildCubesFromGrid();
-        uploadInstanceBuffer();
-        modified = false;
-    }
+CubeData Chunk::computeCubeData() {
+    CubeData data;
+    auto cubeDataApplier = [&data](const glm::vec3& pos, CubeType type) {
+        auto cube = std::make_unique<Cube>(pos, type);
+        data.instanceModelMatrices[type].push_back(cube->getModel());
+        data.cubes.push_back(std::move(cube));
+    };
+    regenerateChunk(cubeDataApplier);
+    return data;
 }
 
-bool Chunk::isPositionWithinBounds(const glm::ivec3& pos) const {
-    return (pos.x >= 0 and pos.x < size and pos.z >= 0 and pos.z < size and
-            pos.y >= 0 and pos.y < size);
+void Chunk::applyCubeData(CubeData&& data) {
+    cubes = std::move(data.cubes);
+    instanceModelMatrices = std::move(data.instanceModelMatrices);
+    uploadInstanceBuffer();
+    modified = false;
 }
 
 bool Chunk::addCube(const glm::ivec3& localPos) {
-    if (not isPositionWithinBounds(localPos) or
+    if (not isPositionWithinBounds(localPos, size) or
         voxelGrid[localPos.x][localPos.z][localPos.y]) {
         return false;
     }
     voxelGrid[localPos.x][localPos.z][localPos.y] = true;
     modified = true;
-    updateInstanceData();
     return true;
 }
 
 bool Chunk::removeCube(const glm::ivec3& localPos) {
-    if (not isPositionWithinBounds(localPos) or
+    if (not isPositionWithinBounds(localPos, size) or
         not voxelGrid[localPos.x][localPos.z][localPos.y]) {
         return false;
     }
     voxelGrid[localPos.x][localPos.z][localPos.y] = false;
     treeManager.removeTreeCubeAt(localPos);
     modified = true;
-    updateInstanceData();
     return true;
 }
 

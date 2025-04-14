@@ -9,8 +9,12 @@
 
 class ChunkLoader {
    public:
-    ChunkLoader(int renderingDistance, int sizeOfChunk);
+    explicit ChunkLoader(int renderingDistance, int sizeOfChunk);
     ~ChunkLoader();
+    ChunkLoader(const ChunkLoader&) = delete;
+    ChunkLoader(ChunkLoader&&) = delete;
+    ChunkLoader& operator=(const ChunkLoader&) = delete;
+    ChunkLoader& operator=(ChunkLoader&&) = delete;
     void launchTask(int camChunkX, int camChunkZ,
                     const std::unordered_set<ChunkCoord>& existingKeys);
     bool isTaskRunning() const;
@@ -31,6 +35,6 @@ class ChunkLoader {
     unsigned int waterElementBufferObjects{0};
 
     std::future<std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>>
-        future{};
+        newChunkGroup{};
     bool isRunning{false};
 };

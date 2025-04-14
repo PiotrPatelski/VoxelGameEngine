@@ -14,25 +14,26 @@ World::World() {
         for (int z = -renderDistance; z <= renderDistance; z++) {
             ChunkCoord coord{x, z};
             loadedChunks[coord] = chunkLoader->createChunk(x, z);
+            chunkUpdaters[coord] =
+                std::make_unique<ChunkUpdater>(loadedChunks[coord].get());
         }
     }
     lastCameraChunk = {0, 0};
 }
 
 bool World::addCubeFromRaycast(const Camera& camera, float maxDistance) {
-    auto hitOpt =
+    const auto hitOpt =
         Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
     if (hitOpt.has_value()) {
         HitResult hit = hitOpt.value();
         // For this example, we add a cube above the hit block.
         glm::ivec3 worldBlockPos = hit.position;
         worldBlockPos.y += 1;
-        // TODO REFACTOR DUPLICATE WITH THE ONE FROM removeCubeFromRaycast
-        int chunkX = worldBlockPos.x / chunkSize;
-        int chunkZ = worldBlockPos.z / chunkSize;
-        int localX = worldBlockPos.x % chunkSize;
-        int localZ = worldBlockPos.z % chunkSize;
-        int localY = worldBlockPos.y;
+        const auto chunkX = worldBlockPos.x / chunkSize;
+        const auto chunkZ = worldBlockPos.z / chunkSize;
+        const auto localX = worldBlockPos.x % chunkSize;
+        const auto localZ = worldBlockPos.z % chunkSize;
+        const auto localY = worldBlockPos.y;
         Chunk* chunk = getChunk({chunkX, chunkZ});
         if (chunk) {
             return chunk->addCube(glm::ivec3(localX, localY, localZ));
@@ -42,16 +43,16 @@ bool World::addCubeFromRaycast(const Camera& camera, float maxDistance) {
 }
 
 bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
-    auto hitOpt =
+    const auto hitOpt =
         Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
     if (hitOpt.has_value()) {
         HitResult hit = hitOpt.value();
         glm::ivec3 worldBlockPos = hit.position;
-        int chunkX = worldBlockPos.x / chunkSize;
-        int chunkZ = worldBlockPos.z / chunkSize;
-        int localX = worldBlockPos.x % chunkSize;
-        int localZ = worldBlockPos.z % chunkSize;
-        int localY = worldBlockPos.y;
+        const auto chunkX = worldBlockPos.x / chunkSize;
+        const auto chunkZ = worldBlockPos.z / chunkSize;
+        const auto localX = worldBlockPos.x % chunkSize;
+        const auto localZ = worldBlockPos.z % chunkSize;
+        const auto localY = worldBlockPos.y;
         Chunk* chunk = getChunk({chunkX, chunkZ});
         if (chunk) {
             return chunk->removeCube(glm::ivec3(localX, localY, localZ));
@@ -62,7 +63,7 @@ bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
 
 Chunk* World::getChunk(const ChunkCoord& coord) {
     std::lock_guard<std::mutex> lock(loadedChunksMutex);
-    auto it = loadedChunks.find(coord);
+    const auto it = loadedChunks.find(coord);
     return (it != loadedChunks.end()) ? it->second.get() : nullptr;
 }
 
@@ -92,21 +93,37 @@ void World::mergeNewChunks(
     }
 }
 
-void World::updateLoadedChunks(const glm::vec3& camPos) {
-    const auto camChunkX = static_cast<int>(std::floor(camPos.x / chunkSize));
-    const auto camChunkZ = static_cast<int>(std::floor(camPos.z / chunkSize));
-    ChunkCoord currentCamCoord{camChunkX, camChunkZ};
-
+void World::reloadCurrentlyRelevantChunkGroup(
+    const ChunkCoord& currentCamCoord) {
     const auto isCameraMoved = updateCameraChunk(currentCamCoord);
     const auto existingKeys = getLoadedChunkKeys();
-
     if (chunkLoader->isTaskRunning() and chunkLoader->isFinished()) {
         auto newChunks = chunkLoader->retrieveNewChunks();
         mergeNewChunks(newChunks);
     }
     if (isCameraMoved and not chunkLoader->isTaskRunning()) {
-        chunkLoader->launchTask(camChunkX, camChunkZ, existingKeys);
+        chunkLoader->launchTask(currentCamCoord.x, currentCamCoord.z,
+                                existingKeys);
     }
+}
+
+void World::runUpdatePerChunk() {
+    for (auto& [coord, updater] : chunkUpdaters) {
+        Chunk* chunk = getChunk(coord);
+        if (chunk && chunk->isModified() && !updater->isUpdateRunning()) {
+            updater->launchUpdate();
+        }
+        updater->checkAndApplyUpdate();
+    }
+}
+
+void World::updateLoadedChunks(const glm::vec3& camPos) {
+    const auto camChunkX = static_cast<int>(std::floor(camPos.x / chunkSize));
+    const auto camChunkZ = static_cast<int>(std::floor(camPos.z / chunkSize));
+    ChunkCoord currentCamCoord{camChunkX, camChunkZ};
+
+    reloadCurrentlyRelevantChunkGroup(currentCamCoord);
+    runUpdatePerChunk();
 }
 
 void World::performFrustumCulling(const Frustum& frustum) {

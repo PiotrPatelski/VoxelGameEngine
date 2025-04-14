@@ -59,23 +59,26 @@ ChunkLoader::generateMissingChunks(
 void ChunkLoader::launchTask(
     int camChunkX, int camChunkZ,
     const std::unordered_set<ChunkCoord>& existingKeys) {
-    future = std::async(std::launch::async, &ChunkLoader::generateMissingChunks,
-                        this, camChunkX, camChunkZ, existingKeys);
+    newChunkGroup =
+        std::async(std::launch::async, &ChunkLoader::generateMissingChunks,
+                   this, camChunkX, camChunkZ, existingKeys);
     isRunning = true;
 }
 
 bool ChunkLoader::isTaskRunning() const { return isRunning; }
 
 bool ChunkLoader::isFinished() const {
-    if (not isRunning) return false;
-    return future.wait_for(std::chrono::milliseconds(0)) ==
+    if (not isRunning) {
+        return false;
+    }
+    return newChunkGroup.wait_for(std::chrono::milliseconds(0)) ==
            std::future_status::ready;
 }
 
 std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>
 ChunkLoader::retrieveNewChunks() {
     isRunning = false;
-    return future.get();
+    return newChunkGroup.get();
 }
 
 ChunkLoader::~ChunkLoader() {

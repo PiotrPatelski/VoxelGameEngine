@@ -4,11 +4,17 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <future>
 #include <glm/gtc/matrix_transform.hpp>
 #include "Cube.hpp"
 #include "Shader.hpp"
 #include "Frustum.hpp"
 #include "TreeManager.hpp"
+
+struct CubeData {
+    std::vector<std::unique_ptr<Cube>> cubes;
+    std::unordered_map<CubeType, std::vector<glm::mat4>> instanceModelMatrices;
+};
 
 class Chunk {
    public:
@@ -23,21 +29,26 @@ class Chunk {
     inline bool isCubeInGrid(const glm::vec3& position) const {
         return voxelGrid[position.x][position.z][position.y];
     }
-
+    inline bool isModified() const { return modified; }
     bool addCube(const glm::ivec3& localPos);
     bool removeCube(const glm::ivec3& localPos);
 
     void renderByType(Shader& shader, CubeType type);
     void performFrustumCulling(const Frustum& frustum);
 
+    CubeData computeCubeData();
+    void applyCubeData(CubeData&& data);
+
    private:
-    bool isPositionWithinBounds(const glm::ivec3& pos) const;
+    using CubeCreator = std::function<void(const glm::vec3&, CubeType)>;
     void setupVAO(unsigned int sharedVBO, unsigned int sharedEBO);
     void generateInstanceBuffersForCubeTypes();
     void bindInstanceAttributesForType(CubeType cubeType);
+    void processVoxelGrid(float initialCubeX, float initialCubeZ,
+                          const CubeCreator& cubeAdder);
     void rebuildCubesFromGrid();
+    void regenerateChunk(const CubeCreator& applier);
     void rebuildVisibleInstances(const Frustum& frustum);
-    void updateInstanceData();
     void uploadInstanceBuffer();
     void clearInstanceBuffer();
     void createCube(const glm::vec3& pos, CubeType type);

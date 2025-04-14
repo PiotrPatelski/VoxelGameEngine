@@ -11,6 +11,7 @@
 #include "ChunkCoord.hpp"
 #include "Camera.hpp"
 #include "ChunkLoader.hpp"
+#include "ChunkUpdater.hpp"
 
 class World {
    public:
@@ -32,15 +33,15 @@ class World {
     std::unordered_set<ChunkCoord> getLoadedChunkKeys();
     void mergeNewChunks(
         std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>& newChunks);
+    void reloadCurrentlyRelevantChunkGroup(const ChunkCoord& currentCamCoord);
+    void runUpdatePerChunk();
 
     std::mutex loadedChunksMutex;
     std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> loadedChunks{};
+    std::unordered_map<ChunkCoord, std::unique_ptr<ChunkUpdater>> chunkUpdaters;
     ChunkCoord lastCameraChunk{-1000, -1000};
-    int renderDistance{5};
+    int renderDistance{8};
     static constexpr int chunkSize{64};
-    std::future<std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>>
-        asyncChunkTask;
-    bool asyncTaskRunning = false;
 
     std::unique_ptr<ChunkLoader> chunkLoader;
 };

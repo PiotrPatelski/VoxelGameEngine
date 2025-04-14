@@ -108,10 +108,8 @@ void App::run() {
     }
 }
 
-//--------------------------------------------------------------------------
-// window param present eventhough unused only for signature of dependent lib
-void App::mouse_callback(GLFWwindow* targetWindow, double xposIn,
-                         double yposIn) {
+void App::mouse_callback([[maybe_unused]] GLFWwindow* targetWindow,
+                         double xposIn, double yposIn) {
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
@@ -131,15 +129,13 @@ void App::mouse_callback(GLFWwindow* targetWindow, double xposIn,
     camera.processMouseMovement(xoffset, yoffset);
 }
 
-//--------------------------------------------------------------------------
-// window param present eventhough unused only for signature of dependent lib
-void App::scroll_callback(GLFWwindow* targetWindow, double xoffset,
-                          double yoffset) {
+void App::scroll_callback([[maybe_unused]] GLFWwindow* targetWindow,
+                          double xoffset, double yoffset) {
     camera.processMouseScroll(static_cast<float>(yoffset));
 }
 
-void App::mouse_button_callback(GLFWwindow* targetWindow, int button,
-                                int action, int mods) {
+void App::mouse_button_callback([[maybe_unused]] GLFWwindow* targetWindow,
+                                int button, int action, int mods) {
     if (action != GLFW_PRESS) return;
 
     bool result = false;
