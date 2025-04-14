@@ -29,6 +29,7 @@ class World {
     Chunk* getChunk(const ChunkCoord& coord);
 
    private:
+    void loadInitialChunks();
     bool updateCameraChunk(const ChunkCoord& currentCamCoord);
     std::unordered_set<ChunkCoord> getLoadedChunkKeys();
     void mergeNewChunks(

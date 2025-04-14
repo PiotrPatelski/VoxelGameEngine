@@ -5,9 +5,7 @@
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 
-World::World() {
-    printf("World::Init!\n");
-    chunkLoader = std::make_unique<ChunkLoader>(renderDistance, chunkSize);
+void World::loadInitialChunks() {
     std::lock_guard<std::mutex> lock(loadedChunksMutex);
     // Initially load chunks around (0,0) using renderDistance.
     for (int x = -renderDistance; x <= renderDistance; x++) {
@@ -18,6 +16,12 @@ World::World() {
                 std::make_unique<ChunkUpdater>(loadedChunks[coord].get());
         }
     }
+}
+
+World::World() {
+    printf("World::Init!\n");
+    chunkLoader = std::make_unique<ChunkLoader>(renderDistance, chunkSize);
+    loadInitialChunks();
     lastCameraChunk = {0, 0};
 }
 
@@ -29,10 +33,10 @@ bool World::addCubeFromRaycast(const Camera& camera, float maxDistance) {
         // For this example, we add a cube above the hit block.
         glm::ivec3 worldBlockPos = hit.position;
         worldBlockPos.y += 1;
-        const auto chunkX = worldBlockPos.x / chunkSize;
-        const auto chunkZ = worldBlockPos.z / chunkSize;
-        const auto localX = worldBlockPos.x % chunkSize;
-        const auto localZ = worldBlockPos.z % chunkSize;
+        int chunkX = floorDiv(worldBlockPos.x, chunkSize);
+        int chunkZ = floorDiv(worldBlockPos.z, chunkSize);
+        int localX = mod(worldBlockPos.x, chunkSize);
+        int localZ = mod(worldBlockPos.z, chunkSize);
         const auto localY = worldBlockPos.y;
         Chunk* chunk = getChunk({chunkX, chunkZ});
         if (chunk) {
@@ -48,10 +52,10 @@ bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
     if (hitOpt.has_value()) {
         HitResult hit = hitOpt.value();
         glm::ivec3 worldBlockPos = hit.position;
-        const auto chunkX = worldBlockPos.x / chunkSize;
-        const auto chunkZ = worldBlockPos.z / chunkSize;
-        const auto localX = worldBlockPos.x % chunkSize;
-        const auto localZ = worldBlockPos.z % chunkSize;
+        int chunkX = floorDiv(worldBlockPos.x, chunkSize);
+        int chunkZ = floorDiv(worldBlockPos.z, chunkSize);
+        int localX = mod(worldBlockPos.x, chunkSize);
+        int localZ = mod(worldBlockPos.z, chunkSize);
         const auto localY = worldBlockPos.y;
         Chunk* chunk = getChunk({chunkX, chunkZ});
         if (chunk) {

@@ -7,6 +7,9 @@
 #include "Chunk.hpp"
 #include "Camera.hpp"
 
+int floorDiv(int a, int b);
+int mod(int a, int b);
+
 struct HitResult {
     glm::ivec3 position;
     ChunkCoord chunkCoord;

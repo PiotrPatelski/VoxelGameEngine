@@ -30,6 +30,12 @@ Chunk* findChunkAtCurrentRayPos(
 }
 } // namespace
 
+int floorDiv(int a, int b) { return (a >= 0) ? (a / b) : ((a - b + 1) / b); }
+int mod(int a, int b) {
+    int r = a % b;
+    return (r < 0) ? r + b : r;
+}
+
 Raycaster::Raycaster(const Camera& camera, int chunkSize)
     : size{chunkSize},
       rayDir{glm::normalize(glm::normalize(camera.getFront()))},
@@ -45,15 +51,15 @@ std::optional<HitResult> Raycaster::raycast(
     distanceTraveled = 0.0f;
 
     while (distanceTraveled < maxDistance) {
-        int chunkX = blockPos.x / size;
-        int chunkZ = blockPos.z / size;
+        int chunkX = floorDiv(blockPos.x, size);
+        int chunkZ = floorDiv(blockPos.z, size);
         ChunkCoord coord{chunkX, chunkZ};
         const Chunk* chunk = findChunkAtCurrentRayPos(loadedChunks, coord);
 
         if (chunk) {
             // Use bitwise & if chunkSize is a power of 2.
-            int localX = blockPos.x & (size - 1);
-            int localZ = blockPos.z & (size - 1);
+            int localX = mod(blockPos.x, size);
+            int localZ = mod(blockPos.z, size);
             int localY = blockPos.y;
             if (localY >= 0 && localY < size &&
                 chunk->isCubeInGrid({localX, localY, localZ})) {
