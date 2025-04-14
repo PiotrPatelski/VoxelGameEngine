@@ -11,8 +11,8 @@ class Frustum {
     Frustum &operator=(Frustum &&) = delete;
     // Each plane is defined as: normal.x*x + normal.y*y + normal.z*z + d = 0
     struct Plane {
-        glm::vec3 normal;
-        float d;
+        glm::vec3 normal{};
+        float d{};
     };
     // Test an Axis-Aligned Bounding Box (AABB) against the
     //  frustum. For a cube of size 1 centered at a position, use min = pos -
@@ -22,5 +22,5 @@ class Frustum {
 
    private:
     void normalizePlane(Plane &plane);
-    std::array<Plane, 6> planes;
+    std::array<Plane, 6> planes{};
 };

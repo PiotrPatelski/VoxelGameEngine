@@ -30,5 +30,5 @@ class Materials {
     }
 
    private:
-    std::unordered_map<CubeType, Material> materials;
+    std::unordered_map<CubeType, Material> materials{};
 };

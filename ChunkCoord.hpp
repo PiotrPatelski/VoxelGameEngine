@@ -2,8 +2,8 @@
 #include "glm/glm.hpp"
 
 struct ChunkCoord {
-    int x;
-    int z;
+    int x{};
+    int z{};
     bool operator==(const ChunkCoord& other) const {
         return x == other.x && z == other.z;
     }

@@ -17,7 +17,7 @@ class ChunkUpdater {
     void checkAndApplyUpdate();
 
    private:
-    Chunk* chunk;
-    std::future<CubeData> updateResult;
-    bool isUpdating;
+    Chunk* chunk{};
+    std::future<CubeData> updateResult{};
+    bool isUpdating{false};
 };

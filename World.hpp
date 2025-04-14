@@ -36,12 +36,13 @@ class World {
     void reloadCurrentlyRelevantChunkGroup(const ChunkCoord& currentCamCoord);
     void runUpdatePerChunk();
 
-    std::mutex loadedChunksMutex;
+    std::mutex loadedChunksMutex{};
     std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> loadedChunks{};
-    std::unordered_map<ChunkCoord, std::unique_ptr<ChunkUpdater>> chunkUpdaters;
+    std::unordered_map<ChunkCoord, std::unique_ptr<ChunkUpdater>>
+        chunkUpdaters{};
     ChunkCoord lastCameraChunk{-1000, -1000};
     int renderDistance{8};
     static constexpr int chunkSize{64};
 
-    std::unique_ptr<ChunkLoader> chunkLoader;
+    std::unique_ptr<ChunkLoader> chunkLoader{};
 };

@@ -5,10 +5,10 @@
 std::pair<std::string, std::string> getCodeFromShaderPath(
     const char* vertexPath, const char* fragmentPath) {
     // 1. retrieve the vertex/fragment source code from filePath
-    std::string vertexCode;
-    std::string fragmentCode;
-    std::ifstream vShaderFile;
-    std::ifstream fShaderFile;
+    std::string vertexCode{""};
+    std::string fragmentCode{""};
+    std::ifstream vShaderFile{};
+    std::ifstream fShaderFile{};
     // ensure ifstream objects can throw exceptions:
     vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
@@ -72,14 +72,14 @@ void Shader::compileShaders(const char* vertexShaderCode,
     };
 
     // shader Program
-    ID = glCreateProgram();
-    glAttachShader(ID, vertex);
-    glAttachShader(ID, fragment);
-    glLinkProgram(ID);
+    programID = glCreateProgram();
+    glAttachShader(programID, vertex);
+    glAttachShader(programID, fragment);
+    glLinkProgram(programID);
     // print linking errors if any
-    glGetProgramiv(ID, GL_LINK_STATUS, &success);
+    glGetProgramiv(programID, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(ID, 512, NULL, infoLog);
+        glGetProgramInfoLog(programID, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
                   << infoLog << std::endl;
     }
