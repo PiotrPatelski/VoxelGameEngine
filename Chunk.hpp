@@ -10,6 +10,7 @@
 #include "Shader.hpp"
 #include "Frustum.hpp"
 #include "TreeManager.hpp"
+#include "GridGenerator.hpp"
 
 struct CubeData {
     std::vector<std::unique_ptr<Cube>> cubes;
@@ -27,10 +28,10 @@ class Chunk {
     Chunk& operator=(const Chunk&) = delete;
     Chunk& operator=(Chunk&&) = delete;
     inline bool isCubeInGrid(const glm::vec3& position) const {
-        return voxelGrid[position.x][position.z][position.y];
+        return voxelGrid[position.x][position.z][position.y] != CubeType::NONE;
     }
     inline bool isModified() const { return modified; }
-    bool addCube(const glm::ivec3& localPos);
+    bool addCube(const glm::ivec3& localPos, CubeType type);
     bool removeCube(const glm::ivec3& localPos);
 
     void renderByType(Shader& shader, CubeType type);
@@ -53,7 +54,7 @@ class Chunk {
     void clearInstanceBuffer();
     void createCube(const glm::vec3& pos, CubeType type);
     void drawElements(CubeType type, unsigned int amount);
-    std::vector<std::vector<std::vector<bool>>> generateInitialVoxelGrid();
+    GridGenerator::VoxelGrid generateInitialVoxelGrid();
     std::pair<glm::vec3, glm::vec3> computeChunkAABB() const;
 
     int size{0};
@@ -61,7 +62,7 @@ class Chunk {
     int chunkWorldZPosition{0};
     int waterHeight{0};
     TreeManager treeManager;
-    std::vector<std::vector<std::vector<bool>>> voxelGrid{};
+    GridGenerator::VoxelGrid voxelGrid{};
     std::vector<std::unique_ptr<Cube>> cubes{};
     std::unordered_map<CubeType, std::vector<glm::mat4>>
         instanceModelMatrices{};

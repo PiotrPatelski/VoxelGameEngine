@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "FastNoiseLite.h"
+#include "Cube.hpp"
 
 class GridGenerator {
    public:
@@ -10,8 +11,8 @@ class GridGenerator {
     GridGenerator(GridGenerator&&) = delete;
     GridGenerator& operator=(const GridGenerator&) = delete;
     GridGenerator& operator=(GridGenerator&&) = delete;
-    using Grid = std::vector<std::vector<std::vector<bool>>>;
-    Grid generateGrid();
+    using VoxelGrid = std::vector<std::vector<std::vector<CubeType>>>;
+    VoxelGrid generateGrid();
 
    private:
     int chunkSize{};

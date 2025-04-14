@@ -3,19 +3,10 @@
 #include <functional>
 #include "FastNoiseLite.h"
 #include "VertexData.hpp"
-#include "GridGenerator.hpp"
 
 static constexpr int matrixAttributeCount{4};
 
 namespace {
-constexpr CubeType getCubeTypeBasedOnHeight(int height) {
-    if (height < 11)
-        return CubeType::SAND;
-    else if (height < 14)
-        return CubeType::DIRT;
-    else
-        return CubeType::GRASS;
-}
 
 constexpr std::array<glm::ivec3, 6> neighborOffsets = {
     glm::ivec3(1, 0, 0),  // +X
@@ -31,7 +22,7 @@ bool isPositionWithinBounds(const glm::ivec3& pos, int chunkSize) {
             pos.z < chunkSize and pos.y >= 0 and pos.y < chunkSize);
 }
 
-bool isCubeExposed(const std::vector<std::vector<std::vector<bool>>>& grid,
+bool isCubeExposed(const GridGenerator::VoxelGrid& grid,
                    const glm::ivec3& pos) {
     const auto chunkSize = static_cast<int>(grid.size());
     for (const auto& offset : neighborOffsets) {
@@ -42,7 +33,7 @@ bool isCubeExposed(const std::vector<std::vector<std::vector<bool>>>& grid,
         }
         // If neighbor cell is false (i.e. no cube present), then current cube
         // is exposed.
-        if (not grid[neighbor.x][neighbor.z][neighbor.y]) {
+        if (grid[neighbor.x][neighbor.z][neighbor.y] == CubeType::NONE) {
             return true;
         }
     }
@@ -92,7 +83,8 @@ void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
     glBindVertexArray(0);
 }
 
-std::vector<std::vector<std::vector<bool>>> Chunk::generateInitialVoxelGrid() {
+std::vector<std::vector<std::vector<CubeType>>>
+Chunk::generateInitialVoxelGrid() {
     GridGenerator generator(size, chunkWorldXPosition, chunkWorldZPosition);
     return generator.generateGrid();
 }
@@ -112,10 +104,10 @@ void Chunk::processVoxelGrid(float chunkOriginBlockPositionX,
                     chunkOriginBlockPositionX + static_cast<float>(x),
                     static_cast<float>(y),
                     chunkOriginBlockPositionZ + static_cast<float>(z));
-                if (voxelGrid[x][z][y] &&
+                if (voxelGrid[x][z][y] != CubeType::NONE &&
                     isCubeExposed(voxelGrid, glm::ivec3{x, y, z})) {
-                    applyCube(cubePos, getCubeTypeBasedOnHeight(y));
-                } else if (!voxelGrid[x][z][y] && (y == waterHeight)) {
+                    applyCube(cubePos, voxelGrid[x][z][y]);
+                } else if (y == waterHeight) {
                     applyCube(cubePos, CubeType::WATER);
                 }
             }
@@ -270,22 +262,22 @@ void Chunk::applyCubeData(CubeData&& data) {
     modified = false;
 }
 
-bool Chunk::addCube(const glm::ivec3& localPos) {
+bool Chunk::addCube(const glm::ivec3& localPos, CubeType type) {
     if (not isPositionWithinBounds(localPos, size) or
-        voxelGrid[localPos.x][localPos.z][localPos.y]) {
+        voxelGrid[localPos.x][localPos.z][localPos.y] != CubeType::NONE) {
         return false;
     }
-    voxelGrid[localPos.x][localPos.z][localPos.y] = true;
+    voxelGrid[localPos.x][localPos.z][localPos.y] = type;
     modified = true;
     return true;
 }
 
 bool Chunk::removeCube(const glm::ivec3& localPos) {
     if (not isPositionWithinBounds(localPos, size) or
-        not voxelGrid[localPos.x][localPos.z][localPos.y]) {
+        voxelGrid[localPos.x][localPos.z][localPos.y] == CubeType::NONE) {
         return false;
     }
-    voxelGrid[localPos.x][localPos.z][localPos.y] = false;
+    voxelGrid[localPos.x][localPos.z][localPos.y] = CubeType::NONE;
     treeManager.removeTreeCubeAt(localPos);
     modified = true;
     return true;

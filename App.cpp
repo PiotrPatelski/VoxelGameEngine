@@ -140,11 +140,11 @@ void App::mouse_button_callback([[maybe_unused]] GLFWwindow* targetWindow,
 
     bool result = false;
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        result = gameWorld->addCubeFromRaycast(camera, 5.0f);
-        if (result) std::cout << "Cube added via raycast." << std::endl;
+        result = gameWorld->addCubeFromRaycast(camera, 5.0f, selectedCubeType);
+        if (result) printf("Cube added via raycast.\n");
     } else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         result = gameWorld->removeCubeFromRaycast(camera, 5.0f);
-        if (result) std::cout << "Cube removed via raycast." << std::endl;
+        if (result) printf("Cube removed via raycast.\n");
     }
 }
 
@@ -164,5 +164,22 @@ void App::processInput() {
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
         camera.processKeyboard(RIGHT, cameraSpeed);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+        selectedCubeType = CubeType::SAND;
+        printf("Selected SAND.\n");
+    } else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+        selectedCubeType = CubeType::DIRT;
+        printf("Selected DIRT.\n");
+    } else if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+        selectedCubeType = CubeType::GRASS;
+        printf("Selected GRASS.\n");
+    } else if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+        selectedCubeType = CubeType::LOG;
+        printf("Selected LOG.\n");
+    } else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
+        selectedCubeType = CubeType::LEAVES;
+        printf("Selected LEAVES.\n");
     }
 }

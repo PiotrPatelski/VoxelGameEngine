@@ -21,7 +21,8 @@ class TreeManager {
     TreeManager(TreeManager&&) = delete;
     TreeManager& operator=(const TreeManager&) = delete;
     TreeManager& operator=(TreeManager&&) = delete;
-    void generateTrees(std::vector<std::vector<std::vector<bool>>>& voxelGrid);
+    void generateTrees(
+        std::vector<std::vector<std::vector<CubeType>>>& voxelGrid);
 
     void reapplyTrunks(float initialCubeX, float initialCubeZ,
                        const std::function<void(const glm::vec3&, CubeType)>&
@@ -37,20 +38,20 @@ class TreeManager {
     using Trunk = std::unordered_map<
         std::pair<int, int>, int,
         std::function<std::size_t(const std::pair<int, int>&)>>;
-    int findHighestVoxelY(
-        const std::vector<std::vector<std::vector<bool>>>& voxelGrid, int x,
+    int findHighestFilledVoxelY(
+        const std::vector<std::vector<std::vector<CubeType>>>& voxelGrid, int x,
         int z) const;
     void placeTreeTrunkAt(
         int x, int highestY, int z,
-        std::vector<std::vector<std::vector<bool>>>& voxelGrid);
+        std::vector<std::vector<std::vector<CubeType>>>& voxelGrid);
     void generateNewTreeTrunks(
-        std::vector<std::vector<std::vector<bool>>>& voxelGrid);
+        std::vector<std::vector<std::vector<CubeType>>>& voxelGrid);
     void generateCrownForTrunk(
         int colX, int colZ, int trunkTopY,
-        std::vector<std::vector<std::vector<bool>>>& voxelGrid);
+        std::vector<std::vector<std::vector<CubeType>>>& voxelGrid);
     void generateCrownsForTrunks(
         const Trunk& trunkColumns,
-        std::vector<std::vector<std::vector<bool>>>& voxelGrid);
+        std::vector<std::vector<std::vector<CubeType>>>& voxelGrid);
     Trunk buildTrunksMapping() const;
     const int chunkSize{};
     std::unordered_set<glm::ivec3, PositionHash> trunkPositions{};

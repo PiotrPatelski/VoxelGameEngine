@@ -25,7 +25,8 @@ World::World() {
     lastCameraChunk = {0, 0};
 }
 
-bool World::addCubeFromRaycast(const Camera& camera, float maxDistance) {
+bool World::addCubeFromRaycast(const Camera& camera, float maxDistance,
+                               CubeType type) {
     const auto hitOpt =
         Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
     if (hitOpt.has_value()) {
@@ -38,7 +39,7 @@ bool World::addCubeFromRaycast(const Camera& camera, float maxDistance) {
             const auto localX = negativeSafeModulo(newCubePos.x, chunkSize);
             const auto localZ = negativeSafeModulo(newCubePos.z, chunkSize);
             const auto localY = newCubePos.y;
-            return chunk->addCube(glm::ivec3(localX, localY, localZ));
+            return chunk->addCube(glm::ivec3(localX, localY, localZ), type);
         }
     }
     return false;

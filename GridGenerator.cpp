@@ -1,5 +1,16 @@
 #include "GridGenerator.hpp"
 
+namespace {
+CubeType getCubeTypeBasedOnHeight(int y) {
+    if (y < 11)
+        return CubeType::SAND;
+    else if (y < 14)
+        return CubeType::DIRT;
+    else
+        return CubeType::GRASS;
+}
+} // namespace
+
 GridGenerator::GridGenerator(int size, int worldXIndex, int worldZIndex)
     : chunkSize(size),
       chunkWorldXPosition(worldXIndex),
@@ -8,9 +19,10 @@ GridGenerator::GridGenerator(int size, int worldXIndex, int worldZIndex)
     noise.SetFrequency(0.02f);
 }
 
-GridGenerator::Grid GridGenerator::generateGrid() {
-    Grid grid(chunkSize, std::vector<std::vector<bool>>(
-                             chunkSize, std::vector<bool>(chunkSize, false)));
+GridGenerator::VoxelGrid GridGenerator::generateGrid() {
+    VoxelGrid grid(chunkSize, std::vector<std::vector<CubeType>>(
+                                  chunkSize, std::vector<CubeType>(
+                                                 chunkSize, CubeType::NONE)));
 
     for (int x = 0; x < chunkSize; x++) {
         for (int z = 0; z < chunkSize; z++) {
@@ -22,7 +34,7 @@ GridGenerator::Grid GridGenerator::generateGrid() {
                 static_cast<int>((heightValue + 1.1f) * 0.7f * chunkSize / 2) -
                 3;
             for (int y = 0; y < chunkSize; y++) {
-                if (y <= height) grid[x][z][y] = true;
+                if (y <= height) grid[x][z][y] = getCubeTypeBasedOnHeight(y);
             }
         }
     }

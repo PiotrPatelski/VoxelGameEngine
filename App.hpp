@@ -6,6 +6,7 @@
 #include "Camera.hpp"
 #include "Shader.hpp"
 #include "Clock.hpp"
+#include "Cube.hpp"
 
 class App {
    public:
@@ -40,4 +41,5 @@ class App {
     float lastX{0};
     float lastY{0};
     bool firstMouse{true};
+    CubeType selectedCubeType{CubeType::SAND};
 };
