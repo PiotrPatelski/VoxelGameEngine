@@ -45,8 +45,8 @@ Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex,
              unsigned int sharedVBO, unsigned int sharedEBO,
              unsigned int sharedWaterEBO)
     : size{chunkSize},
-      chunkWorldXPosition{worldXindex},
-      chunkWorldZPosition{worldZindex},
+      chunkWorldXIndex{worldXindex},
+      chunkWorldZIndex{worldZindex},
       waterHeight{14},
       treeManager{chunkSize},
       modified{true},
@@ -85,30 +85,31 @@ void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
 
 std::vector<std::vector<std::vector<CubeType>>>
 Chunk::generateInitialVoxelGrid() {
-    GridGenerator generator(size, chunkWorldXPosition, chunkWorldZPosition);
+    GridGenerator generator(size, chunkWorldXIndex, chunkWorldZIndex);
     return generator.generateGrid();
 }
 
-void Chunk::createCube(const glm::vec3& pos, CubeType type) {
-    cubes.push_back(std::make_unique<Cube>(pos, type));
+void Chunk::createCube(const glm::vec3& worldCubePos, CubeType type) {
+    cubes.push_back(std::make_unique<Cube>(worldCubePos, type));
     instanceModelMatrices[type].push_back(cubes.back()->getModel());
 }
 
-void Chunk::processVoxelGrid(float chunkOriginBlockPositionX,
-                             float chunkOriginBlockPositionZ,
+void Chunk::processVoxelGrid(float firstCubeXWorldPosition,
+                             float firstCubeZWorldPosition,
                              const CubeCreator& applyCube) {
     for (int x = 0; x < size; x++) {
         for (int z = 0; z < size; z++) {
             for (int y = 0; y < size; y++) {
-                glm::vec3 cubePos(
-                    chunkOriginBlockPositionX + static_cast<float>(x),
+                glm::vec3 worldCubePos(
+                    firstCubeXWorldPosition + static_cast<float>(x),
                     static_cast<float>(y),
-                    chunkOriginBlockPositionZ + static_cast<float>(z));
-                if (voxelGrid[x][z][y] != CubeType::NONE &&
+                    firstCubeZWorldPosition + static_cast<float>(z));
+                const auto cubeType = voxelGrid[x][z][y];
+                if (cubeType != CubeType::NONE &&
                     isCubeExposed(voxelGrid, glm::ivec3{x, y, z})) {
-                    applyCube(cubePos, voxelGrid[x][z][y]);
+                    applyCube(worldCubePos, cubeType);
                 } else if (y == waterHeight) {
-                    applyCube(cubePos, CubeType::WATER);
+                    applyCube(worldCubePos, CubeType::WATER);
                 }
             }
         }
@@ -116,19 +117,18 @@ void Chunk::processVoxelGrid(float chunkOriginBlockPositionX,
 }
 
 void Chunk::regenerateChunk(const CubeCreator& applier) {
-    const float chunkOriginBlockPositionX =
-        static_cast<float>(chunkWorldXPosition * size);
-    const float chunkOriginBlockPositionZ =
-        static_cast<float>(chunkWorldZPosition * size);
+    const float firstCubeXWorldPosition =
+        static_cast<float>(chunkWorldXIndex * size);
+    const float firstCubeZWorldPosition =
+        static_cast<float>(chunkWorldZIndex * size);
 
-    processVoxelGrid(chunkOriginBlockPositionX, chunkOriginBlockPositionZ,
-                     applier);
+    processVoxelGrid(firstCubeXWorldPosition, firstCubeZWorldPosition, applier);
 
     treeManager.generateTrees(voxelGrid);
-    treeManager.reapplyTrunks(chunkOriginBlockPositionX,
-                              chunkOriginBlockPositionZ, applier);
-    treeManager.reapplyCrowns(chunkOriginBlockPositionX,
-                              chunkOriginBlockPositionZ, applier);
+    treeManager.reapplyTrunks(firstCubeXWorldPosition, firstCubeZWorldPosition,
+                              applier);
+    treeManager.reapplyCrowns(firstCubeXWorldPosition, firstCubeZWorldPosition,
+                              applier);
 }
 
 void Chunk::rebuildCubesFromGrid() {
@@ -140,19 +140,19 @@ void Chunk::rebuildCubesFromGrid() {
     regenerateChunk(cubeCreator);
 }
 
-void Chunk::rebuildVisibleInstances(const Frustum& frustum) {
-    instanceModelMatrices.clear();
+// FIX TO INCREASE FPS
+std::unordered_map<CubeType, std::vector<glm::mat4>>
+Chunk::rebuildVisibleInstances(const Frustum& frustum) const {
+    std::unordered_map<CubeType, std::vector<glm::mat4>> visibleInstances;
     for (const auto& cube : cubes) {
         if (cube) {
             glm::mat4 model = cube->getModel();
-            glm::vec3 pos = glm::vec3(model[3]);
-            glm::vec3 voxelMin = pos - glm::vec3(0.5f);
-            glm::vec3 voxelMax = pos + glm::vec3(0.5f);
-            if (frustum.isAABBInside(voxelMin, voxelMax)) {
-                instanceModelMatrices[cube->getType()].push_back(model);
+            if (frustum.isModelIncluded(model)) {
+                visibleInstances[cube->getType()].push_back(model);
             }
         }
     }
+    return visibleInstances;
 }
 
 void Chunk::generateInstanceBuffersForCubeTypes() {
@@ -224,12 +224,12 @@ void Chunk::renderByType(Shader& shader, CubeType type) {
 }
 
 std::pair<glm::vec3, glm::vec3> Chunk::computeChunkAABB() const {
-    const auto chunkOriginBlockPositionX = chunkWorldXPosition * size;
+    const auto firstCubeXWorldPosition = chunkWorldXIndex * size;
     const auto chunkOriginBlockPositionY = 0.0f;
-    const auto chunkOriginBlockPositionZ = chunkWorldZPosition * size;
-    const glm::vec3 chunkBoundsMin{chunkOriginBlockPositionX,
+    const auto firstCubeZWorldPosition = chunkWorldZIndex * size;
+    const glm::vec3 chunkBoundsMin{firstCubeXWorldPosition,
                                    chunkOriginBlockPositionY,
-                                   chunkOriginBlockPositionZ};
+                                   firstCubeZWorldPosition};
     const auto chunkBoundsMax = chunkBoundsMin + glm::vec3(size);
     return {chunkBoundsMin, chunkBoundsMax};
 }
@@ -240,14 +240,27 @@ void Chunk::performFrustumCulling(const Frustum& frustum) {
         clearInstanceBuffer();
         return;
     }
-    rebuildVisibleInstances(frustum);
-    uploadInstanceBuffer();
+    if (!visibleUpdateRunning) {
+        visibleUpdateFuture =
+            std::async(std::launch::async, &Chunk::rebuildVisibleInstances,
+                       this, std::ref(frustum));
+        visibleUpdateRunning = true;
+    } else {
+        auto status =
+            visibleUpdateFuture.wait_for(std::chrono::milliseconds(0));
+        if (status == std::future_status::ready) {
+            instanceModelMatrices = visibleUpdateFuture.get();
+            uploadInstanceBuffer();
+            visibleUpdateRunning = false;
+        }
+    }
 }
 
 CubeData Chunk::computeCubeData() {
     CubeData data;
-    auto cubeDataApplier = [&data](const glm::vec3& pos, CubeType type) {
-        auto cube = std::make_unique<Cube>(pos, type);
+    auto cubeDataApplier = [&data](const glm::vec3& worldCubePos,
+                                   CubeType type) {
+        auto cube = std::make_unique<Cube>(worldCubePos, type);
         data.instanceModelMatrices[type].push_back(cube->getModel());
         data.cubes.push_back(std::move(cube));
     };

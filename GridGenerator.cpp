@@ -13,8 +13,8 @@ CubeType getCubeTypeBasedOnHeight(int y) {
 
 GridGenerator::GridGenerator(int size, int worldXIndex, int worldZIndex)
     : chunkSize(size),
-      chunkWorldXPosition(worldXIndex),
-      chunkWorldZPosition(worldZIndex) {
+      chunkWorldXIndex(worldXIndex),
+      chunkWorldZIndex(worldZIndex) {
     noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     noise.SetFrequency(0.02f);
 }
@@ -26,11 +26,11 @@ GridGenerator::VoxelGrid GridGenerator::generateGrid() {
 
     for (int x = 0; x < chunkSize; x++) {
         for (int z = 0; z < chunkSize; z++) {
-            int worldCubeX = chunkWorldXPosition * chunkSize + x;
-            int worldCubeZ = chunkWorldZPosition * chunkSize + z;
-            float heightValue = noise.GetNoise(static_cast<float>(worldCubeX),
-                                               static_cast<float>(worldCubeZ));
-            int height =
+            const auto worldCubeX = chunkWorldXIndex * chunkSize + x;
+            const auto worldCubeZ = chunkWorldZIndex * chunkSize + z;
+            const auto heightValue = noise.GetNoise(
+                static_cast<float>(worldCubeX), static_cast<float>(worldCubeZ));
+            const auto height =
                 static_cast<int>((heightValue + 1.1f) * 0.7f * chunkSize / 2) -
                 3;
             for (int y = 0; y < chunkSize; y++) {

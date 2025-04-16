@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <glm/gtc/matrix_transform.hpp>
+#include "Cube.hpp"
 
 class Frustum {
    public:
@@ -9,6 +10,8 @@ class Frustum {
     Frustum(Frustum &&) = delete;
     Frustum &operator=(const Frustum &) = delete;
     Frustum &operator=(Frustum &&) = delete;
+
+    bool isModelIncluded(const glm::mat4 &cubeModel) const;
     // Each plane is defined as: normal.x*x + normal.y*y + normal.z*z + d = 0
     struct Plane {
         glm::vec3 normal{};
@@ -23,4 +26,5 @@ class Frustum {
    private:
     void normalizePlane(Plane &plane);
     std::array<Plane, 6> planes{};
+    float cubeToleranceOutsideBounds{0.f};
 };

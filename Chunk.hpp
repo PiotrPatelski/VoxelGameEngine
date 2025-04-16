@@ -49,17 +49,18 @@ class Chunk {
                           const CubeCreator& cubeAdder);
     void rebuildCubesFromGrid();
     void regenerateChunk(const CubeCreator& applier);
-    void rebuildVisibleInstances(const Frustum& frustum);
     void uploadInstanceBuffer();
     void clearInstanceBuffer();
-    void createCube(const glm::vec3& pos, CubeType type);
+    void createCube(const glm::vec3& worldCubePos, CubeType type);
     void drawElements(CubeType type, unsigned int amount);
     GridGenerator::VoxelGrid generateInitialVoxelGrid();
     std::pair<glm::vec3, glm::vec3> computeChunkAABB() const;
+    std::unordered_map<CubeType, std::vector<glm::mat4>>
+    rebuildVisibleInstances(const Frustum& frustum) const;
 
     int size{0};
-    int chunkWorldXPosition{0};
-    int chunkWorldZPosition{0};
+    int chunkWorldXIndex{0};
+    int chunkWorldZIndex{0};
     int waterHeight{0};
     TreeManager treeManager;
     GridGenerator::VoxelGrid voxelGrid{};
@@ -71,4 +72,8 @@ class Chunk {
     unsigned int vao{};
     unsigned int regularCubeEBO{};
     unsigned int waterEBO{};
+
+    std::future<std::unordered_map<CubeType, std::vector<glm::mat4>>>
+        visibleUpdateFuture;
+    bool visibleUpdateRunning{false};
 };

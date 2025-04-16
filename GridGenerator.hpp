@@ -16,7 +16,7 @@ class GridGenerator {
 
    private:
     int chunkSize{};
-    int chunkWorldXPosition{};
-    int chunkWorldZPosition{};
+    int chunkWorldXIndex{};
+    int chunkWorldZIndex{};
     FastNoiseLite noise{};
 };

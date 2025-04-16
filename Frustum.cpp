@@ -17,7 +17,14 @@ bool Frustum::isAABBInside(const glm::vec3 &min, const glm::vec3 &max) const {
     return true;
 }
 
-Frustum::Frustum() {}
+bool Frustum::isModelIncluded(const glm::mat4 &cubeModel) const {
+    const auto pos = glm::vec3(cubeModel[3]);
+    const auto voxelMin = pos - glm::vec3(0.5f + cubeToleranceOutsideBounds);
+    const auto voxelMax = pos + glm::vec3(0.5f + cubeToleranceOutsideBounds);
+    return isAABBInside(voxelMin, voxelMax);
+}
+
+Frustum::Frustum() : cubeToleranceOutsideBounds{7.f} {}
 
 void Frustum::update(const glm::mat4 &projView) {
     // Right plane: row4 - row1
@@ -64,7 +71,7 @@ void Frustum::update(const glm::mat4 &projView) {
 }
 
 void Frustum::normalizePlane(Plane &plane) {
-    float length = glm::length(plane.normal);
+    const auto length = glm::length(plane.normal);
     plane.normal /= length;
     plane.d /= length;
 }
