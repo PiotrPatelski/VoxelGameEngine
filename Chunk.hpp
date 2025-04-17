@@ -56,7 +56,7 @@ class Chunk {
     GridGenerator::VoxelGrid generateInitialVoxelGrid();
     std::pair<glm::vec3, glm::vec3> computeChunkAABB() const;
     std::unordered_map<CubeType, std::vector<glm::mat4>>
-    rebuildVisibleInstances(const Frustum& frustum) const;
+    rebuildVisibleInstances(const Frustum& frustum);
 
     int size{0};
     int chunkWorldXIndex{0};
@@ -76,4 +76,5 @@ class Chunk {
     std::future<std::unordered_map<CubeType, std::vector<glm::mat4>>>
         visibleUpdateFuture;
     bool visibleUpdateRunning{false};
+    std::mutex voxelMutex;
 };

@@ -117,9 +117,9 @@ void Chunk::processVoxelGrid(float firstCubeXWorldPosition,
 }
 
 void Chunk::regenerateChunk(const CubeCreator& applier) {
-    const float firstCubeXWorldPosition =
+    const auto firstCubeXWorldPosition =
         static_cast<float>(chunkWorldXIndex * size);
-    const float firstCubeZWorldPosition =
+    const auto firstCubeZWorldPosition =
         static_cast<float>(chunkWorldZIndex * size);
 
     processVoxelGrid(firstCubeXWorldPosition, firstCubeZWorldPosition, applier);
@@ -142,17 +142,18 @@ void Chunk::rebuildCubesFromGrid() {
 
 // FIX TO INCREASE FPS
 std::unordered_map<CubeType, std::vector<glm::mat4>>
-Chunk::rebuildVisibleInstances(const Frustum& frustum) const {
-    std::unordered_map<CubeType, std::vector<glm::mat4>> visibleInstances;
+Chunk::rebuildVisibleInstances(const Frustum& frustum) {
+    std::lock_guard<std::mutex> lock(voxelMutex);
+    std::unordered_map<CubeType, std::vector<glm::mat4>> visible;
     for (const auto& cube : cubes) {
         if (cube) {
             glm::mat4 model = cube->getModel();
             if (frustum.isModelIncluded(model)) {
-                visibleInstances[cube->getType()].push_back(model);
+                visible[cube->getType()].push_back(model);
             }
         }
     }
-    return visibleInstances;
+    return visible;
 }
 
 void Chunk::generateInstanceBuffersForCubeTypes() {
@@ -211,7 +212,7 @@ void Chunk::drawElements(CubeType type, unsigned int amount) {
 }
 
 void Chunk::renderByType(Shader& shader, CubeType type) {
-    auto it = instanceModelMatrices.find(type);
+    const auto it = instanceModelMatrices.find(type);
     if (it == instanceModelMatrices.end() || it->second.empty()) {
         return;
     }
@@ -257,6 +258,7 @@ void Chunk::performFrustumCulling(const Frustum& frustum) {
 }
 
 CubeData Chunk::computeCubeData() {
+    std::lock_guard<std::mutex> lock(voxelMutex);
     CubeData data;
     auto cubeDataApplier = [&data](const glm::vec3& worldCubePos,
                                    CubeType type) {
@@ -269,6 +271,10 @@ CubeData Chunk::computeCubeData() {
 }
 
 void Chunk::applyCubeData(CubeData&& data) {
+    if (visibleUpdateRunning) {
+        visibleUpdateFuture.wait();
+        visibleUpdateRunning = false;
+    }
     cubes = std::move(data.cubes);
     instanceModelMatrices = std::move(data.instanceModelMatrices);
     uploadInstanceBuffer();
@@ -276,6 +282,7 @@ void Chunk::applyCubeData(CubeData&& data) {
 }
 
 bool Chunk::addCube(const glm::ivec3& localPos, CubeType type) {
+    std::lock_guard<std::mutex> lock(voxelMutex);
     if (not isPositionWithinBounds(localPos, size) or
         voxelGrid[localPos.x][localPos.z][localPos.y] != CubeType::NONE) {
         return false;
@@ -286,6 +293,7 @@ bool Chunk::addCube(const glm::ivec3& localPos, CubeType type) {
 }
 
 bool Chunk::removeCube(const glm::ivec3& localPos) {
+    std::lock_guard<std::mutex> lock(voxelMutex);
     if (not isPositionWithinBounds(localPos, size) or
         voxelGrid[localPos.x][localPos.z][localPos.y] == CubeType::NONE) {
         return false;
