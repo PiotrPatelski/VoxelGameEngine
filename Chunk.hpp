@@ -59,8 +59,6 @@ class Chunk {
     void drawElements(CubeType type, unsigned int amount);
     GridGenerator::VoxelGrid generateInitialVoxelGrid();
     std::pair<glm::vec3, glm::vec3> computeChunkAABB() const;
-    std::unordered_map<CubeType, std::vector<glm::mat4>>
-    rebuildVisibleInstances(const Frustum& frustum);
 
     int size{0};
     int chunkWorldXIndex{0};
@@ -77,8 +75,6 @@ class Chunk {
     unsigned int regularCubeEBO{};
     unsigned int waterEBO{};
 
-    std::future<std::unordered_map<CubeType, std::vector<glm::mat4>>>
-        visibleUpdateFuture;
-    bool visibleUpdateRunning{false};
+    bool isCulled{false};
     std::mutex voxelMutex;
 };

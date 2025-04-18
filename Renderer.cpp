@@ -67,8 +67,8 @@ void Renderer::applyCubeShaderInitialConfig() {
     cubeShader->use();
     cubeShader->setFloat("fadeValue", 0.2f);
     setupDirectionalLightConfig();
-    setupPointLightsConfig();
-    setupSpotlightConfig();
+    // setupPointLightsConfig();
+    // setupSpotlightConfig();
     setupWaterTintConfig();
 }
 
@@ -120,7 +120,7 @@ void Renderer::updateShaders(const Camera& camera) {
     cubeShader->setFloat("time", glfwGetTime());
 
     updateWaterShaderParams(camera);
-    updateSpotlightShaderParams(camera);
+    // updateSpotlightShaderParams(camera);
     updateProjectionViewShaderParams(camera);
     lastCameraPosition = camera.getPosition();
 }

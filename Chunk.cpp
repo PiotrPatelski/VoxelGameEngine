@@ -76,6 +76,11 @@ void Chunk::initializeGL(unsigned int sharedVBO, unsigned int sharedEBO,
     setupVAO(sharedVBO, sharedEBO);
     generateInstanceBuffersForCubeTypes();
     uploadInstanceBuffer();
+    glBindVertexArray(vao);
+    for (auto const& [type, vbo] : instanceVBOs) {
+        bindInstanceAttributesForType(type);
+    }
+    glBindVertexArray(0);
 }
 
 void Chunk::setupVAO(unsigned int sharedVBO, unsigned int sharedEBO) {
@@ -159,22 +164,6 @@ void Chunk::rebuildCubesFromGrid() {
     regenerateChunk(cubeCreator);
 }
 
-// FIX TO INCREASE FPS
-std::unordered_map<CubeType, std::vector<glm::mat4>>
-Chunk::rebuildVisibleInstances(const Frustum& frustum) {
-    std::lock_guard<std::mutex> lock(voxelMutex);
-    std::unordered_map<CubeType, std::vector<glm::mat4>> visible;
-    for (const auto& cube : cubes) {
-        if (cube) {
-            glm::mat4 model = cube->getModel();
-            if (frustum.isModelIncluded(model)) {
-                visible[cube->getType()].push_back(model);
-            }
-        }
-    }
-    return visible;
-}
-
 void Chunk::generateInstanceBuffersForCubeTypes() {
     const std::array<CubeType, 6> cubeTypes = {
         CubeType::SAND,  CubeType::DIRT, CubeType::GRASS,
@@ -194,15 +183,6 @@ void Chunk::uploadInstanceBuffer() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Chunk::clearInstanceBuffer() {
-    for (auto& [cubeType, matrices] : instanceModelMatrices) {
-        matrices.clear();
-        glBindBuffer(GL_ARRAY_BUFFER, instanceVBOs[cubeType]);
-        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
-    }
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
 void Chunk::bindInstanceAttributesForType(CubeType cubeType) {
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBOs[cubeType]);
     for (unsigned int i = 0; i < matrixAttributeCount; i++) {
@@ -211,7 +191,6 @@ void Chunk::bindInstanceAttributesForType(CubeType cubeType) {
         glEnableVertexAttribArray(3 + i);
         glVertexAttribDivisor(3 + i, 1);
     }
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void Chunk::drawElements(CubeType type, unsigned int amount) {
@@ -231,8 +210,11 @@ void Chunk::drawElements(CubeType type, unsigned int amount) {
 }
 
 void Chunk::renderByType(Shader& shader, CubeType type) {
+    if (isCulled) {
+        return;
+    }
     const auto it = instanceModelMatrices.find(type);
-    if (it == instanceModelMatrices.end() || it->second.empty()) {
+    if (it == instanceModelMatrices.cend() || it->second.empty()) {
         return;
     }
     unsigned int instanceCount = it->second.size();
@@ -256,24 +238,7 @@ std::pair<glm::vec3, glm::vec3> Chunk::computeChunkAABB() const {
 
 void Chunk::performFrustumCulling(const Frustum& frustum) {
     const auto [chunkMin, chunkMax] = computeChunkAABB();
-    if (not frustum.isAABBInside(chunkMin, chunkMax)) {
-        clearInstanceBuffer();
-        return;
-    }
-    if (!visibleUpdateRunning) {
-        visibleUpdateFuture =
-            std::async(std::launch::async, &Chunk::rebuildVisibleInstances,
-                       this, std::ref(frustum));
-        visibleUpdateRunning = true;
-    } else {
-        auto status =
-            visibleUpdateFuture.wait_for(std::chrono::milliseconds(0));
-        if (status == std::future_status::ready) {
-            instanceModelMatrices = visibleUpdateFuture.get();
-            uploadInstanceBuffer();
-            visibleUpdateRunning = false;
-        }
-    }
+    isCulled = !frustum.isAABBInside(chunkMin, chunkMax);
 }
 
 CubeData Chunk::computeCubeData() {
@@ -290,20 +255,18 @@ CubeData Chunk::computeCubeData() {
 }
 
 void Chunk::applyCubeData(CubeData&& data) {
-    if (visibleUpdateRunning) {
-        visibleUpdateFuture.wait();
-        visibleUpdateRunning = false;
+    {
+        std::lock_guard<std::mutex> lock(voxelMutex);
+        cubes = std::move(data.cubes);
+        instanceModelMatrices = std::move(data.instanceModelMatrices);
     }
-    cubes = std::move(data.cubes);
-    instanceModelMatrices = std::move(data.instanceModelMatrices);
     uploadInstanceBuffer();
     modified = false;
 }
 
 bool Chunk::addCube(const glm::ivec3& localPos, CubeType type) {
     std::lock_guard<std::mutex> lock(voxelMutex);
-    if (not isPositionWithinBounds(localPos, size) or
-        voxelGrid[localPos.x][localPos.z][localPos.y] != CubeType::NONE) {
+    if (not isPositionWithinBounds(localPos, size) or isCubeInGrid(localPos)) {
         return false;
     }
     voxelGrid[localPos.x][localPos.z][localPos.y] = type;
@@ -314,7 +277,7 @@ bool Chunk::addCube(const glm::ivec3& localPos, CubeType type) {
 bool Chunk::removeCube(const glm::ivec3& localPos) {
     std::lock_guard<std::mutex> lock(voxelMutex);
     if (not isPositionWithinBounds(localPos, size) or
-        voxelGrid[localPos.x][localPos.z][localPos.y] == CubeType::NONE) {
+        not isCubeInGrid(localPos)) {
         return false;
     }
     voxelGrid[localPos.x][localPos.z][localPos.y] = CubeType::NONE;

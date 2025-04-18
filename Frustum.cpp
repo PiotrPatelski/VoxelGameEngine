@@ -26,48 +26,59 @@ bool Frustum::isModelIncluded(const glm::mat4 &cubeModel) const {
 
 Frustum::Frustum() : cubeToleranceOutsideBounds{7.f} {}
 
+// ——— Completely replaced update() to extract rows properly ———
 void Frustum::update(const glm::mat4 &projView) {
-    // Right plane: row4 - row1
-    planes[0].normal.x = projView[0][3] - projView[0][0];
-    planes[0].normal.y = projView[1][3] - projView[1][0];
-    planes[0].normal.z = projView[2][3] - projView[2][0];
-    planes[0].d = projView[3][3] - projView[3][0];
-    normalizePlane(planes[0]);
+    // GLM is column‑major: projView[c][r]
+    // Build row vectors (r0…r3)
+    glm::vec4 r0(projView[0][0], projView[1][0], projView[2][0],
+                 projView[3][0]);
+    glm::vec4 r1(projView[0][1], projView[1][1], projView[2][1],
+                 projView[3][1]);
+    glm::vec4 r2(projView[0][2], projView[1][2], projView[2][2],
+                 projView[3][2]);
+    glm::vec4 r3(projView[0][3], projView[1][3], projView[2][3],
+                 projView[3][3]);
 
-    // Left plane: row4 + row1
-    planes[1].normal.x = projView[0][3] + projView[0][0];
-    planes[1].normal.y = projView[1][3] + projView[1][0];
-    planes[1].normal.z = projView[2][3] + projView[2][0];
-    planes[1].d = projView[3][3] + projView[3][0];
-    normalizePlane(planes[1]);
+    // left plane   = r3 + r0
+    planes[0].normal.x = r3.x + r0.x;
+    planes[0].normal.y = r3.y + r0.y;
+    planes[0].normal.z = r3.z + r0.z;
+    planes[0].d = r3.w + r0.w;
 
-    // Bottom plane: row4 + row2
-    planes[2].normal.x = projView[0][3] + projView[0][1];
-    planes[2].normal.y = projView[1][3] + projView[1][1];
-    planes[2].normal.z = projView[2][3] + projView[2][1];
-    planes[2].d = projView[3][3] + projView[3][1];
-    normalizePlane(planes[2]);
+    // right plane  = r3 - r0
+    planes[1].normal.x = r3.x - r0.x;
+    planes[1].normal.y = r3.y - r0.y;
+    planes[1].normal.z = r3.z - r0.z;
+    planes[1].d = r3.w - r0.w;
 
-    // Top plane: row4 - row2
-    planes[3].normal.x = projView[0][3] - projView[0][1];
-    planes[3].normal.y = projView[1][3] - projView[1][1];
-    planes[3].normal.z = projView[2][3] - projView[2][1];
-    planes[3].d = projView[3][3] - projView[3][1];
-    normalizePlane(planes[3]);
+    // bottom plane = r3 + r1
+    planes[2].normal.x = r3.x + r1.x;
+    planes[2].normal.y = r3.y + r1.y;
+    planes[2].normal.z = r3.z + r1.z;
+    planes[2].d = r3.w + r1.w;
 
-    // Far plane: row4 - row3
-    planes[4].normal.x = projView[0][3] - projView[0][2];
-    planes[4].normal.y = projView[1][3] - projView[1][2];
-    planes[4].normal.z = projView[2][3] - projView[2][2];
-    planes[4].d = projView[3][3] - projView[3][2];
-    normalizePlane(planes[4]);
+    // top plane    = r3 - r1
+    planes[3].normal.x = r3.x - r1.x;
+    planes[3].normal.y = r3.y - r1.y;
+    planes[3].normal.z = r3.z - r1.z;
+    planes[3].d = r3.w - r1.w;
 
-    // Near plane: row4 + row3
-    planes[5].normal.x = projView[0][3] + projView[0][2];
-    planes[5].normal.y = projView[1][3] + projView[1][2];
-    planes[5].normal.z = projView[2][3] + projView[2][2];
-    planes[5].d = projView[3][3] + projView[3][2];
-    normalizePlane(planes[5]);
+    // far plane    = r3 - r2
+    planes[4].normal.x = r3.x - r2.x;
+    planes[4].normal.y = r3.y - r2.y;
+    planes[4].normal.z = r3.z - r2.z;
+    planes[4].d = r3.w - r2.w;
+
+    // near plane   = r3 + r2
+    planes[5].normal.x = r3.x + r2.x;
+    planes[5].normal.y = r3.y + r2.y;
+    planes[5].normal.z = r3.z + r2.z;
+    planes[5].d = r3.w + r2.w;
+
+    // normalize all planes
+    for (int i = 0; i < 6; ++i) {
+        normalizePlane(planes[i]);
+    }
 }
 
 void Frustum::normalizePlane(Plane &plane) {
