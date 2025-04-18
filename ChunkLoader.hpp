@@ -21,6 +21,9 @@ class ChunkLoader {
     bool isFinished() const;
     std::unique_ptr<Chunk> createChunk(int x, int z);
     std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> retrieveNewChunks();
+    unsigned int getSharedVBO() const { return vertexBufferObjects; }
+    unsigned int getSharedEBO() const { return cubeElementBufferObjects; }
+    unsigned int getSharedWaterEBO() const { return waterElementBufferObjects; }
 
    private:
     void setupVertexBuffers();

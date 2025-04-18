@@ -7,11 +7,16 @@
 
 void World::loadInitialChunks() {
     std::lock_guard<std::mutex> lock(loadedChunksMutex);
-    // Initially load chunks around (0,0) using renderDistance.
-    for (int x = -renderDistance; x <= renderDistance; x++) {
-        for (int z = -renderDistance; z <= renderDistance; z++) {
+    // Initially load full GL+CPU chunks around (0,0)
+    for (int x = -renderDistance; x <= renderDistance; ++x) {
+        for (int z = -renderDistance; z <= renderDistance; ++z) {
             ChunkCoord coord{x, z};
-            loadedChunks[coord] = chunkLoader->createChunk(x, z);
+            auto chunk = chunkLoader->createChunk(x, z);
+            chunk->initializeGL(chunkLoader->getSharedVBO(),     // ← added
+                                chunkLoader->getSharedEBO(),     // ← added
+                                chunkLoader->getSharedWaterEBO() // ← added
+            );
+            loadedChunks[coord] = std::move(chunk);
             chunkUpdaters[coord] =
                 std::make_unique<ChunkUpdater>(loadedChunks[coord].get());
         }
@@ -91,8 +96,18 @@ std::unordered_set<ChunkCoord> World::getLoadedChunkKeys() {
 void World::mergeNewChunks(
     std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>& newChunks) {
     std::lock_guard<std::mutex> lock(loadedChunksMutex);
-    for (auto& [chunkCoord, chunk] : newChunks) {
-        loadedChunks.try_emplace(chunkCoord, std::move(chunk));
+    for (auto& [coord, chunkPtr] : newChunks) {
+        auto [it, inserted] =
+            loadedChunks.try_emplace(coord, nullptr); // ← modified
+        if (inserted) {
+            it->second = std::move(chunkPtr);
+            it->second->initializeGL(chunkLoader->getSharedVBO(), // ← added
+                                     chunkLoader->getSharedEBO(), // ← added
+                                     chunkLoader->getSharedWaterEBO() // ← added
+            );
+            chunkUpdaters[coord] =
+                std::make_unique<ChunkUpdater>(it->second.get());
+        }
     }
 }
 
@@ -107,6 +122,52 @@ void World::reloadCurrentlyRelevantChunkGroup(
     if (isCameraMoved and not chunkLoader->isTaskRunning()) {
         chunkLoader->launchTask(currentCamCoord.x, currentCamCoord.z,
                                 existingKeys);
+    }
+}
+
+void World::adjustLoadedChunks(const ChunkCoord& currentCamCoord) {
+    int minX = currentCamCoord.x - renderDistance;
+    int maxX = currentCamCoord.x + renderDistance;
+    int minZ = currentCamCoord.z - renderDistance;
+    int maxZ = currentCamCoord.z + renderDistance;
+
+    std::lock_guard<std::mutex> lock(loadedChunksMutex);
+    // Restore any savedChunks that re-entered range
+    for (auto it = savedChunks.begin(); it != savedChunks.end();) {
+        const auto& coord = it->first;
+        if (coord.x >= minX && coord.x <= maxX && coord.z >= minZ &&
+            coord.z <= maxZ) {
+            auto chunk = std::move(it->second);
+            chunk->initializeGL(chunkLoader->getSharedVBO(),     // ← added
+                                chunkLoader->getSharedEBO(),     // ← added
+                                chunkLoader->getSharedWaterEBO() // ← added
+            );
+            loadedChunks[coord] = std::move(chunk);
+            chunkUpdaters[coord] =
+                std::make_unique<ChunkUpdater>(loadedChunks[coord].get());
+            it = savedChunks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // Evict out‐of‐range chunks
+    for (auto it = loadedChunks.begin(); it != loadedChunks.end();) {
+        const auto& coord = it->first;
+        if (coord.x < minX || coord.x > maxX || coord.z < minZ ||
+            coord.z > maxZ) {
+            auto upIt = chunkUpdaters.find(coord);
+            if (upIt != chunkUpdaters.end() &&
+                upIt->second->isUpdateRunning()) {
+                ++it; // wait for in‐flight updater
+                continue;
+            }
+            savedChunks[coord] = std::move(it->second);
+            if (upIt != chunkUpdaters.end()) chunkUpdaters.erase(upIt);
+            it = loadedChunks.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 
@@ -125,6 +186,7 @@ void World::updateLoadedChunks(const glm::vec3& camPos) {
     const auto camChunkZ = static_cast<int>(std::floor(camPos.z / chunkSize));
     ChunkCoord currentCamCoord{camChunkX, camChunkZ};
 
+    adjustLoadedChunks(currentCamCoord);
     reloadCurrentlyRelevantChunkGroup(currentCamCoord);
     runUpdatePerChunk();
 }

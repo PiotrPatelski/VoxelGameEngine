@@ -49,7 +49,10 @@ ChunkLoader::generateMissingChunks(
              z <= camChunkZ + renderDistance; ++z) {
             ChunkCoord coord{x, z};
             if (existingKeys.find(coord) == existingKeys.end()) {
-                newChunks[coord] = createChunk(x, z);
+                // CPU‐only constructor for background thread
+                newChunks[coord] =
+                    std::make_unique<Chunk>(chunkSize, x, z,
+                                            /*cpuOnly=*/true); // ← added
             }
         }
     }

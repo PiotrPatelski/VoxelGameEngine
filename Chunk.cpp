@@ -41,21 +41,40 @@ bool isCubeExposed(const GridGenerator::VoxelGrid& grid,
 }
 } // namespace
 
-Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex,
-             unsigned int sharedVBO, unsigned int sharedEBO,
-             unsigned int sharedWaterEBO)
+Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex, bool cpuOnly)
     : size{chunkSize},
       chunkWorldXIndex{worldXindex},
       chunkWorldZIndex{worldZindex},
-      waterHeight{14},
       treeManager{chunkSize},
-      modified{true},
-      regularCubeEBO{sharedEBO},
-      waterEBO{sharedWaterEBO} {
-    setupVAO(sharedVBO, sharedEBO);
+      modified{true} {
+    // Build everything on CPU: voxel grid and instanceModelMatrices
     voxelGrid = generateInitialVoxelGrid();
-    generateInstanceBuffersForCubeTypes();
     rebuildCubesFromGrid();
+}
+
+// —— Full constructor: calls CPU build, then all GL setup on main thread ——
+Chunk::Chunk(int chunkSize, int worldXindex, int worldZindex,
+             unsigned sharedVBO, unsigned sharedEBO, unsigned sharedWaterEBO)
+    : Chunk(chunkSize, worldXindex, worldZindex, /*cpuOnly=*/true) {
+    // Record which EBOs to use
+    regularCubeEBO = sharedEBO;
+    waterEBO = sharedWaterEBO;
+
+    // Set up VAO with cube indices
+    setupVAO(sharedVBO, sharedEBO);
+    // Now generate instance buffers and upload all instance data
+    generateInstanceBuffersForCubeTypes();
+    uploadInstanceBuffer();
+}
+
+// Called on main thread for CPU-only chunks
+void Chunk::initializeGL(unsigned int sharedVBO, unsigned int sharedEBO,
+                         unsigned int sharedWaterEBO) {
+    regularCubeEBO = sharedEBO;
+    waterEBO = sharedWaterEBO;
+
+    setupVAO(sharedVBO, sharedEBO);
+    generateInstanceBuffersForCubeTypes();
     uploadInstanceBuffer();
 }
 

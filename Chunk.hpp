@@ -22,6 +22,7 @@ class Chunk {
     Chunk(int size, int worldXindex, int worldZindex,
           unsigned vertexBufferObjects, unsigned elementBufferObjects,
           unsigned waterElementBufferObjects);
+    Chunk(int size, int worldXindex, int worldZindex, bool cpuOnly);
     ~Chunk();
     Chunk(const Chunk&) = delete;
     Chunk(Chunk&&) = delete;
@@ -39,6 +40,9 @@ class Chunk {
 
     CubeData computeCubeData();
     void applyCubeData(CubeData&& data);
+
+    void initializeGL(unsigned int sharedVBO, unsigned int sharedEBO,
+                      unsigned int sharedWaterEBO);
 
    private:
     using CubeCreator = std::function<void(const glm::vec3&, CubeType)>;
@@ -61,7 +65,7 @@ class Chunk {
     int size{0};
     int chunkWorldXIndex{0};
     int chunkWorldZIndex{0};
-    int waterHeight{0};
+    int waterHeight{14};
     TreeManager treeManager;
     GridGenerator::VoxelGrid voxelGrid{};
     std::vector<std::unique_ptr<Cube>> cubes{};
