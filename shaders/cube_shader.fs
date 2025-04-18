@@ -83,42 +83,42 @@ vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDirectio
 } 
 
 
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDirection, vec2 texCoord)
-{
-    const vec3 lightDir = normalize(light.position - fragPos);
-    // diffuse shading
-    const float diff = max(dot(normal, lightDir), 0.0);
-    // attenuation
-    const float distance = length(light.position - fragPos);
-    const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
-    // combine results
-    vec3 ambient = light.ambient * sampleCubeTexture(texCoord, normal);
-    vec3 diffuse = light.diffuse * diff * sampleCubeTexture(texCoord, normal);
-    ambient *= attenuation;
-    diffuse *= attenuation;
-    return (ambient + diffuse);
-}
+// vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDirection, vec2 texCoord)
+// {
+//     const vec3 lightDir = normalize(light.position - fragPos);
+//     // diffuse shading
+//     const float diff = max(dot(normal, lightDir), 0.0);
+//     // attenuation
+//     const float distance = length(light.position - fragPos);
+//     const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
+//     // combine results
+//     vec3 ambient = light.ambient * sampleCubeTexture(texCoord, normal);
+//     vec3 diffuse = light.diffuse * diff * sampleCubeTexture(texCoord, normal);
+//     ambient *= attenuation;
+//     diffuse *= attenuation;
+//     return (ambient + diffuse);
+// }
 
-vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDirection, vec2 texCoord)
-{
-    const vec3 lightDir = normalize(light.position - fragPos);
-    // diffuse shading
-    const float diff = max(dot(normal, lightDir), 0.0);
-    // attenuation
-    const float distance = length(light.position - fragPos);
-    const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
-    // spotlight intensity
-    const float theta = dot(lightDir, normalize(-light.direction)); 
-    const float epsilon = light.innerCutOff - light.outerCutOff;
-    const float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
-    // combine results
-    vec3 ambient = light.ambient * sampleCubeTexture(texCoord, normal);
-    vec3 diffuse = light.diffuse * diff * sampleCubeTexture(texCoord, normal);
-    ambient *= attenuation * intensity;
-    diffuse *= attenuation * intensity;
+// vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDirection, vec2 texCoord)
+// {
+//     const vec3 lightDir = normalize(light.position - fragPos);
+//     // diffuse shading
+//     const float diff = max(dot(normal, lightDir), 0.0);
+//     // attenuation
+//     const float distance = length(light.position - fragPos);
+//     const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
+//     // spotlight intensity
+//     const float theta = dot(lightDir, normalize(-light.direction)); 
+//     const float epsilon = light.innerCutOff - light.outerCutOff;
+//     const float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+//     // combine results
+//     vec3 ambient = light.ambient * sampleCubeTexture(texCoord, normal);
+//     vec3 diffuse = light.diffuse * diff * sampleCubeTexture(texCoord, normal);
+//     ambient *= attenuation * intensity;
+//     diffuse *= attenuation * intensity;
 
-    return (ambient + diffuse);
-} 
+//     return (ambient + diffuse);
+// } 
 
 void main()
 {
@@ -133,11 +133,11 @@ void main()
     }
     // phase 1: Directional lighting
     vec3 result = CalcDirectionalLight(directionalLight, norm, viewDirection, outTexCoord);
-    // phase 2: Point lights
-    for(int i = 0; i < NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights[i], norm, fragPos, viewDirection, outTexCoord);
-    // phase 3: Spot light
-    result += CalcSpotLight(spotLight, norm, fragPos, viewDirection, outTexCoord);
+    // // phase 2: Point lights
+    // for(int i = 0; i < NR_POINT_LIGHTS; i++)
+    //     result += CalcPointLight(pointLights[i], norm, fragPos, viewDirection, outTexCoord);
+    // // phase 3: Spot light
+    // result += CalcSpotLight(spotLight, norm, fragPos, viewDirection, outTexCoord);
     // FragColor = vec4(result + emission, 1.0);
     if (isUnderwater) {
         result = mix(result, underwaterTint, underwaterMix);
