@@ -1,6 +1,7 @@
 #include "ChunkLoader.hpp"
-#include "Chunk.hpp"
 #include "VertexData.hpp"
+#include "RenderableChunk.hpp"
+#include <glad/glad.h>
 #include <chrono>
 #include <future>
 
@@ -32,27 +33,24 @@ void ChunkLoader::setupVertexBuffers() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-std::unique_ptr<Chunk> ChunkLoader::createChunk(int x, int z) {
-    return std::make_unique<Chunk>(chunkSize, x, z, vertexBufferObjects,
-                                   cubeElementBufferObjects,
-                                   waterElementBufferObjects);
+std::unique_ptr<RenderableChunk> ChunkLoader::createChunk(int x, int z) {
+    auto cpuChunk = std::make_unique<CpuChunk>(chunkSize, x, z);
+    return cpuChunk->toRenderable(vertexBufferObjects, cubeElementBufferObjects,
+                                  waterElementBufferObjects);
 }
 
-std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>
+std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>
 ChunkLoader::generateMissingChunks(
     int camChunkX, int camChunkZ,
     const std::unordered_set<ChunkCoord>& existingKeys) {
-    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> newChunks;
+    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>> newChunks;
     for (int x = camChunkX - renderDistance; x <= camChunkX + renderDistance;
          ++x) {
         for (int z = camChunkZ - renderDistance;
              z <= camChunkZ + renderDistance; ++z) {
             ChunkCoord coord{x, z};
             if (existingKeys.find(coord) == existingKeys.end()) {
-                // CPU‐only constructor for background thread
-                newChunks[coord] =
-                    std::make_unique<Chunk>(chunkSize, x, z,
-                                            /*cpuOnly=*/true); // ← added
+                newChunks[coord] = std::make_unique<CpuChunk>(chunkSize, x, z);
             }
         }
     }
@@ -78,7 +76,7 @@ bool ChunkLoader::isFinished() const {
            std::future_status::ready;
 }
 
-std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>
+std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>
 ChunkLoader::retrieveNewChunks() {
     isRunning = false;
     return newChunkGroup.get();

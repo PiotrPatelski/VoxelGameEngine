@@ -5,17 +5,20 @@
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 
+namespace {
+ChunkWindow computeChunkWindow(const ChunkCoord& cameraChunk,
+                               int renderDistance) {
+    return {cameraChunk.x - renderDistance, cameraChunk.x + renderDistance,
+            cameraChunk.z - renderDistance, cameraChunk.z + renderDistance};
+}
+} // namespace
+
 void World::loadInitialChunks() {
     std::lock_guard<std::mutex> lock(loadedChunksMutex);
-    // Initially load full GL+CPU chunks around (0,0)
     for (int x = -renderDistance; x <= renderDistance; ++x) {
         for (int z = -renderDistance; z <= renderDistance; ++z) {
             ChunkCoord coord{x, z};
             auto chunk = chunkLoader->createChunk(x, z);
-            chunk->initializeGL(chunkLoader->getSharedVBO(),     // ← added
-                                chunkLoader->getSharedEBO(),     // ← added
-                                chunkLoader->getSharedWaterEBO() // ← added
-            );
             loadedChunks[coord] = std::move(chunk);
             chunkUpdaters[coord] =
                 std::make_unique<ChunkUpdater>(loadedChunks[coord].get());
@@ -39,7 +42,7 @@ bool World::addCubeFromRaycast(const Camera& camera, float maxDistance,
         const auto newCubePos = hit.position + hit.normal;
         const auto chunkX = floorDivide(newCubePos.x, chunkSize);
         const auto chunkZ = floorDivide(newCubePos.z, chunkSize);
-        Chunk* chunk = getChunk({chunkX, chunkZ});
+        auto chunk = getChunk({chunkX, chunkZ});
         if (chunk) {
             const auto localX = negativeSafeModulo(newCubePos.x, chunkSize);
             const auto localZ = negativeSafeModulo(newCubePos.z, chunkSize);
@@ -58,7 +61,7 @@ bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
         const auto worldCubePos = hit.position;
         const auto chunkX = floorDivide(worldCubePos.x, chunkSize);
         const auto chunkZ = floorDivide(worldCubePos.z, chunkSize);
-        Chunk* chunk = getChunk({chunkX, chunkZ});
+        auto chunk = getChunk({chunkX, chunkZ});
         if (chunk) {
             const auto localX = negativeSafeModulo(worldCubePos.x, chunkSize);
             const auto localZ = negativeSafeModulo(worldCubePos.z, chunkSize);
@@ -69,7 +72,7 @@ bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
     return false;
 }
 
-Chunk* World::getChunk(const ChunkCoord& coord) {
+RenderableChunk* World::getChunk(const ChunkCoord& coord) {
     std::lock_guard<std::mutex> lock(loadedChunksMutex);
     const auto it = loadedChunks.find(coord);
     return (it != loadedChunks.end()) ? it->second.get() : nullptr;
@@ -94,17 +97,15 @@ std::unordered_set<ChunkCoord> World::getLoadedChunkKeys() {
 }
 
 void World::mergeNewChunks(
-    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>& newChunks) {
+    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>& newChunks) {
     std::lock_guard<std::mutex> lock(loadedChunksMutex);
-    for (auto& [coord, chunkPtr] : newChunks) {
-        auto [it, inserted] =
-            loadedChunks.try_emplace(coord, nullptr); // ← modified
+    for (auto& [coord, newCpuChunk] : newChunks) {
+        auto [it, inserted] = loadedChunks.try_emplace(coord, nullptr);
         if (inserted) {
-            it->second = std::move(chunkPtr);
-            it->second->initializeGL(chunkLoader->getSharedVBO(), // ← added
-                                     chunkLoader->getSharedEBO(), // ← added
-                                     chunkLoader->getSharedWaterEBO() // ← added
-            );
+            auto& newGpuChunk = it->second;
+            newGpuChunk = newCpuChunk->toRenderable(
+                chunkLoader->getSharedVBO(), chunkLoader->getSharedEBO(),
+                chunkLoader->getSharedWaterEBO());
             chunkUpdaters[coord] =
                 std::make_unique<ChunkUpdater>(it->second.get());
         }
@@ -125,56 +126,68 @@ void World::reloadCurrentlyRelevantChunkGroup(
     }
 }
 
-void World::adjustLoadedChunks(const ChunkCoord& currentCamCoord) {
-    int minX = currentCamCoord.x - renderDistance;
-    int maxX = currentCamCoord.x + renderDistance;
-    int minZ = currentCamCoord.z - renderDistance;
-    int maxZ = currentCamCoord.z + renderDistance;
-
-    std::lock_guard<std::mutex> lock(loadedChunksMutex);
-    // Restore any savedChunks that re-entered range
-    for (auto it = savedChunks.begin(); it != savedChunks.end();) {
-        const auto& coord = it->first;
-        if (coord.x >= minX && coord.x <= maxX && coord.z >= minZ &&
-            coord.z <= maxZ) {
-            auto chunk = std::move(it->second);
-            chunk->initializeGL(chunkLoader->getSharedVBO(),     // ← added
-                                chunkLoader->getSharedEBO(),     // ← added
-                                chunkLoader->getSharedWaterEBO() // ← added
-            );
-            loadedChunks[coord] = std::move(chunk);
-            chunkUpdaters[coord] =
-                std::make_unique<ChunkUpdater>(loadedChunks[coord].get());
-            it = savedChunks.erase(it);
+void World::restoreSavedChunks(const ChunkWindow& window) {
+    for (auto currentSavedChunk = savedChunks.begin();
+         currentSavedChunk != savedChunks.end();) {
+        const auto chunkCoord = currentSavedChunk->first;
+        auto& savedCpuChunk = currentSavedChunk->second;
+        bool withinX =
+            (chunkCoord.x >= window.minX and chunkCoord.x <= window.maxX);
+        bool withinZ =
+            (chunkCoord.z >= window.minZ and chunkCoord.z <= window.maxZ);
+        if (withinX and withinZ) {
+            auto restoredChunk = savedCpuChunk->toRenderable(
+                chunkLoader->getSharedVBO(), chunkLoader->getSharedEBO(),
+                chunkLoader->getSharedWaterEBO());
+            loadedChunks.emplace(chunkCoord, std::move(restoredChunk));
+            chunkUpdaters[chunkCoord] =
+                std::make_unique<ChunkUpdater>(loadedChunks[chunkCoord].get());
+            currentSavedChunk = savedChunks.erase(currentSavedChunk);
         } else {
-            ++it;
-        }
-    }
-
-    // Evict out‐of‐range chunks
-    for (auto it = loadedChunks.begin(); it != loadedChunks.end();) {
-        const auto& coord = it->first;
-        if (coord.x < minX || coord.x > maxX || coord.z < minZ ||
-            coord.z > maxZ) {
-            auto upIt = chunkUpdaters.find(coord);
-            if (upIt != chunkUpdaters.end() &&
-                upIt->second->isUpdateRunning()) {
-                ++it; // wait for in‐flight updater
-                continue;
-            }
-            savedChunks[coord] = std::move(it->second);
-            if (upIt != chunkUpdaters.end()) chunkUpdaters.erase(upIt);
-            it = loadedChunks.erase(it);
-        } else {
-            ++it;
+            ++currentSavedChunk;
         }
     }
 }
 
+void World::evictOutOfRangeChunks(const ChunkWindow& window) {
+    for (auto currentLoadedChunk = loadedChunks.begin();
+         currentLoadedChunk != loadedChunks.end();) {
+        const auto& [chunkCoord, renderableChunk] = *currentLoadedChunk;
+        bool outsideX =
+            (chunkCoord.x < window.minX or chunkCoord.x > window.maxX);
+        bool outsideZ =
+            (chunkCoord.z < window.minZ or chunkCoord.z > window.maxZ);
+        if (outsideX or outsideZ) {
+            auto updaterIt = chunkUpdaters.find(chunkCoord);
+            if (updaterIt != chunkUpdaters.end() &&
+                updaterIt->second->isUpdateRunning()) {
+                ++currentLoadedChunk;
+                continue;
+            }
+            auto cpuChunk = renderableChunk->toCpuChunk();
+            savedChunks[chunkCoord] = std::move(cpuChunk);
+            if (updaterIt != chunkUpdaters.end()) {
+                chunkUpdaters.erase(updaterIt);
+            }
+            currentLoadedChunk = loadedChunks.erase(currentLoadedChunk);
+        } else {
+            ++currentLoadedChunk;
+        }
+    }
+}
+
+void World::adjustLoadedChunks(const ChunkCoord& currentCamCoord) {
+    const auto window = computeChunkWindow(currentCamCoord, renderDistance);
+
+    std::lock_guard<std::mutex> lock(loadedChunksMutex);
+    restoreSavedChunks(window);
+    evictOutOfRangeChunks(window);
+}
+
 void World::runUpdatePerChunk() {
     for (auto& [coord, updater] : chunkUpdaters) {
-        Chunk* chunk = getChunk(coord);
-        if (chunk && chunk->isModified() && !updater->isUpdateRunning()) {
+        const auto chunk = getChunk(coord);
+        if (chunk and chunk->isModified() and !updater->isUpdateRunning()) {
             updater->launchUpdate();
         }
         updater->checkAndApplyUpdate();
@@ -200,6 +213,6 @@ void World::performFrustumCulling(const Frustum& frustum) {
 void World::renderByType(Shader& shader, CubeType type) {
     shader.use();
     for (auto& [_, chunk] : loadedChunks) {
-        chunk->renderByType(shader, type);
+        chunk->renderByType(type);
     }
 }

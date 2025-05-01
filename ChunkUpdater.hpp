@@ -1,11 +1,11 @@
 #pragma once
 #include <future>
 #include <chrono>
-#include "Chunk.hpp"
+#include "RenderableChunk.hpp"
 
 class ChunkUpdater {
    public:
-    explicit ChunkUpdater(Chunk* chunk);
+    explicit ChunkUpdater(RenderableChunk* chunk);
     ~ChunkUpdater();
     ChunkUpdater(const ChunkUpdater&) = delete;
     ChunkUpdater(ChunkUpdater&&) = delete;
@@ -17,7 +17,7 @@ class ChunkUpdater {
     void checkAndApplyUpdate();
 
    private:
-    Chunk* chunk{};
+    RenderableChunk* chunk{};
     std::future<CubeData> updateResult{};
     bool isUpdating{false};
 };

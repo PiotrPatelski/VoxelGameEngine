@@ -62,9 +62,12 @@ add_executable(
         Frustum.cpp
         GridGenerator.cpp
         World.cpp 
-        Chunk.cpp 
+        ChunkVoxels.cpp
+        ChunkGraphics.cpp
+        CpuChunk.cpp
+        RenderableChunk.cpp 
         Cube.cpp
-        TreeManager.cpp
+        TreeGenerator.cpp
         Raycaster.cpp
         Material.cpp
         ChunkLoader.cpp

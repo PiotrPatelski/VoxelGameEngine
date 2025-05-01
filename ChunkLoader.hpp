@@ -4,7 +4,7 @@
 #include <memory>
 #include <future>
 #include <unordered_set>
-#include "Chunk.hpp"
+#include "CpuChunk.hpp"
 #include "ChunkCoord.hpp"
 
 class ChunkLoader {
@@ -19,15 +19,16 @@ class ChunkLoader {
                     const std::unordered_set<ChunkCoord>& existingKeys);
     bool isTaskRunning() const;
     bool isFinished() const;
-    std::unique_ptr<Chunk> createChunk(int x, int z);
-    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> retrieveNewChunks();
+    std::unique_ptr<RenderableChunk> createChunk(int x, int z);
+    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>
+    retrieveNewChunks();
     unsigned int getSharedVBO() const { return vertexBufferObjects; }
     unsigned int getSharedEBO() const { return cubeElementBufferObjects; }
     unsigned int getSharedWaterEBO() const { return waterElementBufferObjects; }
 
    private:
     void setupVertexBuffers();
-    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>
+    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>
     generateMissingChunks(int camChunkX, int camChunkZ,
                           const std::unordered_set<ChunkCoord>& existingKeys);
 
@@ -37,7 +38,7 @@ class ChunkLoader {
     unsigned int cubeElementBufferObjects{0};
     unsigned int waterElementBufferObjects{0};
 
-    std::future<std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>>
+    std::future<std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>>
         newChunkGroup{};
     bool isRunning{false};
 };

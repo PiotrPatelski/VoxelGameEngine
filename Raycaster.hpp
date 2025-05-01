@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include "ChunkCoord.hpp"
-#include "Chunk.hpp"
+#include "RenderableChunk.hpp"
 #include "Camera.hpp"
 
 int floorDivide(int a, int b);
@@ -27,7 +27,7 @@ class Raycaster {
     // Performs a DDA raycast through the world.
     // Returns a HitResult if a solid voxel is hit.
     std::optional<HitResult> raycast(
-        const std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>&
+        const std::unordered_map<ChunkCoord, std::unique_ptr<RenderableChunk>>&
             loadedChunks,
         float maxDistance);
 

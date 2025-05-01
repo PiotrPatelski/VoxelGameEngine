@@ -1,22 +1,20 @@
-#include "TreeManager.hpp"
+#include "TreeGenerator.hpp"
 #include <cstdlib>
 #include <functional>
 #include <unordered_map>
 
-TreeManager::TreeManager(int size) : chunkSize{size} {}
+TreeGenerator::TreeGenerator(int size) : chunkSize{size} {}
 
-int TreeManager::findHighestFilledVoxelY(
-    const std::vector<std::vector<std::vector<CubeType>>>& voxelGrid, int x,
-    int z) const {
+int TreeGenerator::findHighestFilledVoxelY(const VoxelGrid& voxelGrid, int x,
+                                           int z) const {
     for (int y = chunkSize - 1; y >= 0; y--) {
         if (voxelGrid[x][z][y] != CubeType::NONE) return y;
     }
     return -1;
 }
 
-void TreeManager::placeTreeTrunkAt(
-    int x, int highestFilledY, int z,
-    std::vector<std::vector<std::vector<CubeType>>>& voxelGrid) {
+void TreeGenerator::placeTreeTrunkAt(int x, int highestFilledY, int z,
+                                     VoxelGrid& voxelGrid) {
     int trunkBaseY = highestFilledY + 1;
     const int trunkHeight = 4 + (rand() % 4);
     for (int i = 0; i < trunkHeight; i++) {
@@ -29,9 +27,8 @@ void TreeManager::placeTreeTrunkAt(
     }
 }
 
-void TreeManager::generateCrownForTrunk(
-    int colX, int colZ, int trunkTopY,
-    std::vector<std::vector<std::vector<CubeType>>>& voxelGrid) {
+void TreeGenerator::generateCrownForTrunk(int colX, int colZ, int trunkTopY,
+                                          VoxelGrid& voxelGrid) {
     for (int offsetX = -2; offsetX <= 2; offsetX++) {
         for (int offsetY = -2; offsetY <= 2; offsetY++) {
             for (int offsetZ = -2; offsetZ <= 2; offsetZ++) {
@@ -53,8 +50,7 @@ void TreeManager::generateCrownForTrunk(
     }
 }
 
-void TreeManager::generateNewTreeTrunks(
-    std::vector<std::vector<std::vector<CubeType>>>& voxelGrid) {
+void TreeGenerator::generateNewTreeTrunks(VoxelGrid& voxelGrid) {
     for (int x = 0; x < chunkSize; x++) {
         for (int z = 0; z < chunkSize; z++) {
             const auto highestY = findHighestFilledVoxelY(voxelGrid, x, z);
@@ -69,8 +65,8 @@ void TreeManager::generateNewTreeTrunks(
     }
 }
 
-TreeManager::Trunk TreeManager::buildTrunksMapping() const {
-    Trunk trunkColumns(0, [](const std::pair<int, int>& col) -> std::size_t {
+TreeGenerator::Trunk TreeGenerator::buildTrunksMapping() const {
+    Trunk trunkColumns(0, [](const std::pair<int, int>& col) {
         return std::hash<int>()(col.first) ^
                (std::hash<int>()(col.second) << 1);
     });
@@ -84,14 +80,13 @@ TreeManager::Trunk TreeManager::buildTrunksMapping() const {
     return trunkColumns;
 }
 
-void TreeManager::generateCrownsForTrunks(
-    const Trunk& trunkColumns,
-    std::vector<std::vector<std::vector<CubeType>>>& voxelGrid) {
+void TreeGenerator::generateCrownsForTrunks(const Trunk& trunkColumns,
+                                            VoxelGrid& voxelGrid) {
     for (const auto& [treeColumn, treeTrunkTopY] : trunkColumns) {
         const auto [treeColumnX, treeColumnZ] = treeColumn;
         bool crownAlreadyExists{false};
         for (const auto& crownPos : crownPositions) {
-            if (crownPos.x == treeColumnX && crownPos.z == treeColumnZ) {
+            if (crownPos.x == treeColumnX and crownPos.z == treeColumnZ) {
                 crownAlreadyExists = true;
                 break;
             }
@@ -103,8 +98,7 @@ void TreeManager::generateCrownsForTrunks(
     }
 }
 
-void TreeManager::generateTrees(
-    std::vector<std::vector<std::vector<CubeType>>>& voxelGrid) {
+void TreeGenerator::generateTrees(VoxelGrid& voxelGrid) {
     if (trunkPositions.empty()) {
         generateNewTreeTrunks(voxelGrid);
     }
@@ -112,35 +106,33 @@ void TreeManager::generateTrees(
     generateCrownsForTrunks(trunks, voxelGrid);
 }
 
-void TreeManager::reapplyTrunks(
+void TreeGenerator::reapplyTrunks(
     float initialCubeX, float initialCubeZ,
-    const std::function<void(const glm::vec3&, CubeType)>& createCubeCallback)
+    const std::function<void(const glm::ivec3&, CubeType)>& createCubeCallback)
     const {
     for (const auto& pos : trunkPositions) {
         if (pos.y < chunkSize) {
-            glm::vec3 worldPos{initialCubeX + static_cast<float>(pos.x),
-                               static_cast<float>(pos.y),
-                               initialCubeZ + static_cast<float>(pos.z)};
+            const glm::ivec3 worldPos{initialCubeX + pos.x, pos.y,
+                                      initialCubeZ + pos.z};
             createCubeCallback(worldPos, CubeType::LOG);
         }
     }
 }
 
-void TreeManager::reapplyCrowns(
+void TreeGenerator::reapplyCrowns(
     float initialCubeX, float initialCubeZ,
-    const std::function<void(const glm::vec3&, CubeType)>& createCubeCallback)
+    const std::function<void(const glm::ivec3&, CubeType)>& createCubeCallback)
     const {
     for (const auto& pos : crownPositions) {
         if (pos.y < chunkSize) {
-            glm::vec3 worldPos{initialCubeX + static_cast<float>(pos.x),
-                               static_cast<float>(pos.y),
-                               initialCubeZ + static_cast<float>(pos.z)};
+            const glm::ivec3 worldPos{initialCubeX + pos.x, pos.y,
+                                      initialCubeZ + pos.z};
             createCubeCallback(worldPos, CubeType::LEAVES);
         }
     }
 }
 
-void TreeManager::removeTreeCubeAt(const glm::ivec3& localPos) {
+void TreeGenerator::removeTreeCubeAt(const glm::ivec3& localPos) {
     trunkPositions.erase(localPos);
     crownPositions.erase(localPos);
 }

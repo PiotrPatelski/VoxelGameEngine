@@ -21,8 +21,9 @@ glm::vec3 computeTDelta(const glm::vec3& rayDir) {
     return glm::abs(1.0f / rayDir);
 }
 
-Chunk* findChunkAtCurrentRayPos(
-    const std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>& loadedChunks,
+RenderableChunk* findChunkAtCurrentRayPos(
+    const std::unordered_map<ChunkCoord, std::unique_ptr<RenderableChunk>>&
+        loadedChunks,
     const ChunkCoord& coords) {
     auto loadedChunk = loadedChunks.find(coords);
     return (loadedChunk != loadedChunks.end()) ? loadedChunk->second.get()
@@ -46,7 +47,8 @@ Raycaster::Raycaster(const Camera& camera, int chunkSize)
 }
 
 std::optional<HitResult> Raycaster::raycast(
-    const std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>& loadedChunks,
+    const std::unordered_map<ChunkCoord, std::unique_ptr<RenderableChunk>>&
+        loadedChunks,
     float maxDistance) {
     distanceTraveled = 0.0f;
 
@@ -54,12 +56,13 @@ std::optional<HitResult> Raycaster::raycast(
         int chunkX = floorDivide(blockPos.x, size);
         int chunkZ = floorDivide(blockPos.z, size);
         ChunkCoord coord{chunkX, chunkZ};
-        const Chunk* chunk = findChunkAtCurrentRayPos(loadedChunks, coord);
+        const RenderableChunk* chunk =
+            findChunkAtCurrentRayPos(loadedChunks, coord);
         if (chunk) {
             int localX = negativeSafeModulo(blockPos.x, size);
             int localZ = negativeSafeModulo(blockPos.z, size);
             int localY = blockPos.y;
-            if (localY >= 0 && localY < size &&
+            if (localY >= 0 and localY < size and
                 chunk->isCubeInGrid({localX, localY, localZ})) {
                 const bool isHit{true};
                 const auto normal = -lastStep;
@@ -73,7 +76,7 @@ std::optional<HitResult> Raycaster::raycast(
 
 void Raycaster::incrementRayStep() {
     // Advance the ray: choose the smallest tMax value.
-    if (tMax.x < tMax.y && tMax.x < tMax.z) {
+    if (tMax.x < tMax.y and tMax.x < tMax.z) {
         blockPos.x += step.x;
         distanceTraveled = tMax.x;
         tMax.x += tDelta.x;

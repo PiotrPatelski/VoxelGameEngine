@@ -5,13 +5,21 @@
 #include <memory>
 #include <future>
 #include <mutex>
-#include "Chunk.hpp"
+#include "RenderableChunk.hpp"
+#include "CpuChunk.hpp"
 #include "Shader.hpp"
 #include "Frustum.hpp"
 #include "ChunkCoord.hpp"
 #include "Camera.hpp"
 #include "ChunkLoader.hpp"
 #include "ChunkUpdater.hpp"
+
+struct ChunkWindow {
+    int minX{};
+    int maxX{};
+    int minZ{};
+    int maxZ{};
+};
 
 class World {
    public:
@@ -27,24 +35,26 @@ class World {
     void updateLoadedChunks(const glm::vec3& camPos);
     void performFrustumCulling(const Frustum& frustum);
     void renderByType(Shader& shader, CubeType type);
-    Chunk* getChunk(const ChunkCoord& coord);
+    RenderableChunk* getChunk(const ChunkCoord& coord);
 
    private:
     void loadInitialChunks();
     bool updateCameraChunk(const ChunkCoord& currentCamCoord);
     std::unordered_set<ChunkCoord> getLoadedChunkKeys();
     void mergeNewChunks(
-        std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>>& newChunks);
+        std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>& newChunks);
     void reloadCurrentlyRelevantChunkGroup(const ChunkCoord& currentCamCoord);
     void runUpdatePerChunk();
+    void restoreSavedChunks(const ChunkWindow& window);
+    void evictOutOfRangeChunks(const ChunkWindow& window);
     void adjustLoadedChunks(const ChunkCoord& currentCamCoord);
 
     std::mutex loadedChunksMutex{};
-    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> loadedChunks{};
+    std::unordered_map<ChunkCoord, std::unique_ptr<RenderableChunk>>
+        loadedChunks{};
+    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>> savedChunks{};
     std::unordered_map<ChunkCoord, std::unique_ptr<ChunkUpdater>>
         chunkUpdaters{};
-
-    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> savedChunks{};
 
     ChunkCoord lastCameraChunk{-1000, -1000};
     int renderDistance{8};
