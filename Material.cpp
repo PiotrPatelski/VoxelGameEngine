@@ -55,7 +55,7 @@ Materials::Materials() {
                                            8.0f,
                                            1.f,
                                            false};
-    materials[CubeType::TORCH] = Material{"textures/container2.png",
+    materials[CubeType::TORCH] = Material{"textures/lamp.png",
                                           "",
                                           "./textures/matrix.jpg",
                                           8,
