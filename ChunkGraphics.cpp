@@ -22,18 +22,37 @@ void initNormalVertexAttributes(unsigned int stride) {
 } // namespace
 
 void ChunkGraphics::generateInstanceBuffersForCubeTypes() {
-    const std::array<CubeType, 6> types{CubeType::SAND,  CubeType::DIRT,
-                                        CubeType::GRASS, CubeType::WATER,
-                                        CubeType::LOG,   CubeType::LEAVES};
+    const std::array<CubeType, 7> types{
+        CubeType::SAND, CubeType::DIRT,   CubeType::GRASS, CubeType::WATER,
+        CubeType::LOG,  CubeType::LEAVES, CubeType::TORCH};
     for (auto type : types) {
-        unsigned id{};
-        glGenBuffers(1, &id);
-        instanceVBOs[type] = id;
+        unsigned cubeId{};
+        unsigned lightSourceId{};
+        glGenBuffers(1, &cubeId);
+        glGenBuffers(1, &lightSourceId);
+        instanceVBOs[type] = cubeId;
+        instanceLightVBOs[type] = lightSourceId;
     }
 }
 
+void ChunkGraphics::initializeTorchLightVolumeGLParams(int volumeDimension) {
+    glGenTextures(1, &lightVolumeTexture);
+    glBindTexture(GL_TEXTURE_3D, lightVolumeTexture);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    float border[] = {0, 0, 0, 0};
+    glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, border);
+    // allocate (no data yet)
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_R32F, volumeDimension, volumeDimension,
+                 volumeDimension, 0, GL_RED, GL_FLOAT, nullptr);
+    glBindTexture(GL_TEXTURE_3D, 0);
+}
+
 void ChunkGraphics::initializeGL(unsigned vbo, unsigned cubeEbo,
-                                 unsigned waterEbo) {
+                                 unsigned waterEbo, int volumeDimension) {
     regularCubeEBO = cubeEbo;
     waterEBO = waterEbo;
 
@@ -49,13 +68,25 @@ void ChunkGraphics::initializeGL(unsigned vbo, unsigned cubeEbo,
     initNormalVertexAttributes(stride);
 
     generateInstanceBuffersForCubeTypes();
+    initializeTorchLightVolumeGLParams(volumeDimension);
     glBindVertexArray(0);
 }
 
 void ChunkGraphics::updateInstanceData(
-    const std::unordered_map<CubeType, std::vector<glm::mat4>>& data) {
-    instanceMatricesData = data;
+    const std::unordered_map<CubeType, std::vector<glm::mat4>>& matricesData) {
+    instanceMatricesData = matricesData;
     uploadInstanceBuffer();
+}
+
+void ChunkGraphics::updateLightVolume(const std::vector<float>& volume,
+                                      int volumeDimension) {
+    // upload new 3D data
+    glActiveTexture(GL_TEXTURE0 + 15);
+    glBindTexture(GL_TEXTURE_3D, lightVolumeTexture);
+    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, volumeDimension, volumeDimension,
+                    volumeDimension, GL_RED, GL_FLOAT, volume.data());
+    glBindTexture(GL_TEXTURE_3D, 0);
+    glActiveTexture(GL_TEXTURE0);
 }
 
 void ChunkGraphics::uploadInstanceBuffer() {
@@ -77,6 +108,12 @@ void ChunkGraphics::bindInstanceAttributesForType(CubeType cubeType) const {
         glEnableVertexAttribArray(3 + attrIndex);
         glVertexAttribDivisor(3 + attrIndex, 1);
     }
+    const unsigned lightAttr = 3 + matrixAttrCount;
+    glBindBuffer(GL_ARRAY_BUFFER, instanceLightVBOs.at(cubeType));
+    glVertexAttribPointer(lightAttr, 1, GL_FLOAT, GL_FALSE, sizeof(float),
+                          (void*)0);
+    glEnableVertexAttribArray(lightAttr);
+    glVertexAttribDivisor(lightAttr, 1);
 }
 
 void ChunkGraphics::drawElements(CubeType cubeType, unsigned amt) const {
@@ -104,14 +141,23 @@ void ChunkGraphics::renderByType(CubeType cubeType) const {
 
     glBindVertexArray(vao);
     bindInstanceAttributesForType(cubeType);
+    glActiveTexture(GL_TEXTURE0 + 15);
+    glBindTexture(GL_TEXTURE_3D, lightVolumeTexture);
+    glActiveTexture(GL_TEXTURE0);
     drawElements(cubeType,
                  static_cast<unsigned>(instanceMatrices->second.size()));
     glBindVertexArray(0);
 }
 
 ChunkGraphics::~ChunkGraphics() {
-    for (auto& [_, bufferId] : instanceVBOs) {
-        glDeleteBuffers(1, &bufferId);
+    for (auto& [_, buf] : instanceVBOs) {
+        glDeleteBuffers(1, &buf);
+    }
+    for (auto& [_, buf] : instanceLightVBOs) {
+        glDeleteBuffers(1, &buf);
+    }
+    if (lightVolumeTexture) {
+        glDeleteTextures(1, &lightVolumeTexture);
     }
     if (vao) {
         glDeleteVertexArrays(1, &vao);

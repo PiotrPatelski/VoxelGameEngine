@@ -181,5 +181,8 @@ void App::processInput() {
     } else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
         selectedCubeType = CubeType::LEAVES;
         printf("Selected LEAVES.\n");
+    } else if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) {
+        selectedCubeType = CubeType::TORCH;
+        printf("Selected TORCH.\n");
     }
 }

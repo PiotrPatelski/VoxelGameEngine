@@ -55,4 +55,13 @@ Materials::Materials() {
                                            8.0f,
                                            1.f,
                                            false};
+    materials[CubeType::TORCH] = Material{"textures/container2.png",
+                                          "",
+                                          "./textures/matrix.jpg",
+                                          8,
+                                          99,
+                                          99,
+                                          32.0f,
+                                          1.f,
+                                          false};
 }

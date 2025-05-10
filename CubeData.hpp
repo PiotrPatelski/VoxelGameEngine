@@ -11,4 +11,5 @@ struct CubeData {
     std::vector<std::unique_ptr<Cube>> cubes{};
     std::unordered_map<CubeType, std::vector<glm::mat4>>
         instanceModelMatrices{};
+    std::vector<float> lightVolume;
 };

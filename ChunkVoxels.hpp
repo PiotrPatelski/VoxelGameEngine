@@ -22,6 +22,12 @@ class ChunkVoxels {
         return instanceModelMatrices;
     }
 
+    inline glm::vec3 getChunkOrigin() const {
+        return glm::vec3(chunkWorldXIndex * size, 0.0f,
+                         chunkWorldZIndex * size);
+    }
+    inline int getSize() const { return size; }
+
     bool addCube(const glm::ivec3& localPos, CubeType type);
     bool removeCube(const glm::ivec3& localPos);
     bool isCubeInGrid(const glm::ivec3& localPos) const;
@@ -33,7 +39,6 @@ class ChunkVoxels {
     void storeCubes(std::vector<std::unique_ptr<Cube>>&& newCubes);
 
     std::pair<glm::vec3, glm::vec3> computeChunkAABB() const;
-
 
    private:
     using CubeCreator = std::function<void(const glm::ivec3&, CubeType)>;
@@ -54,6 +59,7 @@ class ChunkVoxels {
     std::vector<std::unique_ptr<Cube>> cubes{};
     std::unordered_map<CubeType, std::vector<glm::mat4>>
         instanceModelMatrices{};
+    std::vector<glm::ivec3> torchPositions{};
 
     bool modified{true};
     mutable std::mutex voxelMutex;

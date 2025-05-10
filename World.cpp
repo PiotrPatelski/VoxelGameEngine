@@ -213,6 +213,6 @@ void World::performFrustumCulling(const Frustum& frustum) {
 void World::renderByType(Shader& shader, CubeType type) {
     shader.use();
     for (auto& [_, chunk] : loadedChunks) {
-        chunk->renderByType(type);
+        chunk->renderByType(shader, type);
     }
 }

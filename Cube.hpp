@@ -2,7 +2,7 @@
 #include <vector>
 #include <glm/gtc/matrix_transform.hpp>
 
-enum class CubeType { NONE, SAND, DIRT, GRASS, WATER, LOG, LEAVES };
+enum class CubeType { NONE, SAND, DIRT, GRASS, WATER, LOG, LEAVES, TORCH };
 
 class Cube {
    public:

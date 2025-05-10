@@ -26,7 +26,7 @@ class RenderableChunk {
     CubeData computeCubeData();
     void applyCubeData(CubeData&& data);
 
-    void renderByType(CubeType type);
+    void renderByType(Shader& shader, CubeType type);
     void performFrustumCulling(const Frustum& frustum);
 
    private:

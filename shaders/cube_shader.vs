@@ -9,14 +9,13 @@ out vec2 TexCoord;
 out vec3 fragPos;
 out vec3 normal;
 
-uniform vec3 lightPosition;
 uniform mat4 view;
 uniform mat4 projection;
 
 void main()
 {
     TexCoord = aTexCoord;
-    // Inversing matrices is a costly operation for shaders, 
+    //Inversing matrices is a costly operation for shaders, 
     //so wherever possible try to avoid doing inverse operations 
     //since they have to be done on each vertex of your scene. 
     //For learning purposes this is fine, but for an efficient application 

@@ -28,48 +28,17 @@ void Renderer::setupDirectionalLightConfig() {
     cubeShader->setVec3("directionalLight.diffuse", 0.5f, 0.5f, 0.5f);
 }
 
-void Renderer::setupPointLightsConfig() {
-    for (unsigned int lightPosIndex = 0;
-         lightPosIndex < pointLightPositions.size(); lightPosIndex++) {
-        const std::string uniformName =
-            "pointLights[" + std::to_string(lightPosIndex) + "]";
-        cubeShader->setVec3(uniformName + ".position",
-                            pointLightPositions[lightPosIndex]);
-        cubeShader->setVec3(uniformName + ".ambient", 0.05f, 0.05f, 0.05f);
-        cubeShader->setVec3(uniformName + ".diffuse", 0.8f, 0.8f, 0.8f);
-        cubeShader->setFloat(uniformName + ".constant", 1.0f);
-        cubeShader->setFloat(uniformName + ".linear", 0.09f);
-        cubeShader->setFloat(uniformName + ".quadratic", 0.032f);
-    }
-}
-
-void Renderer::setupSpotlightConfig() {
-    cubeShader->setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
-    cubeShader->setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    cubeShader->setFloat("spotLight.constant", 1.0f);
-    cubeShader->setFloat("spotLight.linear", 0.09f);
-    cubeShader->setFloat("spotLight.quadratic", 0.032f);
-    cubeShader->setFloat("spotLight.innerCutOff",
-                         glm::cos(glm::radians(12.5f)));
-    cubeShader->setFloat("spotLight.outerCutOff",
-                         glm::cos(glm::radians(15.0f)));
-}
 void Renderer::setupWaterTintConfig() {
     cubeShader->setVec3("underwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
     cubeShader->setFloat("underwaterMix", 0.0f);
 }
 
 void Renderer::applyCubeShaderInitialConfig() {
-    // lightCubeShader = std::make_unique<Shader>("shaders/light_source.vs",
-    //                                            "shaders/light_source.fs");
-    // lightCubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-    // lightCubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
     cubeShader->use();
     cubeShader->setFloat("fadeValue", 0.2f);
     setupDirectionalLightConfig();
-    // setupPointLightsConfig();
-    // setupSpotlightConfig();
     setupWaterTintConfig();
+    cubeShader->setInt("lightVolume", 15);
 }
 
 Renderer::Renderer(unsigned int width, unsigned int height)
@@ -120,7 +89,6 @@ void Renderer::updateShaders(const Camera& camera) {
     cubeShader->setFloat("time", glfwGetTime());
 
     updateWaterShaderParams(camera);
-    // updateSpotlightShaderParams(camera);
     updateProjectionViewShaderParams(camera);
     lastCameraPosition = camera.getPosition();
 }

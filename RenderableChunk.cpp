@@ -5,8 +5,8 @@ RenderableChunk::RenderableChunk(ChunkVoxels&& voxelsData, unsigned sharedVBO,
                                  unsigned sharedCubeEBO,
                                  unsigned sharedWaterEBO)
     : voxels(std::move(voxelsData)) {
-    graphics.initializeGL(sharedVBO, sharedCubeEBO, sharedWaterEBO);
-    graphics.updateInstanceData(voxels.getInstanceModelMatrices());
+    graphics.initializeGL(sharedVBO, sharedCubeEBO, sharedWaterEBO,
+                          voxels.getSize());
 }
 
 bool RenderableChunk::addCube(const glm::ivec3& position, CubeType type) {
@@ -29,12 +29,14 @@ std::unique_ptr<CpuChunk> RenderableChunk::toCpuChunk() {
 void RenderableChunk::applyCubeData(CubeData&& data) {
     voxels.storeCubes(std::move(data.cubes));
     graphics.updateInstanceData(data.instanceModelMatrices);
+    graphics.updateLightVolume(data.lightVolume, voxels.getSize());
     voxels.setModified(false);
-    ;
 }
 
-void RenderableChunk::renderByType(CubeType type) {
+void RenderableChunk::renderByType(Shader& shader, CubeType type) {
     if (not isCulled) {
+        shader.setVec3("chunkOrigin", voxels.getChunkOrigin());
+        shader.setFloat("chunkSize", float(voxels.getSize()));
         graphics.renderByType(type);
     }
 }

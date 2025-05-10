@@ -24,8 +24,6 @@ class Renderer {
    private:
     void applyCubeShaderInitialConfig();
     void setupDirectionalLightConfig();
-    void setupPointLightsConfig();
-    void setupSpotlightConfig();
     void setupWaterTintConfig();
     void updateWaterShaderParams(const Camera& camera);
     void updateSpotlightShaderParams(const Camera& camera);
