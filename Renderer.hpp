@@ -5,6 +5,7 @@
 #include "FontManager.hpp"
 #include "Camera.hpp"
 #include "Shader.hpp"
+#include "Crosshair.hpp"
 #include "World.hpp"
 #include "Frustum.hpp"
 #include "Material.hpp"
@@ -30,13 +31,17 @@ class Renderer {
     void updateProjectionViewShaderParams(const Camera& camera);
     void renderOpaqueCubes(World& world);
     void renderWater(World& world);
+    void renderCurrentWorldView(World& world);
+    void renderCrosshair();
 
     float screenWidth{0};
     float screenHeight{0};
 
     std::unique_ptr<Shader> cubeShader{nullptr};
     std::unique_ptr<Shader> lightCubeShader{nullptr};
-    std::unique_ptr<StatusTextRenderer> statusTextRenderer;
+    std::unique_ptr<Shader> crosshairShader{nullptr};
+    std::unique_ptr<Crosshair> crosshair{nullptr};
+    std::unique_ptr<StatusTextRenderer> statusTextRenderer{nullptr};
     Materials materials{};
     Frustum frustum{};
     glm::vec3 lastCameraPosition{0.0f, 0.0f, 0.0f};

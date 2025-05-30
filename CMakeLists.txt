@@ -72,7 +72,8 @@ add_executable(
         Material.cpp
         ChunkLoader.cpp
         ChunkUpdater.cpp
-        StatusTextRenderer.cpp)
+        StatusTextRenderer.cpp
+        Crosshair.cpp)
 target_link_libraries(OpenGLTutorial ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory

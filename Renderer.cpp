@@ -51,6 +51,9 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     cubeShader = std::make_unique<Shader>("shaders/cube_shader.vs",
                                           "shaders/cube_shader.fs");
     applyCubeShaderInitialConfig();
+    crosshairShader = std::make_unique<Shader>("shaders/crosshair_shader.vs",
+                                               "shaders/crosshair_shader.fs");
+    crosshair = std::make_unique<Crosshair>();
 }
 
 Renderer::~Renderer() {
@@ -95,7 +98,9 @@ void Renderer::updateShaders(const Camera& camera) {
 
 void Renderer::renderOpaqueCubes(World& world) {
     for (const auto& [cubeType, cubeMaterial] : materials.get()) {
-        if (cubeType == CubeType::WATER) continue;
+        if (cubeType == CubeType::WATER) {
+            continue;
+        }
         TextureManager::BindTextureToUnit(cubeMaterial.mainDiffuseTexturePath,
                                           cubeMaterial.mainDiffuseUnit);
         cubeShader->setInt("material.diffuseMain",
@@ -129,13 +134,24 @@ void Renderer::renderWater(World& world) {
     cubeShader->setInt("shouldAnimateWater", 0);
 }
 
-void Renderer::render(unsigned int fps, World& world) {
-    glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+void Renderer::renderCurrentWorldView(World& world) {
     world.performFrustumCulling(frustum);
     cubeShader->use();
     renderOpaqueCubes(world);
     renderWater(world);
+}
+
+void Renderer::renderCrosshair() {
+    crosshairShader->use();
+    crosshairShader->setVec3("color", 1.0f, 1.0f, 1.0f);
+    crosshair->render();
+}
+
+void Renderer::render(unsigned int fps, World& world) {
+    glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    renderCurrentWorldView(world);
+    renderCrosshair();
     statusTextRenderer->renderStatus(fps, lastCameraPosition);
 }
