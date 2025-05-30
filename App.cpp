@@ -116,8 +116,8 @@ void App::mouse_callback([[maybe_unused]] GLFWwindow* targetWindow,
         firstMouse = false;
     }
 
-    float xoffset = xposIn - lastMouseXPos;
-    float yoffset =
+    const auto xoffset = xposIn - lastMouseXPos;
+    const auto yoffset =
         lastMouseYPos -
         yposIn; // reversed since y-coordinates go from bottom to top
 

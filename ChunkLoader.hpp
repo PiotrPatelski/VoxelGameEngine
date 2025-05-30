@@ -9,7 +9,7 @@
 
 class ChunkLoader {
    public:
-    explicit ChunkLoader(int renderingDistance, int sizeOfChunk);
+    ChunkLoader(int renderingDistance, int sizeOfChunk);
     ~ChunkLoader();
     ChunkLoader(const ChunkLoader&) = delete;
     ChunkLoader(ChunkLoader&&) = delete;

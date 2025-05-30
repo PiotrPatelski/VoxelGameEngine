@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5.0)
-project(OpenGLTutorial VERSION 0.1.0)
+project(PioterCraft VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -50,7 +50,7 @@ if(CLANG_FORMAT)
 endif()
 
 add_executable(
-    OpenGLTutorial 
+        PioterCraft
         main.cpp 
         App.cpp 
         Clock.cpp 
@@ -74,15 +74,15 @@ add_executable(
         ChunkUpdater.cpp
         StatusTextRenderer.cpp
         Crosshair.cpp)
-target_link_libraries(OpenGLTutorial ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
+target_link_libraries(PioterCraft ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory
 file(COPY ${CMAKE_SOURCE_DIR}/shaders/ DESTINATION ${CMAKE_BINARY_DIR}/shaders)
 file(COPY ${CMAKE_SOURCE_DIR}/textures/ DESTINATION ${CMAKE_BINARY_DIR}/textures)
 file(COPY ${CMAKE_SOURCE_DIR}/fonts/ DESTINATION ${CMAKE_BINARY_DIR}/fonts)
 
-target_include_directories(OpenGLTutorial PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include ${OPENGL_INCLUDE_DIR})
-target_compile_options(OpenGLTutorial PRIVATE -Wall -Werror -Wpedantic -Wshadow)
+target_include_directories(PioterCraft PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include ${OPENGL_INCLUDE_DIR})
+target_compile_options(PioterCraft PRIVATE -Wall -Werror -Wpedantic -Wshadow)
 include(CTest)
 enable_testing()
 
