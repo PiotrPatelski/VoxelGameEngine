@@ -12,8 +12,9 @@ class Frustum {
     Frustum &operator=(Frustum &&) = delete;
 
     bool isModelIncluded(const glm::mat4 &cubeModel) const;
-    // Each plane is defined as: normal.x*x + normal.y*y + normal.z*z + d = 0
     struct Plane {
+        // Each plane is defined as: normal.x*x + normal.y*y + normal.z*z + d =
+        // 0
         glm::vec3 normal{};
         float d{};
     };

@@ -6,7 +6,7 @@
 
 class StatusTextRenderer {
    public:
-    explicit StatusTextRenderer(float screenWidth, float screenHeight);
+    StatusTextRenderer(float screenWidth, float screenHeight);
     ~StatusTextRenderer() = default;
     StatusTextRenderer(const StatusTextRenderer&) = delete;
     StatusTextRenderer(StatusTextRenderer&&) = delete;

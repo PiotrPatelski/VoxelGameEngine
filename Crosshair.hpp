@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glad/glad.h>
+#include <array>
 
 class Crosshair {
    public:
@@ -13,7 +14,11 @@ class Crosshair {
     void render();
 
    private:
+    void setupVertexAttributes();
     float size{0.02f};
+    std::array<float, 8> vertices{};
+    unsigned vertexArrayAmount{1};
+    unsigned vertexBufferAmount{1};
     unsigned vertexArrayObjects{0};
     unsigned vertexBufferObjects{0};
 };

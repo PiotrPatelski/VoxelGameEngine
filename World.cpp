@@ -36,7 +36,7 @@ World::World() {
 bool World::addCubeFromRaycast(const Camera& camera, float maxDistance,
                                CubeType type) {
     const auto hitOpt =
-        Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
+        Raycaster{camera, chunkSize}.raycastDDA(loadedChunks, maxDistance);
     if (hitOpt.has_value()) {
         const auto hit = hitOpt.value();
         const auto newCubePos = hit.position + hit.normal;
@@ -55,7 +55,7 @@ bool World::addCubeFromRaycast(const Camera& camera, float maxDistance,
 
 bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
     const auto hitOpt =
-        Raycaster{camera, chunkSize}.raycast(loadedChunks, maxDistance);
+        Raycaster{camera, chunkSize}.raycastDDA(loadedChunks, maxDistance);
     if (hitOpt.has_value()) {
         const auto hit = hitOpt.value();
         const auto worldCubePos = hit.position;
@@ -216,3 +216,5 @@ void World::renderByType(Shader& shader, CubeType type) {
         chunk->renderByType(shader, type);
     }
 }
+
+World::~World() { std::cout << "World::Shutdown!" << std::endl; }

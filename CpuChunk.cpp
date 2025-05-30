@@ -28,8 +28,8 @@ const auto& CpuChunk::getInstanceModelMatrices() const {
     return voxels.getInstanceModelMatrices();
 }
 
-std::unique_ptr<RenderableChunk> CpuChunk::toRenderable(unsigned vbo,
-                                                        unsigned ebo,
-                                                        unsigned webo) {
-    return std::make_unique<RenderableChunk>(std::move(voxels), vbo, ebo, webo);
+std::unique_ptr<RenderableChunk> CpuChunk::toRenderable(
+    unsigned vertexBufferObjects, unsigned ebo, unsigned webo) {
+    return std::make_unique<RenderableChunk>(std::move(voxels),
+                                             vertexBufferObjects, ebo, webo);
 }

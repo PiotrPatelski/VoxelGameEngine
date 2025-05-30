@@ -40,8 +40,9 @@ void TreeGenerator::generateCrownForTrunk(int colX, int colZ, int trunkTopY,
                                     colZ + offsetZ};
                 if (crownPos.x < 0 or crownPos.x >= chunkSize or
                     crownPos.y < 0 or crownPos.y >= chunkSize or
-                    crownPos.z < 0 or crownPos.z >= chunkSize)
+                    crownPos.z < 0 or crownPos.z >= chunkSize) {
                     continue;
+                }
                 crownPositions.insert(crownPos);
                 voxelGrid[crownPos.x][crownPos.z][crownPos.y] =
                     CubeType::LEAVES;

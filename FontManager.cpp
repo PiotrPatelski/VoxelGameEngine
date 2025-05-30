@@ -1,5 +1,25 @@
 #include "FontManager.hpp"
 #include <iostream>
+#include <array>
+
+namespace {
+std::array<std::array<float, 4>, 6> buildGlyphVertices(const Character& ch,
+                                                       float x, float y,
+                                                       float scale) {
+    const auto xpos = x + static_cast<float>(ch.bearing.x) * scale;
+    const auto ypos = y - static_cast<float>(ch.size.y - ch.bearing.y) * scale;
+    const auto width = static_cast<float>(ch.size.x) * scale;
+    const auto height = static_cast<float>(ch.size.y) * scale;
+
+    return {{{{xpos, ypos + height, 0.0f, 0.0f}},
+             {{xpos, ypos, 0.0f, 1.0f}},
+             {{xpos + width, ypos, 1.0f, 1.0f}},
+
+             {{xpos, ypos + height, 0.0f, 0.0f}},
+             {{xpos + width, ypos, 1.0f, 1.0f}},
+             {{xpos + width, ypos + height, 1.0f, 0.0f}}}};
+}
+} // namespace
 
 FontManager::FontManager(float screenWidth, float screenHeight) {
     std::cout << "FontManager::Init!" << std::endl;
@@ -27,43 +47,53 @@ FontManager::FontManager(float screenWidth, float screenHeight) {
 
 FontManager::~FontManager() {
     std::cout << "FontManager::Shutdown!" << std::endl;
+    if (vertexArrayObjects) {
+        glDeleteBuffers(amountOfVAOBuffers, &vertexArrayObjects);
+    }
+    if (vertexBufferObjects) {
+        glDeleteVertexArrays(amountOfVBOBuffers, &vertexBufferObjects);
+    }
 }
 
-void FontManager::initFontTextures() {
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
+unsigned FontManager::createTextureForGlyph() const {
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, fontFace->glyph->bitmap.width,
+                 fontFace->glyph->bitmap.rows, 0, GL_RED, GL_UNSIGNED_BYTE,
+                 fontFace->glyph->bitmap.buffer);
+    // set texture options
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    return texture;
+}
 
+std::pair<char, Character> FontManager::createCharacter(char charValue) const {
+    const glm::ivec2 characterSize{fontFace->glyph->bitmap.width,
+                                   fontFace->glyph->bitmap.rows};
+    const glm::ivec2 characterBearing{fontFace->glyph->bitmap_left,
+                                      fontFace->glyph->bitmap_top};
+    const auto characterAdvance =
+        static_cast<unsigned int>(fontFace->glyph->advance.x);
+    Character character = {createTextureForGlyph(), characterSize,
+                           characterBearing, characterAdvance};
+    return std::pair<char, Character>(charValue, character);
+}
+
+void FontManager::initCharacters() {
     for (unsigned char c = 0; c < 128; c++) {
         // load character glyph
         if (FT_Load_Char(fontFace, c, FT_LOAD_RENDER)) {
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
             continue;
         }
-        // generate texture
-        unsigned int texture;
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, fontFace->glyph->bitmap.width,
-                     fontFace->glyph->bitmap.rows, 0, GL_RED, GL_UNSIGNED_BYTE,
-                     fontFace->glyph->bitmap.buffer);
-        // set texture options
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        // now store character for later use
-        Character character = {
-            texture,
-            glm::ivec2(fontFace->glyph->bitmap.width,
-                       fontFace->glyph->bitmap.rows),
-            glm::ivec2(fontFace->glyph->bitmap_left,
-                       fontFace->glyph->bitmap_top),
-            static_cast<unsigned int>(fontFace->glyph->advance.x)};
-        characters.insert(std::pair<char, Character>(c, character));
+        characters.insert(createCharacter(c));
     }
-    // destroy FreeType once we're finished
-    FT_Done_Face(fontFace);
-    FT_Done_FreeType(fontLib);
+}
 
+void FontManager::initVertexAttributes() {
     // configure VAO/VBO for texture quads
     // -----------------------------------
     const unsigned int stride = 4 * sizeof(float);
@@ -78,6 +108,17 @@ void FontManager::initFontTextures() {
     glBindVertexArray(vertexArrayObjects);
 }
 
+void FontManager::initFontTextures() {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
+
+    initCharacters();
+    // destroy FreeType once we're finished
+    FT_Done_Face(fontFace);
+    FT_Done_FreeType(fontLib);
+
+    initVertexAttributes();
+}
+
 void FontManager::initShader(float screenWidth, float screenHeight) {
     shader = std::make_unique<Shader>("shaders/font_shader.vs",
                                       "shaders/font_shader.fs");
@@ -86,6 +127,17 @@ void FontManager::initShader(float screenWidth, float screenHeight) {
                    static_cast<float>(screenHeight));
     shader->use();
     shader->setMat4("projection", projection);
+}
+
+void FontManager::renderCharacter(const Character& character, float x, float y,
+                                  float scale) {
+    const auto vertices = buildGlyphVertices(character, x, y, scale);
+
+    glBindTexture(GL_TEXTURE_2D, character.textureID);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices.data());
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void FontManager::renderText(const std::string& text, float x, float y,
@@ -98,34 +150,12 @@ void FontManager::renderText(const std::string& text, float x, float y,
 
     // iterate through all characters
     for (const auto& character : text) {
-        Character ch = characters[character];
+        const auto ch = characters[character];
 
-        float xpos = x + static_cast<float>(ch.Bearing.x) * scale;
-        float ypos = y - static_cast<float>(ch.Size.y - ch.Bearing.y) * scale;
-
-        float w = static_cast<float>(ch.Size.x) * scale;
-        float h = static_cast<float>(ch.Size.y) * scale;
-        // update VBO for each character
-        float vertices[6][4] = {
-            {xpos, ypos + h, 0.0f, 0.0f},    {xpos, ypos, 0.0f, 1.0f},
-            {xpos + w, ypos, 1.0f, 1.0f},
-
-            {xpos, ypos + h, 0.0f, 0.0f},    {xpos + w, ypos, 1.0f, 1.0f},
-            {xpos + w, ypos + h, 1.0f, 0.0f}};
-        // render glyph texture over quad
-        glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-        // update content of VBO memory
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
-        glBufferSubData(
-            GL_ARRAY_BUFFER, 0, sizeof(vertices),
-            vertices); // be sure to use glBufferSubData and not glBufferData
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        // render quad
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        renderCharacter(ch, x, y, scale);
         // now advance cursors for next glyph (note that advance is number of
         // 1/64 pixels)
-        x += static_cast<float>(ch.Advance >> 6) *
+        x += static_cast<float>(ch.advance >> 6) *
              scale; // bitshift by 6 to get value in pixels (2^6 = 64 (divide
                     // amount of 1/64th pixels by 64 to get amount of pixels))
     }

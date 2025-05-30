@@ -51,15 +51,15 @@ void ChunkGraphics::initializeTorchLightVolumeGLParams(int volumeDimension) {
     glBindTexture(GL_TEXTURE_3D, 0);
 }
 
-void ChunkGraphics::initializeGL(unsigned vbo, unsigned cubeEbo,
+void ChunkGraphics::initializeGL(unsigned vertexBufferObjects, unsigned cubeEbo,
                                  unsigned waterEbo, int volumeDimension) {
     regularCubeEBO = cubeEbo;
     waterEBO = waterEbo;
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    glGenVertexArrays(1, &vertexArrayObjects);
+    glBindVertexArray(vertexArrayObjects);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEbo);
 
     const unsigned stride = sizeof(Vertex);
@@ -139,7 +139,7 @@ void ChunkGraphics::renderByType(CubeType cubeType) const {
         return;
     }
 
-    glBindVertexArray(vao);
+    glBindVertexArray(vertexArrayObjects);
     bindInstanceAttributesForType(cubeType);
     glActiveTexture(GL_TEXTURE0 + 15);
     glBindTexture(GL_TEXTURE_3D, lightVolumeTexture);
@@ -159,7 +159,7 @@ ChunkGraphics::~ChunkGraphics() {
     if (lightVolumeTexture) {
         glDeleteTextures(1, &lightVolumeTexture);
     }
-    if (vao) {
-        glDeleteVertexArrays(1, &vao);
+    if (vertexArrayObjects) {
+        glDeleteVertexArrays(1, &vertexArrayObjects);
     }
 }

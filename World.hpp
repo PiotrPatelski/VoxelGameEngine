@@ -24,7 +24,7 @@ struct ChunkWindow {
 class World {
    public:
     World();
-    ~World() = default;
+    ~World();
     World(const World&) = delete;
     World(World&&) = delete;
     World& operator=(const World&) = delete;

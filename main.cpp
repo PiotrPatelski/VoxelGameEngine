@@ -2,7 +2,6 @@
 
 int main() {
     std::cout << "Pioter test main.cpp!" << std::endl;
-    App app;
-    app.run();
+    App{}.run();
     return 0;
 }

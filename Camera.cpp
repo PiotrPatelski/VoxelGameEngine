@@ -6,7 +6,7 @@ Camera::Camera() { updateCameraVectors(); }
 // parameter in the form of camera defined ENUM (to abstract it from windowing
 // systems)
 void Camera::processKeyboard(Camera_Movement direction, float deltaTime) {
-    float velocity = movementSpeed * deltaTime;
+    const auto velocity = movementSpeed * deltaTime;
     if (direction == FORWARD) position += frontVec * velocity;
     if (direction == BACKWARD) position -= frontVec * velocity;
     if (direction == LEFT) position -= rightVec * velocity;
@@ -36,15 +36,19 @@ void Camera::processMouseMovement(float xoffset, float yoffset,
 // processes input received from a mouse scroll-wheel event. Only requires input
 // on the vertical wheel-axis
 void Camera::processMouseScroll(float yoffset) {
-    zoom -= (float)yoffset;
-    if (zoom < 1.0f) zoom = 1.0f;
-    if (zoom > 45.0f) zoom = 45.0f;
+    zoom -= yoffset;
+    if (zoom < 1.0f) {
+        zoom = 1.0f;
+    }
+    if (zoom > 45.0f) {
+        zoom = 45.0f;
+    }
 }
 
 // calculates the front vector from the Camera's (updated) Euler Angles
 void Camera::updateCameraVectors() {
     // calculate the new front vector
-    glm::vec3 front;
+    glm::vec3 front{};
     front.x =
         static_cast<float>(cos(glm::radians(yaw)) * cos(glm::radians(pitch)));
     front.y = static_cast<float>(sin(glm::radians(pitch)));

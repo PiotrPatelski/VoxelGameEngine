@@ -14,11 +14,11 @@ StatusTextRenderer::StatusTextRenderer(float screenWidth, float screenHeight)
 }
 
 void StatusTextRenderer::renderCameraPosition(const glm::vec3& cameraPos) {
-    int camX = static_cast<int>(cameraPos.x);
-    int camY = static_cast<int>(cameraPos.y);
-    int camZ = static_cast<int>(cameraPos.z);
+    const auto camX = static_cast<int>(cameraPos.x);
+    const auto camY = static_cast<int>(cameraPos.y);
+    const auto camZ = static_cast<int>(cameraPos.z);
 
-    glm::vec3 textColor(1.0f, 1.0f, 1.0f);
+    const glm::vec3 textColor(1.0f, 1.0f, 1.0f);
     fontManager->renderText("Position", cameraTextStartX, cameraTextStartY,
                             cameraTextScale, textColor);
 
@@ -36,8 +36,8 @@ void StatusTextRenderer::renderCameraPosition(const glm::vec3& cameraPos) {
 }
 
 void StatusTextRenderer::renderFpsCount(unsigned int fps) {
-    std::string fpsText = "FPS count: " + std::to_string(fps);
-    glm::vec3 fpsColor(0.5f, 0.8f, 0.2f);
+    const std::string fpsText = "FPS count: " + std::to_string(fps);
+    const glm::vec3 fpsColor(0.5f, 0.8f, 0.2f);
     fontManager->renderText(fpsText, fpsTextPosX, fpsTextPosY, fpsTextScale,
                             fpsColor);
 

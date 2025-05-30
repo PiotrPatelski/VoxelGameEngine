@@ -12,16 +12,6 @@
 #include "stb_image.h"
 #include "TextureManager.hpp"
 
-namespace {
-// settings
-
-// LIGHTING
-std::vector<glm::vec3> pointLightPositions = {
-    glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
-    glm::vec3(-4.0f, 2.0f, -12.0f), glm::vec3(0.0f, 0.0f, -3.0f)};
-
-} // namespace
-
 void Renderer::setupDirectionalLightConfig() {
     cubeShader->setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
     cubeShader->setVec3("directionalLight.ambient", 0.2f, 0.2f, 0.2f);
@@ -62,8 +52,8 @@ Renderer::~Renderer() {
 }
 
 void Renderer::updateWaterShaderParams(const Camera& camera) {
-    const float underwaterEffectHeight = 14.5f;
-    const bool underwater = (camera.getPosition().y < underwaterEffectHeight);
+    const float underwaterEffectHeight{14.5f};
+    const bool underwater{(camera.getPosition().y < underwaterEffectHeight)};
     cubeShader->setBool("isUnderwater", underwater);
     cubeShader->setVec3("underwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
     cubeShader->setFloat("underwaterMix", underwater ? 0.5f : 0.0f);

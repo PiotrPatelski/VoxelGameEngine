@@ -5,7 +5,7 @@
 
 class ChunkUpdater {
    public:
-    explicit ChunkUpdater(RenderableChunk* chunk);
+    ChunkUpdater(RenderableChunk* chunk);
     ~ChunkUpdater();
     ChunkUpdater(const ChunkUpdater&) = delete;
     ChunkUpdater(ChunkUpdater&&) = delete;

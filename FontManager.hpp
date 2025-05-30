@@ -10,10 +10,10 @@
 #include "Shader.hpp"
 
 struct Character {
-    unsigned int TextureID{}; // ID handle of the glyph texture
-    glm::ivec2 Size{};        // Size of glyph
-    glm::ivec2 Bearing{};     // Offset from baseline to left/top of glyph
-    unsigned int Advance{};   // Offset to advance to next glyph
+    unsigned int textureID{}; // ID handle of the glyph texture
+    glm::ivec2 size{};        // size of glyph
+    glm::ivec2 bearing{};     // Offset from baseline to left/top of glyph
+    unsigned int advance{};   // Offset to advance to next glyph
 };
 
 class FontManager {
@@ -28,8 +28,14 @@ class FontManager {
                     const glm::vec3& color);
 
    private:
+    unsigned createTextureForGlyph() const;
+    std::pair<char, Character> createCharacter(char charValue) const;
+    void initCharacters();
+    void initVertexAttributes();
     void initFontTextures();
     void initShader(float screenWidth, float screenHeight);
+    void renderCharacter(const Character& character, float x, float y,
+                         float scale);
     FT_Library fontLib;
     FT_Face fontFace;
     std::map<char, Character> characters{};

@@ -47,8 +47,8 @@ App::App() {
     // glfw window creation
     // --------------------
     window = createAppWindow(SCR_WIDTH, SCR_HEIGHT);
-    lastX = static_cast<float>(SCR_WIDTH / 2);
-    lastY = static_cast<float>(SCR_HEIGHT / 2);
+    lastMouseXPos = static_cast<float>(SCR_WIDTH / 2);
+    lastMouseYPos = static_cast<float>(SCR_HEIGHT / 2);
 
     // set input callbacks
     //-------------------
@@ -109,29 +109,27 @@ void App::run() {
 }
 
 void App::mouse_callback([[maybe_unused]] GLFWwindow* targetWindow,
-                         double xposIn, double yposIn) {
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-
+                         float xposIn, float yposIn) {
     if (firstMouse) {
-        lastX = xpos;
-        lastY = ypos;
+        lastMouseXPos = xposIn;
+        lastMouseYPos = yposIn;
         firstMouse = false;
     }
 
-    float xoffset = xpos - lastX;
+    float xoffset = xposIn - lastMouseXPos;
     float yoffset =
-        lastY - ypos; // reversed since y-coordinates go from bottom to top
+        lastMouseYPos -
+        yposIn; // reversed since y-coordinates go from bottom to top
 
-    lastX = xpos;
-    lastY = ypos;
+    lastMouseXPos = xposIn;
+    lastMouseYPos = yposIn;
 
     camera.processMouseMovement(xoffset, yoffset);
 }
 
 void App::scroll_callback([[maybe_unused]] GLFWwindow* targetWindow,
-                          double xoffset, double yoffset) {
-    camera.processMouseScroll(static_cast<float>(yoffset));
+                          [[maybe_unused]] float xoffset, float yoffset) {
+    camera.processMouseScroll(yoffset);
 }
 
 void App::mouse_button_callback([[maybe_unused]] GLFWwindow* targetWindow,

@@ -5,10 +5,15 @@ bool Frustum::isAABBInside(const glm::vec3 &min, const glm::vec3 &max) const {
         // Compute the vertex in the AABB that is farthest along the plane
         // normal.
         glm::vec3 positive = min;
-        if (plane.normal.x >= 0) positive.x = max.x;
-        if (plane.normal.y >= 0) positive.y = max.y;
-        if (plane.normal.z >= 0) positive.z = max.z;
-
+        if (plane.normal.x >= 0) {
+            positive.x = max.x;
+        }
+        if (plane.normal.y >= 0) {
+            positive.y = max.y;
+        }
+        if (plane.normal.z >= 0) {
+            positive.z = max.z;
+        }
         // If this vertex is outside, then the entire AABB is outside.
         if (glm::dot(plane.normal, positive) + plane.d < 0) {
             return false;
@@ -26,18 +31,17 @@ bool Frustum::isModelIncluded(const glm::mat4 &cubeModel) const {
 
 Frustum::Frustum() : cubeToleranceOutsideBounds{7.f} {}
 
-// ——— Completely replaced update() to extract rows properly ———
 void Frustum::update(const glm::mat4 &projView) {
     // GLM is column‑major: projView[c][r]
     // Build row vectors (r0…r3)
-    glm::vec4 r0(projView[0][0], projView[1][0], projView[2][0],
-                 projView[3][0]);
-    glm::vec4 r1(projView[0][1], projView[1][1], projView[2][1],
-                 projView[3][1]);
-    glm::vec4 r2(projView[0][2], projView[1][2], projView[2][2],
-                 projView[3][2]);
-    glm::vec4 r3(projView[0][3], projView[1][3], projView[2][3],
-                 projView[3][3]);
+    const glm::vec4 r0(projView[0][0], projView[1][0], projView[2][0],
+                       projView[3][0]);
+    const glm::vec4 r1(projView[0][1], projView[1][1], projView[2][1],
+                       projView[3][1]);
+    const glm::vec4 r2(projView[0][2], projView[1][2], projView[2][2],
+                       projView[3][2]);
+    const glm::vec4 r3(projView[0][3], projView[1][3], projView[2][3],
+                       projView[3][3]);
 
     // left plane   = r3 + r0
     planes[0].normal.x = r3.x + r0.x;

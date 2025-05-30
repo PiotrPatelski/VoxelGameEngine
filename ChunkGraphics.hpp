@@ -39,6 +39,6 @@ class ChunkGraphics {
     std::unordered_map<CubeType, unsigned> instanceLightVBOs{};
     GLuint lightVolumeTexture{0};
 
-    unsigned vao{0}, regularCubeEBO{0}, waterEBO{0};
+    unsigned vertexArrayObjects{0}, regularCubeEBO{0}, waterEBO{0};
     static constexpr unsigned matrixAttrCount = 4;
 };

@@ -17,9 +17,9 @@ class App {
     App& operator=(const App&) = delete;
     App& operator=(App&&) = delete;
     void run();
-    void mouse_callback(GLFWwindow* targetWindow, double xposIn, double yposIn);
-    void scroll_callback(GLFWwindow* targetWindow, double xoffset,
-                         double yoffset);
+    void mouse_callback(GLFWwindow* targetWindow, float xposIn, float yposIn);
+    void scroll_callback(GLFWwindow* targetWindow, float xoffset,
+                         float yoffset);
     void mouse_button_callback(GLFWwindow* window, int button, int action,
                                int mods);
 
@@ -38,8 +38,8 @@ class App {
     const unsigned int SCR_HEIGHT{1080};
 
     // MOUSE
-    float lastX{0};
-    float lastY{0};
+    float lastMouseXPos{0};
+    float lastMouseYPos{0};
     bool firstMouse{true};
     CubeType selectedCubeType{CubeType::SAND};
 };

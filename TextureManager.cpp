@@ -4,7 +4,10 @@
 
 std::unordered_map<std::string, unsigned int> TextureManager::textures;
 
-TextureManager::TextureManager() { stbi_set_flip_vertically_on_load(true); }
+TextureManager::TextureManager() {
+    std::cout << "TextureManager::Init!" << std::endl;
+    stbi_set_flip_vertically_on_load(true);
+}
 
 unsigned int setupTextureFromFileData(unsigned char *data, int width,
                                       int height, int nrChannels) {
@@ -74,4 +77,8 @@ void TextureManager::Clear() {
         glDeleteTextures(1, &pair.second);
     }
     textures.clear();
+}
+
+TextureManager::~TextureManager() {
+    std::cout << "TextureManager::Shutdown!" << std::endl;
 }
