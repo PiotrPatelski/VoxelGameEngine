@@ -1,67 +1,124 @@
 #include "Material.hpp"
+#include <string>
+
+namespace {
+constexpr unsigned placeHolderTextureUnit{99};
+constexpr float opaque{1.0f};
+constexpr float semiTransparent{0.5f};
+
+Material createSandMaterial() {
+    const int textureUnit{1};
+    const float shininess{32.0f};
+    const bool isMultiTexture{false};
+    return {"textures/sand.jpg",
+            "",
+            "",
+            textureUnit,
+            placeHolderTextureUnit,
+            placeHolderTextureUnit,
+            shininess,
+            opaque,
+            isMultiTexture};
+}
+
+Material createDirtMaterial() {
+    const int textureUnit{2};
+    const float shininess{16.0f};
+    const bool isMultiTexture{false};
+    return {"textures/dirt.jpg",
+            "",
+            "",
+            textureUnit,
+            placeHolderTextureUnit,
+            placeHolderTextureUnit,
+            shininess,
+            opaque,
+            isMultiTexture};
+}
+
+Material createGrassMaterial() {
+    const int textureUnit{3};
+    const float shininess{8.0f};
+    const bool isMultiTexture{false};
+    return {"textures/grass.jpg",
+            "",
+            "",
+            textureUnit,
+            placeHolderTextureUnit,
+            placeHolderTextureUnit,
+            shininess,
+            opaque,
+            isMultiTexture};
+}
+
+Material createWaterMaterial() {
+    const int textureUnit{4};
+    const float shininess{64.0f};
+    const bool isMultiTexture{false};
+    return {"textures/water.jpg",
+            "",
+            "",
+            textureUnit,
+            placeHolderTextureUnit,
+            placeHolderTextureUnit,
+            shininess,
+            semiTransparent,
+            isMultiTexture};
+}
+
+Material createLogMaterial() {
+    const int maintextureUnit{5};
+    const int secondarytextureUnit{6};
+    const float shininess{32.0f};
+    const bool isMultiTexture{true};
+    return {"textures/logBark.jpg",
+            "textures/logInside.jpg",
+            "",
+            maintextureUnit,
+            secondarytextureUnit,
+            placeHolderTextureUnit,
+            shininess,
+            opaque,
+            isMultiTexture};
+}
+
+Material createLeavesMaterial() {
+    const int textureUnit{7};
+    const float shininess{8.0f};
+    const bool isMultiTexture{false};
+    return {"textures/leaves.jpg",
+            "",
+            "",
+            textureUnit,
+            placeHolderTextureUnit,
+            placeHolderTextureUnit,
+            shininess,
+            opaque,
+            isMultiTexture};
+}
+
+Material createTorchMaterial() {
+    const int textureUnit{8};
+    const float shininess{32.0f};
+    const bool isMultiTexture{false};
+    return {"textures/lamp.png",
+            "",
+            "",
+            textureUnit,
+            placeHolderTextureUnit,
+            placeHolderTextureUnit,
+            shininess,
+            opaque,
+            isMultiTexture};
+}
+} // namespace
 
 Materials::Materials() {
-    materials[CubeType::SAND] = Material{"textures/sand.jpg",
-                                         "./textures/matrix.jpg",
-                                         "",
-                                         1,
-                                         99,
-                                         99,
-                                         32.0f,
-                                         1.f,
-                                         false};
-    materials[CubeType::DIRT] = Material{"textures/dirt.jpg",
-                                         "",
-                                         "./textures/matrix.jpg",
-                                         2,
-                                         99,
-                                         99,
-                                         16.0f,
-                                         1.f,
-                                         false};
-    materials[CubeType::GRASS] = Material{"textures/grass.jpg",
-                                          "",
-                                          "./textures/matrix.jpg",
-                                          3,
-                                          99,
-                                          99,
-                                          8.0f,
-                                          1.f,
-                                          false};
-    materials[CubeType::WATER] = Material{"textures/water.jpg",
-                                          "",
-                                          "./textures/matrix.jpg",
-                                          4,
-                                          99,
-                                          99,
-                                          64.0f,
-                                          0.5f,
-                                          false};
-    materials[CubeType::LOG] = Material{"textures/logBark.jpg",
-                                        "textures/logInside.jpg",
-                                        "textures/matrix.jpg",
-                                        5,
-                                        6,
-                                        99,
-                                        32.0f,
-                                        1.f,
-                                        true};
-    materials[CubeType::LEAVES] = Material{"textures/leaves.jpg",
-                                           "",
-                                           "./textures/matrix.jpg",
-                                           7,
-                                           99,
-                                           99,
-                                           8.0f,
-                                           1.f,
-                                           false};
-    materials[CubeType::TORCH] = Material{"textures/lamp.png",
-                                          "",
-                                          "./textures/matrix.jpg",
-                                          8,
-                                          99,
-                                          99,
-                                          32.0f,
-                                          1.f,
-                                          false};
+    materials[CubeType::SAND] = createSandMaterial();
+    materials[CubeType::DIRT] = createDirtMaterial();
+    materials[CubeType::GRASS] = createGrassMaterial();
+    materials[CubeType::WATER] = createWaterMaterial();
+    materials[CubeType::LOG] = createLogMaterial();
+    materials[CubeType::LEAVES] = createLeavesMaterial();
+    materials[CubeType::TORCH] = createTorchMaterial();
 }

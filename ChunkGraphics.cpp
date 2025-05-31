@@ -43,7 +43,7 @@ void ChunkGraphics::initializeTorchLightVolumeGLParams(int volumeDimension) {
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    float border[] = {0, 0, 0, 0};
+    const float border[] = {0, 0, 0, 0};
     glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, border);
     // allocate (no data yet)
     glTexImage3D(GL_TEXTURE_3D, 0, GL_R32F, volumeDimension, volumeDimension,
@@ -133,8 +133,8 @@ void ChunkGraphics::drawElements(CubeType cubeType, unsigned amt) const {
 }
 
 void ChunkGraphics::renderByType(CubeType cubeType) const {
-    auto instanceMatrices = instanceMatricesData.find(cubeType);
-    if (instanceMatrices == instanceMatricesData.end() or
+    const auto instanceMatrices = instanceMatricesData.find(cubeType);
+    if (instanceMatrices == instanceMatricesData.cend() or
         instanceMatrices->second.empty()) {
         return;
     }

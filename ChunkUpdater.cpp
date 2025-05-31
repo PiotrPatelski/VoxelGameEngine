@@ -22,8 +22,7 @@ void ChunkUpdater::checkAndApplyUpdate() {
     if (isUpdating and chunk) {
         if (updateResult.wait_for(std::chrono::milliseconds(0)) ==
             std::future_status::ready) {
-            CubeData data = updateResult.get();
-            chunk->applyCubeData(std::move(data));
+            chunk->applyCubeData(updateResult.get());
             isUpdating = false;
         }
     }

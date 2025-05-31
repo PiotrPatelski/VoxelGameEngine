@@ -233,8 +233,10 @@ void ChunkVoxels::processVoxelGrid(float firstCubeXWorldPosition,
 }
 
 void ChunkVoxels::regenerateChunk(const CubeCreator& createCube) {
-    float firstCubeXWorldPosition = static_cast<float>(chunkWorldXIndex * size);
-    float firstCubeZWorldPosition = static_cast<float>(chunkWorldZIndex * size);
+    const auto firstCubeXWorldPosition =
+        static_cast<float>(chunkWorldXIndex * size);
+    const auto firstCubeZWorldPosition =
+        static_cast<float>(chunkWorldZIndex * size);
     processVoxelGrid(firstCubeXWorldPosition, firstCubeZWorldPosition,
                      createCube);
 

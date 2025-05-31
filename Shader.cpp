@@ -47,11 +47,9 @@ void Shader::compileShaders(const char* vertexShaderCode,
     int success;
     char infoLog[512];
 
-    // vertex Shader
     vertex = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex, 1, &vertexShaderCode, NULL);
     glCompileShader(vertex);
-    // print compile errors if any
     glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertex, 512, NULL, infoLog);
@@ -59,11 +57,9 @@ void Shader::compileShaders(const char* vertexShaderCode,
                   << infoLog << std::endl;
     };
 
-    // similiar for Fragment Shader
     fragment = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment, 1, &fragmentShaderCode, NULL);
     glCompileShader(fragment);
-    // print compile errors if any
     glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragment, 512, NULL, infoLog);
@@ -71,12 +67,10 @@ void Shader::compileShaders(const char* vertexShaderCode,
                   << infoLog << std::endl;
     };
 
-    // shader Program
     programID = glCreateProgram();
     glAttachShader(programID, vertex);
     glAttachShader(programID, fragment);
     glLinkProgram(programID);
-    // print linking errors if any
     glGetProgramiv(programID, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(programID, 512, NULL, infoLog);
