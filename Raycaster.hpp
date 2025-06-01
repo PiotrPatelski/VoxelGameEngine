@@ -25,9 +25,7 @@ class Raycaster {
     Raycaster& operator=(const Raycaster&) = delete;
     Raycaster& operator=(Raycaster&&) = delete;
     std::optional<HitResult> raycastDDA(
-        const std::unordered_map<ChunkCoord, std::unique_ptr<RenderableChunk>>&
-            loadedChunks,
-        float maxDistance);
+        const Coord::RenderableChunksMap& loadedChunks, float maxDistance);
 
    private:
     void incrementRayStep();

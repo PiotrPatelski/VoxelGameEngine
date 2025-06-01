@@ -15,22 +15,22 @@ class ChunkLoader {
     ChunkLoader(ChunkLoader&&) = delete;
     ChunkLoader& operator=(const ChunkLoader&) = delete;
     ChunkLoader& operator=(ChunkLoader&&) = delete;
-    void launchTask(int camChunkX, int camChunkZ,
-                    const std::unordered_set<ChunkCoord>& existingKeys);
+    void launchTask(
+        int camChunkX, int camChunkZ,
+        const std::unordered_set<ChunkCoord, PositionXYHash>& existingKeys);
     bool isTaskRunning() const;
     bool isFinished() const;
     std::unique_ptr<RenderableChunk> createChunk(int x, int z);
-    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>
-    retrieveNewChunks();
+    Coord::CpuChunksMap retrieveNewChunks();
     unsigned int getSharedVBO() const { return vertexBufferObjects; }
     unsigned int getSharedEBO() const { return cubeElementBufferObjects; }
     unsigned int getSharedWaterEBO() const { return waterElementBufferObjects; }
 
    private:
     void setupVertexBuffers();
-    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>
-    generateMissingChunks(int camChunkX, int camChunkZ,
-                          const std::unordered_set<ChunkCoord>& existingKeys);
+    Coord::CpuChunksMap generateMissingChunks(
+        int camChunkX, int camChunkZ,
+        const std::unordered_set<ChunkCoord, PositionXYHash>& existingKeys);
 
     int renderDistance{};
     int chunkSize{};
@@ -38,7 +38,6 @@ class ChunkLoader {
     unsigned int cubeElementBufferObjects{0};
     unsigned int waterElementBufferObjects{0};
 
-    std::future<std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>>
-        newChunkGroup{};
+    std::future<Coord::CpuChunksMap> newChunkGroup{};
     bool isRunning{false};
 };

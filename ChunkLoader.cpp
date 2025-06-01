@@ -39,11 +39,10 @@ std::unique_ptr<RenderableChunk> ChunkLoader::createChunk(int x, int z) {
                                   waterElementBufferObjects);
 }
 
-std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>
-ChunkLoader::generateMissingChunks(
+Coord::CpuChunksMap ChunkLoader::generateMissingChunks(
     int camChunkX, int camChunkZ,
-    const std::unordered_set<ChunkCoord>& existingKeys) {
-    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>> newChunks;
+    const std::unordered_set<ChunkCoord, PositionXYHash>& existingKeys) {
+    Coord::CpuChunksMap newChunks;
     for (int x = camChunkX - renderDistance; x <= camChunkX + renderDistance;
          ++x) {
         for (int z = camChunkZ - renderDistance;
@@ -59,7 +58,7 @@ ChunkLoader::generateMissingChunks(
 
 void ChunkLoader::launchTask(
     int camChunkX, int camChunkZ,
-    const std::unordered_set<ChunkCoord>& existingKeys) {
+    const std::unordered_set<ChunkCoord, PositionXYHash>& existingKeys) {
     newChunkGroup =
         std::async(std::launch::async, &ChunkLoader::generateMissingChunks,
                    this, camChunkX, camChunkZ, existingKeys);
@@ -76,8 +75,7 @@ bool ChunkLoader::isFinished() const {
            std::future_status::ready;
 }
 
-std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>
-ChunkLoader::retrieveNewChunks() {
+Coord::CpuChunksMap ChunkLoader::retrieveNewChunks() {
     isRunning = false;
     return newChunkGroup.get();
 }

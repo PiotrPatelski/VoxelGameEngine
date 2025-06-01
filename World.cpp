@@ -105,8 +105,8 @@ bool World::updateCameraChunk(const ChunkCoord& currentCamCoord) {
     return false;
 }
 
-std::unordered_set<ChunkCoord> World::getLoadedChunkKeys() {
-    std::unordered_set<ChunkCoord> keys;
+std::unordered_set<ChunkCoord, PositionXYHash> World::getLoadedChunkKeys() {
+    std::unordered_set<ChunkCoord, PositionXYHash> keys;
     std::lock_guard<std::mutex> lock(loadedChunksMutex);
     for (const auto& [chunkCoord, _] : loadedChunks) {
         keys.insert(chunkCoord);
@@ -114,8 +114,7 @@ std::unordered_set<ChunkCoord> World::getLoadedChunkKeys() {
     return keys;
 }
 
-void World::mergeNewChunks(
-    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>& newChunks) {
+void World::mergeNewChunks(Coord::CpuChunksMap& newChunks) {
     std::lock_guard<std::mutex> lock(loadedChunksMutex);
     for (auto& [coord, newCpuChunk] : newChunks) {
         auto [it, inserted] = loadedChunks.try_emplace(coord, nullptr);

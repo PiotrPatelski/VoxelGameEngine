@@ -7,7 +7,6 @@
 #include "GridGenerator.hpp"
 #include "TreeGenerator.hpp"
 #include "CubeData.hpp"
-#include "PositionHelpers.hpp"
 #include "VoxelTypes.hpp"
 
 class ChunkVoxels {

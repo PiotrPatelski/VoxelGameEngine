@@ -40,6 +40,6 @@ class TreeGenerator {
                                  VoxelTypes::VoxelGrid3D& voxelGrid);
     Trunk buildTrunksMapping() const;
     int chunkSize{};
-    std::unordered_set<glm::ivec3, PositionHash> trunkPositions{};
-    std::unordered_set<glm::ivec3, PositionHash> crownPositions{};
+    std::unordered_set<glm::ivec3, PositionXYZHash> trunkPositions{};
+    std::unordered_set<glm::ivec3, PositionXYZHash> crownPositions{};
 };

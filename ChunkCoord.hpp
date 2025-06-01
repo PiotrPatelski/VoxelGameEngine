@@ -20,13 +20,32 @@ struct ChunkCoord {
     }
 };
 
-namespace std {
-template <>
-struct hash<ChunkCoord> {
-    std::size_t operator()(const ChunkCoord& coord) const noexcept {
+struct PositionXYHash {
+    std::size_t operator()(const ChunkCoord& coord) const {
         std::size_t h1 = std::hash<int>{}(coord.x);
         std::size_t h2 = std::hash<int>{}(coord.z);
         return (h1 << 1) ^ h2;
     }
 };
-} // namespace std
+
+struct PositionXYZHash {
+    std::size_t operator()(const glm::ivec3& v) const {
+        std::size_t h1 = std::hash<int>()(v.x);
+        std::size_t h2 = std::hash<int>()(v.y);
+        std::size_t h3 = std::hash<int>()(v.z);
+        return h1 ^ (h2 << 1) ^ (h3 << 2);
+    }
+};
+
+bool isPositionWithinBounds(const glm::ivec3& pos, int boundary);
+
+namespace Coord {
+using CpuChunksMap =
+    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>, PositionXYHash>;
+using RenderableChunksMap =
+    std::unordered_map<ChunkCoord, std::unique_ptr<RenderableChunk>,
+                       PositionXYHash>;
+using ChunkUpdatersMap =
+    std::unordered_map<ChunkCoord, std::unique_ptr<ChunkUpdater>,
+                       PositionXYHash>;
+} // namespace Coord

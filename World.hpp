@@ -44,21 +44,19 @@ class World {
     void notifyNeighborChunks(const ChunkCoord& centerCoord);
     void loadInitialChunks();
     bool updateCameraChunk(const ChunkCoord& currentCamCoord);
-    std::unordered_set<ChunkCoord> getLoadedChunkKeys();
-    void mergeNewChunks(
-        std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>>& newChunks);
+    std::unordered_set<ChunkCoord, PositionXYHash> getLoadedChunkKeys();
+    void mergeNewChunks(Coord::CpuChunksMap& newChunks);
     void reloadCurrentlyRelevantChunkGroup(const ChunkCoord& currentCamCoord);
     void runUpdatePerChunk();
     void restoreSavedChunks(const ChunkWindow& window);
     void evictOutOfRangeChunks(const ChunkWindow& window);
     void adjustLoadedChunks(const ChunkCoord& currentCamCoord);
+    void injectNeighborsToModifiedChunks();
 
     std::mutex loadedChunksMutex{};
-    std::unordered_map<ChunkCoord, std::unique_ptr<RenderableChunk>>
-        loadedChunks{};
-    std::unordered_map<ChunkCoord, std::unique_ptr<CpuChunk>> savedChunks{};
-    std::unordered_map<ChunkCoord, std::unique_ptr<ChunkUpdater>>
-        chunkUpdaters{};
+    Coord::RenderableChunksMap loadedChunks{};
+    Coord::CpuChunksMap savedChunks{};
+    Coord::ChunkUpdatersMap chunkUpdaters{};
 
     ChunkCoord lastCameraChunk{-1000, -1000};
     int renderDistance{8};

@@ -67,6 +67,7 @@ add_executable(
         CpuChunk.cpp
         RenderableChunk.cpp 
         Cube.cpp
+        ChunkCoord.cpp
         TreeGenerator.cpp
         Raycaster.cpp
         Material.cpp

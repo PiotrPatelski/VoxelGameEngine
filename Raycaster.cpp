@@ -24,9 +24,7 @@ glm::vec3 computeboundaryStepIncrement(const glm::vec3& rayDir) {
 }
 
 RenderableChunk* findChunkAtCurrentRayPos(
-    const std::unordered_map<ChunkCoord, std::unique_ptr<RenderableChunk>>&
-        loadedChunks,
-    const ChunkCoord& coords) {
+    const Coord::RenderableChunksMap& loadedChunks, const ChunkCoord& coords) {
     auto loadedChunk = loadedChunks.find(coords);
     return (loadedChunk != loadedChunks.end()) ? loadedChunk->second.get()
                                                : nullptr;
@@ -51,9 +49,7 @@ Raycaster::Raycaster(const Camera& camera, int chunkSize)
 }
 
 std::optional<HitResult> Raycaster::raycastDDA(
-    const std::unordered_map<ChunkCoord, std::unique_ptr<RenderableChunk>>&
-        loadedChunks,
-    float maxDistance) {
+    const Coord::RenderableChunksMap& loadedChunks, float maxDistance) {
     distanceTraveled = 0.0f;
 
     while (distanceTraveled < maxDistance) {
