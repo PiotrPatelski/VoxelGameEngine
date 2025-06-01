@@ -144,53 +144,68 @@ void World::reloadCurrentlyRelevantChunkGroup(
 }
 
 void World::restoreSavedChunks(const ChunkWindow& window) {
-    for (auto currentSavedChunk = savedChunks.begin();
-         currentSavedChunk != savedChunks.end();) {
-        const auto chunkCoord = currentSavedChunk->first;
-        auto& savedCpuChunk = currentSavedChunk->second;
-        bool withinX =
-            (chunkCoord.x >= window.minX and chunkCoord.x <= window.maxX);
-        bool withinZ =
-            (chunkCoord.z >= window.minZ and chunkCoord.z <= window.maxZ);
-        if (withinX and withinZ) {
-            auto restoredChunk = savedCpuChunk->toRenderable(
-                chunkLoader->getSharedVBO(), chunkLoader->getSharedEBO(),
-                chunkLoader->getSharedWaterEBO());
-            loadedChunks.emplace(chunkCoord, std::move(restoredChunk));
-            chunkUpdaters[chunkCoord] =
-                std::make_unique<ChunkUpdater>(loadedChunks[chunkCoord].get());
-            currentSavedChunk = savedChunks.erase(currentSavedChunk);
+    auto savedChunk = savedChunks.begin();
+    while (savedChunk != savedChunks.end()) {
+        const auto chunkCoord = savedChunk->first;
+        if (isChunkWithinWindow(chunkCoord, window)) {
+            restoreSavedChunk(chunkCoord, savedChunk);
         } else {
-            ++currentSavedChunk;
+            ++savedChunk;
         }
     }
 }
 
+void World::restoreSavedChunk(const ChunkCoord& coord,
+                              Coord::CpuChunksMap::iterator& savedChunk) {
+    auto restoredRenderable = savedChunk->second->toRenderable(
+        chunkLoader->getSharedVBO(), chunkLoader->getSharedEBO(),
+        chunkLoader->getSharedWaterEBO());
+
+    loadedChunks.emplace(coord, std::move(restoredRenderable));
+    chunkUpdaters[coord] =
+        std::make_unique<ChunkUpdater>(loadedChunks[coord].get());
+    savedChunk = savedChunks.erase(savedChunk);
+}
+
 void World::evictOutOfRangeChunks(const ChunkWindow& window) {
-    for (auto currentLoadedChunk = loadedChunks.begin();
-         currentLoadedChunk != loadedChunks.end();) {
-        const auto& [chunkCoord, renderableChunk] = *currentLoadedChunk;
-        bool outsideX =
-            (chunkCoord.x < window.minX or chunkCoord.x > window.maxX);
-        bool outsideZ =
-            (chunkCoord.z < window.minZ or chunkCoord.z > window.maxZ);
-        if (outsideX or outsideZ) {
-            auto updaterIt = chunkUpdaters.find(chunkCoord);
-            if (updaterIt != chunkUpdaters.end() &&
-                updaterIt->second->isUpdateRunning()) {
-                ++currentLoadedChunk;
-                continue;
-            }
-            auto cpuChunk = renderableChunk->toCpuChunk();
-            savedChunks[chunkCoord] = std::move(cpuChunk);
-            if (updaterIt != chunkUpdaters.end()) {
-                chunkUpdaters.erase(updaterIt);
-            }
-            currentLoadedChunk = loadedChunks.erase(currentLoadedChunk);
+    auto loadedChunk = loadedChunks.begin();
+    while (loadedChunk != loadedChunks.end()) {
+        const auto chunkCoord = loadedChunk->first;
+        if (shouldEvictLoadedChunk(chunkCoord, window)) {
+            evictLoadedChunk(chunkCoord, loadedChunk);
         } else {
-            ++currentLoadedChunk;
+            ++loadedChunk;
         }
     }
+}
+
+bool World::shouldEvictLoadedChunk(const ChunkCoord& coord,
+                                   const ChunkWindow& window) const {
+    bool outsideX = (coord.x < window.minX || coord.x > window.maxX);
+    bool outsideZ = (coord.z < window.minZ || coord.z > window.maxZ);
+    const bool isWithinWindow{!(outsideX || outsideZ)};
+    if (isWithinWindow) {
+        return false;
+    }
+    auto updaterIt = chunkUpdaters.find(coord);
+    if (updaterIt != chunkUpdaters.end() &&
+        updaterIt->second->isUpdateRunning()) {
+        return false;
+    }
+    return true;
+}
+
+void World::evictLoadedChunk(
+    const ChunkCoord& coord,
+    Coord::RenderableChunksMap::iterator& loadedChunk) {
+    auto cpuChunk = loadedChunk->second->toCpuChunk();
+    savedChunks[coord] = std::move(cpuChunk);
+
+    auto chunkUpdater = chunkUpdaters.find(coord);
+    if (chunkUpdater != chunkUpdaters.end()) {
+        chunkUpdaters.erase(chunkUpdater);
+    }
+    loadedChunk = loadedChunks.erase(loadedChunk);
 }
 
 void World::adjustLoadedChunks(const ChunkCoord& currentCamCoord) {

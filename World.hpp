@@ -15,13 +15,6 @@
 #include "ChunkUpdater.hpp"
 #include "VoxelTypes.hpp"
 
-struct ChunkWindow {
-    int minX{};
-    int maxX{};
-    int minZ{};
-    int maxZ{};
-};
-
 class World {
    public:
     World();
@@ -51,6 +44,13 @@ class World {
     void restoreSavedChunks(const ChunkWindow& window);
     void evictOutOfRangeChunks(const ChunkWindow& window);
     void adjustLoadedChunks(const ChunkCoord& currentCamCoord);
+
+    void restoreSavedChunk(const ChunkCoord& coord,
+                           Coord::CpuChunksMap::iterator& it);
+    bool shouldEvictLoadedChunk(const ChunkCoord& coord,
+                                const ChunkWindow& window) const;
+    void evictLoadedChunk(const ChunkCoord& coord,
+                          Coord::RenderableChunksMap::iterator& it);
     void injectNeighborsToModifiedChunks();
 
     std::mutex loadedChunksMutex{};

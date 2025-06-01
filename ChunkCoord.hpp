@@ -20,6 +20,13 @@ struct ChunkCoord {
     }
 };
 
+struct ChunkWindow {
+    int minX{0};
+    int maxX{0};
+    int minZ{0};
+    int maxZ{0};
+};
+
 struct PositionXYHash {
     std::size_t operator()(const ChunkCoord& coord) const {
         std::size_t h1 = std::hash<int>{}(coord.x);
@@ -38,6 +45,7 @@ struct PositionXYZHash {
 };
 
 bool isPositionWithinBounds(const glm::ivec3& pos, int boundary);
+bool isChunkWithinWindow(const ChunkCoord& coord, const ChunkWindow& window);
 
 namespace Coord {
 using CpuChunksMap =
