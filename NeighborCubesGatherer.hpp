@@ -4,23 +4,32 @@
 #include "VoxelTypes.hpp"
 #include <glm/vec3.hpp>
 
-namespace NeighborGatherer {
+class NeighborGatherer {
+   public:
+    NeighborGatherer(int size);
+    ~NeighborGatherer() = default;
+    NeighborGatherer(const NeighborGatherer&) = delete;
+    NeighborGatherer& operator=(const NeighborGatherer&) = delete;
+    NeighborGatherer(NeighborGatherer&&) = delete;
+    NeighborGatherer& operator=(NeighborGatherer&&) = delete;
 
-void gatherEastWestFace(const RenderableChunk* neighbor, int offsetX,
-                        int chunkSize, int paddedX,
-                        VoxelTypes::NeighborVoxelsMap& out);
+    VoxelTypes::NeighborVoxelsMap gatherNeighborsForCoord(
+        const ChunkCoord& center,
+        const std::function<const RenderableChunk*(const ChunkCoord&)>&
+            getChunk);
 
-void gatherNorthSouthFace(const RenderableChunk* neighbor, int offsetZ,
-                          int chunkSize, int paddedZ,
+   private:
+    void gatherEastWestFace(const RenderableChunk* neighbor,
+                            VoxelTypes::NeighborVoxelsMap& out);
+    void gatherNorthSouthFace(const RenderableChunk* neighbor,
+                              VoxelTypes::NeighborVoxelsMap& out);
+    void gatherDiagonalXZ(const RenderableChunk* neighbor,
                           VoxelTypes::NeighborVoxelsMap& out);
-
-void gatherDiagonalXZ(const RenderableChunk* neighbor, int offsetX, int offsetZ,
-                      int chunkSize, int paddedX, int paddedZ,
-                      VoxelTypes::NeighborVoxelsMap& out);
-
-VoxelTypes::NeighborVoxelsMap gatherNeighborsForCoord(
-    const ChunkCoord& center,
-    const std::function<const RenderableChunk*(const ChunkCoord&)>& getChunk,
-    int chunkSize);
-
-} // namespace NeighborGatherer
+    void gatherNeighborFaces(const RenderableChunk* neighbor,
+                             VoxelTypes::NeighborVoxelsMap& out);
+    int chunkSize{0};
+    int offsetX{0};
+    int offsetZ{0};
+    int paddedX{0};
+    int paddedZ{0};
+};

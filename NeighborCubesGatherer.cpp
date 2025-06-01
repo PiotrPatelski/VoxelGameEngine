@@ -1,10 +1,9 @@
 #include "NeighborCubesGatherer.hpp"
-#include <glm/gtc/type_ptr.hpp> // if needed
 
-namespace {
-void gatherEastWestFace(const RenderableChunk* neighbor, int offsetX,
-                        int chunkSize, int paddedX,
-                        VoxelTypes::NeighborVoxelsMap& out) {
+NeighborGatherer::NeighborGatherer(int size) : chunkSize{size} {}
+
+void NeighborGatherer::gatherEastWestFace(const RenderableChunk* neighbor,
+                                          VoxelTypes::NeighborVoxelsMap& out) {
     int localX = (offsetX < 0 ? chunkSize - 1 : 0);
     for (int y = 0; y < chunkSize; ++y) {
         for (int z = 0; z < chunkSize; ++z) {
@@ -16,9 +15,8 @@ void gatherEastWestFace(const RenderableChunk* neighbor, int offsetX,
     }
 }
 
-void gatherNorthSouthFace(const RenderableChunk* neighbor, int offsetZ,
-                          int chunkSize, int paddedZ,
-                          VoxelTypes::NeighborVoxelsMap& out) {
+void NeighborGatherer::gatherNorthSouthFace(
+    const RenderableChunk* neighbor, VoxelTypes::NeighborVoxelsMap& out) {
     int localZ = (offsetZ < 0 ? chunkSize - 1 : 0);
     for (int x = 0; x < chunkSize; ++x) {
         for (int y = 0; y < chunkSize; ++y) {
@@ -30,9 +28,8 @@ void gatherNorthSouthFace(const RenderableChunk* neighbor, int offsetZ,
     }
 }
 
-void gatherDiagonalXZ(const RenderableChunk* neighbor, int offsetX, int offsetZ,
-                      int chunkSize, int paddedX, int paddedZ,
-                      VoxelTypes::NeighborVoxelsMap& out) {
+void NeighborGatherer::gatherDiagonalXZ(const RenderableChunk* neighbor,
+                                        VoxelTypes::NeighborVoxelsMap& out) {
     int localX = (offsetX < 0 ? chunkSize - 1 : 0);
     int localZ = (offsetZ < 0 ? chunkSize - 1 : 0);
     for (int y = 0; y < chunkSize; ++y) {
@@ -43,46 +40,38 @@ void gatherDiagonalXZ(const RenderableChunk* neighbor, int offsetX, int offsetZ,
     }
 }
 
-void gatherNeighborFaces(const RenderableChunk* neighbor, int offsetX,
-                         int offsetZ, int chunkSize,
-                         VoxelTypes::NeighborVoxelsMap& out) {
+void NeighborGatherer::gatherNeighborFaces(const RenderableChunk* neighbor,
+                                           VoxelTypes::NeighborVoxelsMap& out) {
     if (not neighbor) {
         return;
     } else if (offsetX != 0 && offsetZ == 0) {
-        int paddedX = (offsetX < 0 ? 0 : chunkSize + 1);
-        ::gatherEastWestFace(neighbor, offsetX, chunkSize, paddedX, out);
+        paddedX = (offsetX < 0 ? 0 : chunkSize + 1);
+        gatherEastWestFace(neighbor, out);
     } else if (offsetX == 0 && offsetZ != 0) {
-        int paddedZ = (offsetZ < 0 ? 0 : chunkSize + 1);
-        ::gatherNorthSouthFace(neighbor, offsetZ, chunkSize, paddedZ, out);
+        paddedZ = (offsetZ < 0 ? 0 : chunkSize + 1);
+        gatherNorthSouthFace(neighbor, out);
     } else {
-        int paddedX = (offsetX < 0 ? 0 : chunkSize + 1);
-        int paddedZ = (offsetZ < 0 ? 0 : chunkSize + 1);
-        ::gatherDiagonalXZ(neighbor, offsetX, offsetZ, chunkSize, paddedX,
-                           paddedZ, out);
+        paddedX = (offsetX < 0 ? 0 : chunkSize + 1);
+        paddedZ = (offsetZ < 0 ? 0 : chunkSize + 1);
+        gatherDiagonalXZ(neighbor, out);
     }
 }
-} // namespace
 
-namespace NeighborGatherer {
-
-VoxelTypes::NeighborVoxelsMap gatherNeighborsForCoord(
+VoxelTypes::NeighborVoxelsMap NeighborGatherer::gatherNeighborsForCoord(
     const ChunkCoord& center,
-    const std::function<const RenderableChunk*(const ChunkCoord&)>& getChunk,
-    int chunkSize) {
+    const std::function<const RenderableChunk*(const ChunkCoord&)>& getChunk) {
     VoxelTypes::NeighborVoxelsMap result;
 
-    for (int offsetX = -1; offsetX <= 1; ++offsetX) {
-        for (int offsetZ = -1; offsetZ <= 1; ++offsetZ) {
+    for (offsetX = -1; offsetX <= 1; ++offsetX) {
+        for (offsetZ = -1; offsetZ <= 1; ++offsetZ) {
             if (offsetX == 0 && offsetZ == 0) {
                 continue;
             }
 
             ChunkCoord neighborCoord{center.x + offsetX, center.z + offsetZ};
             const RenderableChunk* neighbor = getChunk(neighborCoord);
-            gatherNeighborFaces(neighbor, offsetX, offsetZ, chunkSize, result);
+            gatherNeighborFaces(neighbor, result);
         }
     }
     return result;
 }
-
-} // namespace NeighborGatherer

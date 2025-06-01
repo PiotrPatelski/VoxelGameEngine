@@ -45,7 +45,7 @@ bool World::addCubeFromRaycast(const Camera& camera, float maxDistance,
     }
 
     const auto hit = hitOpt.value();
-    glm::ivec3 newCubePos = hit.position + hit.normal;
+    const auto newCubePos = hit.position + hit.normal;
     const auto chunkX = floorDivide(newCubePos.x, chunkSize);
     const auto chunkZ = floorDivide(newCubePos.z, chunkSize);
     auto* chunk = getChunk({chunkX, chunkZ});
@@ -72,7 +72,7 @@ bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
     }
 
     const auto hit = hitOpt.value();
-    glm::ivec3 worldCubePos = hit.position;
+    const auto worldCubePos = hit.position;
     const auto chunkX = floorDivide(worldCubePos.x, chunkSize);
     const auto chunkZ = floorDivide(worldCubePos.z, chunkSize);
     auto* chunk = getChunk({chunkX, chunkZ});
@@ -225,12 +225,11 @@ void World::updateLoadedChunks(const glm::vec3& camPos) {
 void World::injectNeighborsToModifiedChunks() {
     for (auto& [coord, chunk] : loadedChunks) {
         if (chunk->isModified()) {
-            auto neighborData = NeighborGatherer::gatherNeighborsForCoord(
-                coord,
-                [this](const ChunkCoord& chunkCoord) {
-                    return this->getChunk(chunkCoord);
-                },
-                chunkSize);
+            auto neighborData =
+                NeighborGatherer{chunkSize}.gatherNeighborsForCoord(
+                    coord, [this](const ChunkCoord& chunkCoord) {
+                        return this->getChunk(chunkCoord);
+                    });
             chunk->setNeighborsSurroundingCubes(std::move(neighborData));
         }
     }
