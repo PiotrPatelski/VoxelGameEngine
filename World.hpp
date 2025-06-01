@@ -13,6 +13,7 @@
 #include "Camera.hpp"
 #include "ChunkLoader.hpp"
 #include "ChunkUpdater.hpp"
+#include "VoxelTypes.hpp"
 
 struct ChunkWindow {
     int minX{};
@@ -38,6 +39,9 @@ class World {
     RenderableChunk* getChunk(const ChunkCoord& coord);
 
    private:
+    VoxelTypes::NeighborVoxelsMap gatherEdgeVoxelsFor(
+        const ChunkCoord& centerCoord);
+    void notifyNeighborChunks(const ChunkCoord& centerCoord);
     void loadInitialChunks();
     bool updateCameraChunk(const ChunkCoord& currentCamCoord);
     std::unordered_set<ChunkCoord> getLoadedChunkKeys();

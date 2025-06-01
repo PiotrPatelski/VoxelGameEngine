@@ -1,22 +1,19 @@
 #include "ChunkVoxels.hpp"
-#include "VertexData.hpp" // only for CubeType enum
+#include "VertexData.hpp"
+#include "LightPropagator.hpp"
 #include <array>
 #include <queue>
+#include "VoxelTypes.hpp"
 
 namespace {
-constexpr std::array<glm::ivec3, 6> neighborOffsets{
-    glm::ivec3(1, 0, 0),  glm::ivec3(-1, 0, 0), glm::ivec3(0, 0, 1),
-    glm::ivec3(0, 0, -1), glm::ivec3(0, 1, 0),  glm::ivec3(0, -1, 0)};
-
-bool isPositionWithinBounds(const glm::ivec3& pos, int chunkSize) {
-    return (pos.x >= 0 and pos.x < chunkSize and pos.z >= 0 and
-            pos.z < chunkSize and pos.y >= 0 and pos.y < chunkSize);
+bool isPositionWithinBounds(const glm::ivec3& pos, int boundary) {
+    return (pos.x >= 0 and pos.x < boundary and pos.y >= 0 and
+            pos.y < boundary and pos.z >= 0 and pos.z < boundary);
 }
 
-bool isCubeExposed(const GridGenerator::VoxelGrid& grid,
-                   const glm::ivec3& pos) {
+bool isCubeExposed(const VoxelTypes::VoxelGrid3D& grid, const glm::ivec3& pos) {
     const auto chunkSize = static_cast<int>(grid.size());
-    for (const auto& offset : neighborOffsets) {
+    for (const auto& offset : NEIGHBOR_OFFSETS) {
         glm::ivec3 neighbor = pos + offset;
         // If neighbor is out of bounds, we consider the cube exposed.
         if (not isPositionWithinBounds(neighbor, chunkSize)) {
@@ -30,72 +27,6 @@ bool isCubeExposed(const GridGenerator::VoxelGrid& grid,
     }
     return false;
 }
-
-using LightGrid3D = std::vector<std::vector<std::vector<float>>>;
-
-void propagateLight(std::queue<glm::ivec3>& outQueue, LightGrid3D& outLightGrid,
-                    const glm::ivec3& currentTorchPos, float nextLevel,
-                    int chunkSize, const ChunkVoxels::VoxelGrid& voxelGrid) {
-    for (const auto& offset : neighborOffsets) {
-        glm::ivec3 neighbor = currentTorchPos + offset;
-        if (not isPositionWithinBounds(neighbor, chunkSize)) {
-            continue;
-        }
-        auto& neighborLight = outLightGrid[neighbor.x][neighbor.z][neighbor.y];
-        if (nextLevel <= neighborLight) {
-            continue;
-        }
-        // Light the neighbor cell:
-        neighborLight = nextLevel;
-        // Only propagate further if that cell is air:
-        if (voxelGrid[neighbor.x][neighbor.z][neighbor.y] == CubeType::NONE) {
-            outQueue.push(neighbor);
-        }
-    }
-}
-
-LightGrid3D computeLightGrid(const ChunkVoxels::VoxelGrid& voxelGrid,
-                             const std::vector<glm::ivec3>& torchPositions,
-                             int chunkSize, float attenuationFactor) {
-    LightGrid3D lightGrid(chunkSize,
-                          std::vector<std::vector<float>>(
-                              chunkSize, std::vector<float>(chunkSize, 0.0f)));
-    std::queue<glm::ivec3> bfsQueue;
-    for (const auto& torchPos : torchPositions) {
-        lightGrid[torchPos.x][torchPos.z][torchPos.y] = 1.0f;
-        bfsQueue.push(torchPos);
-    }
-    while (!bfsQueue.empty()) {
-        const auto currentTorchPos = bfsQueue.front();
-        bfsQueue.pop();
-        const auto currentLevel =
-            lightGrid[currentTorchPos.x][currentTorchPos.z][currentTorchPos.y];
-        if (currentLevel < 0.01f) {
-            continue;
-        }
-        const auto nextLevel = currentLevel * attenuationFactor;
-
-        propagateLight(bfsQueue, lightGrid, currentTorchPos, nextLevel,
-                       chunkSize, voxelGrid);
-    }
-    return lightGrid;
-}
-
-// 2) Flatten 3D grid into a linear volume
-std::vector<float> toSingleVector(const LightGrid3D& grid) {
-    const auto gridDimensionSize = grid.size();
-    std::vector<float> volume;
-    volume.reserve(gridDimensionSize * gridDimensionSize * gridDimensionSize);
-    for (size_t z = 0; z < gridDimensionSize; ++z) {
-        for (size_t y = 0; y < gridDimensionSize; ++y) {
-            for (size_t x = 0; x < gridDimensionSize; ++x) {
-                volume.push_back(grid[x][z][y]);
-            }
-        }
-    }
-    return volume;
-}
-
 } // namespace
 
 ChunkVoxels::ChunkVoxels(int chunkSize, int worldXIndex, int worldZIndex)
@@ -132,6 +63,30 @@ ChunkVoxels& ChunkVoxels::operator=(ChunkVoxels&& other) noexcept {
         modified = other.modified;
     }
     return *this;
+}
+
+const std::unordered_map<CubeType, std::vector<glm::mat4>>&
+ChunkVoxels::getInstanceModelMatrices() const {
+    return instanceModelMatrices;
+}
+
+glm::vec3 ChunkVoxels::getChunkOrigin() const {
+    return glm::vec3(chunkWorldXIndex * size, 0.0f, chunkWorldZIndex * size);
+}
+
+void ChunkVoxels::setModified(bool value) {
+    std::lock_guard lock(voxelMutex);
+    modified = value;
+}
+
+void ChunkVoxels::setNeighborsSurroundingCubes(
+    VoxelTypes::NeighborVoxelsMap&& data) {
+    std::lock_guard lock(voxelMutex);
+    neighborsSurroundingCubes = std::move(data);
+}
+void ChunkVoxels::clearNeighborsSurroundingCubes() {
+    std::lock_guard lock(voxelMutex);
+    neighborsSurroundingCubes.clear();
 }
 
 bool ChunkVoxels::addCube(const glm::ivec3& localPos, CubeType cubeType) {
@@ -172,10 +127,13 @@ bool ChunkVoxels::isCubeInGrid(const glm::ivec3& localPos) const {
 
 CubeData ChunkVoxels::computeCubeData() {
     std::lock_guard lock(voxelMutex);
-    const auto lightGrid =
-        computeLightGrid(voxelGrid, torchPositions, size, 0.8f);
+    const float attenuation{0.8f};
+    LightPropagator lp(size, attenuation);
+
     CubeData data;
-    data.lightVolume = toSingleVector(lightGrid);
+    data.lightVolume = lp.computeLightMask(voxelGrid, torchPositions,
+                                           neighborsSurroundingCubes);
+    neighborsSurroundingCubes.clear();
 
     auto instanceBuilder = [&](const glm::ivec3& worldPos, CubeType type) {
         auto cube = std::make_unique<Cube>(worldPos, type);
@@ -183,8 +141,11 @@ CubeData ChunkVoxels::computeCubeData() {
         data.cubes.push_back(std::move(cube));
     };
     regenerateChunk(instanceBuilder);
-
     return data;
+}
+
+CubeType ChunkVoxels::getCubeTypeAt(const glm::ivec3& position) const {
+    return voxelGrid[position.x][position.z][position.y];
 }
 
 void ChunkVoxels::storeCubes(std::vector<std::unique_ptr<Cube>>&& newCubes) {
@@ -203,7 +164,7 @@ std::pair<glm::vec3, glm::vec3> ChunkVoxels::computeChunkAABB() const {
     return {chunkBoundsMin, chunkBoundsMax};
 }
 
-ChunkVoxels::VoxelGrid ChunkVoxels::generateInitialVoxelGrid() {
+VoxelTypes::VoxelGrid3D ChunkVoxels::generateInitialVoxelGrid() {
     return GridGenerator(size, chunkWorldXIndex, chunkWorldZIndex)
         .generateGrid();
 }

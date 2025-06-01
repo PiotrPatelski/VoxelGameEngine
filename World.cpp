@@ -1,11 +1,14 @@
 #include "World.hpp"
 #include "Raycaster.hpp"
 #include "VertexData.hpp"
+#include "ChunkCoord.hpp"
+#include "NeighborCubesGatherer.hpp"
 #include <cstdio>
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace {
+
 ChunkWindow computeChunkWindow(const ChunkCoord& cameraChunk,
                                int renderDistance) {
     return {cameraChunk.x - renderDistance, cameraChunk.x + renderDistance,
@@ -37,39 +40,54 @@ bool World::addCubeFromRaycast(const Camera& camera, float maxDistance,
                                CubeType type) {
     const auto hitOpt =
         Raycaster{camera, chunkSize}.raycastDDA(loadedChunks, maxDistance);
-    if (hitOpt.has_value()) {
-        const auto hit = hitOpt.value();
-        const auto newCubePos = hit.position + hit.normal;
-        const auto chunkX = floorDivide(newCubePos.x, chunkSize);
-        const auto chunkZ = floorDivide(newCubePos.z, chunkSize);
-        auto chunk = getChunk({chunkX, chunkZ});
-        if (chunk) {
-            const auto localX = negativeSafeModulo(newCubePos.x, chunkSize);
-            const auto localZ = negativeSafeModulo(newCubePos.z, chunkSize);
-            const auto localY = newCubePos.y;
-            return chunk->addCube(glm::ivec3(localX, localY, localZ), type);
-        }
+    if (not hitOpt.has_value()) {
+        return false;
     }
-    return false;
+
+    const auto hit = hitOpt.value();
+    glm::ivec3 newCubePos = hit.position + hit.normal;
+    const auto chunkX = floorDivide(newCubePos.x, chunkSize);
+    const auto chunkZ = floorDivide(newCubePos.z, chunkSize);
+    auto* chunk = getChunk({chunkX, chunkZ});
+    if (not chunk) {
+        return false;
+    }
+
+    const auto localX = negativeSafeModulo(newCubePos.x, chunkSize);
+    const auto localZ = negativeSafeModulo(newCubePos.z, chunkSize);
+    const auto localY = newCubePos.y;
+
+    bool added = chunk->addCube({localX, localY, localZ}, type);
+    if (added and type == CubeType::TORCH) {
+        notifyNeighborChunks({chunkX, chunkZ});
+    }
+    return added;
 }
 
 bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
-    const auto hitOpt =
+    auto hitOpt =
         Raycaster{camera, chunkSize}.raycastDDA(loadedChunks, maxDistance);
-    if (hitOpt.has_value()) {
-        const auto hit = hitOpt.value();
-        const auto worldCubePos = hit.position;
-        const auto chunkX = floorDivide(worldCubePos.x, chunkSize);
-        const auto chunkZ = floorDivide(worldCubePos.z, chunkSize);
-        auto chunk = getChunk({chunkX, chunkZ});
-        if (chunk) {
-            const auto localX = negativeSafeModulo(worldCubePos.x, chunkSize);
-            const auto localZ = negativeSafeModulo(worldCubePos.z, chunkSize);
-            const auto localY = worldCubePos.y;
-            return chunk->removeCube(glm::ivec3(localX, localY, localZ));
-        }
+    if (not hitOpt.has_value()) {
+        return false;
     }
-    return false;
+
+    const auto hit = hitOpt.value();
+    glm::ivec3 worldCubePos = hit.position;
+    const auto chunkX = floorDivide(worldCubePos.x, chunkSize);
+    const auto chunkZ = floorDivide(worldCubePos.z, chunkSize);
+    auto* chunk = getChunk({chunkX, chunkZ});
+    if (not chunk) {
+        return false;
+    }
+
+    const auto localX = negativeSafeModulo(worldCubePos.x, chunkSize);
+    const auto localZ = negativeSafeModulo(worldCubePos.z, chunkSize);
+    const auto localY = worldCubePos.y;
+
+    if (chunk->getCubeType({localX, localY, localZ}) == CubeType::TORCH) {
+        notifyNeighborChunks({chunkX, chunkZ});
+    }
+    return chunk->removeCube({localX, localY, localZ});
 }
 
 RenderableChunk* World::getChunk(const ChunkCoord& coord) {
@@ -201,7 +219,22 @@ void World::updateLoadedChunks(const glm::vec3& camPos) {
 
     adjustLoadedChunks(currentCamCoord);
     reloadCurrentlyRelevantChunkGroup(currentCamCoord);
+    injectNeighborsToModifiedChunks();
     runUpdatePerChunk();
+}
+
+void World::injectNeighborsToModifiedChunks() {
+    for (auto& [coord, chunk] : loadedChunks) {
+        if (chunk->isModified()) {
+            auto neighborData = NeighborGatherer::gatherNeighborsForCoord(
+                coord,
+                [this](const ChunkCoord& chunkCoord) {
+                    return this->getChunk(chunkCoord);
+                },
+                chunkSize);
+            chunk->setNeighborsSurroundingCubes(std::move(neighborData));
+        }
+    }
 }
 
 void World::performFrustumCulling(const Frustum& frustum) {
@@ -214,6 +247,21 @@ void World::renderByType(Shader& shader, CubeType type) {
     shader.use();
     for (auto& [_, chunk] : loadedChunks) {
         chunk->renderByType(shader, type);
+    }
+}
+
+void World::notifyNeighborChunks(const ChunkCoord& centerCoord) {
+    for (int offsetX = -1; offsetX <= 1; ++offsetX) {
+        for (int offsetZ = -1; offsetZ <= 1; ++offsetZ) {
+            if (offsetX == 0 && offsetZ == 0) {
+                continue;
+            }
+            ChunkCoord neighborCoord{centerCoord.x + offsetX,
+                                     centerCoord.z + offsetZ};
+            if (auto* neighbor = getChunk(neighborCoord)) {
+                neighbor->markModified();
+            }
+        }
     }
 }
 

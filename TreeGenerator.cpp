@@ -5,8 +5,8 @@
 
 TreeGenerator::TreeGenerator(int size) : chunkSize{size} {}
 
-int TreeGenerator::findHighestFilledVoxelY(const VoxelGrid& voxelGrid, int x,
-                                           int z) const {
+int TreeGenerator::findHighestFilledVoxelY(
+    const VoxelTypes::VoxelGrid3D& voxelGrid, int x, int z) const {
     for (int y = chunkSize - 1; y >= 0; y--) {
         if (voxelGrid[x][z][y] != CubeType::NONE) return y;
     }
@@ -14,7 +14,7 @@ int TreeGenerator::findHighestFilledVoxelY(const VoxelGrid& voxelGrid, int x,
 }
 
 void TreeGenerator::placeTreeTrunkAt(int x, int highestFilledY, int z,
-                                     VoxelGrid& voxelGrid) {
+                                     VoxelTypes::VoxelGrid3D& voxelGrid) {
     int trunkBaseY = highestFilledY + 1;
     const int trunkHeight = 4 + (rand() % 4);
     for (int i = 0; i < trunkHeight; i++) {
@@ -28,7 +28,7 @@ void TreeGenerator::placeTreeTrunkAt(int x, int highestFilledY, int z,
 }
 
 void TreeGenerator::generateCrownForTrunk(int colX, int colZ, int trunkTopY,
-                                          VoxelGrid& voxelGrid) {
+                                          VoxelTypes::VoxelGrid3D& voxelGrid) {
     for (int offsetX = -2; offsetX <= 2; offsetX++) {
         for (int offsetY = -2; offsetY <= 2; offsetY++) {
             for (int offsetZ = -2; offsetZ <= 2; offsetZ++) {
@@ -51,7 +51,7 @@ void TreeGenerator::generateCrownForTrunk(int colX, int colZ, int trunkTopY,
     }
 }
 
-void TreeGenerator::generateNewTreeTrunks(VoxelGrid& voxelGrid) {
+void TreeGenerator::generateNewTreeTrunks(VoxelTypes::VoxelGrid3D& voxelGrid) {
     for (int x = 0; x < chunkSize; x++) {
         for (int z = 0; z < chunkSize; z++) {
             const auto highestY = findHighestFilledVoxelY(voxelGrid, x, z);
@@ -81,8 +81,8 @@ TreeGenerator::Trunk TreeGenerator::buildTrunksMapping() const {
     return trunkColumns;
 }
 
-void TreeGenerator::generateCrownsForTrunks(const Trunk& trunkColumns,
-                                            VoxelGrid& voxelGrid) {
+void TreeGenerator::generateCrownsForTrunks(
+    const Trunk& trunkColumns, VoxelTypes::VoxelGrid3D& voxelGrid) {
     for (const auto& [treeColumn, treeTrunkTopY] : trunkColumns) {
         const auto [treeColumnX, treeColumnZ] = treeColumn;
         bool crownAlreadyExists{false};
@@ -99,7 +99,7 @@ void TreeGenerator::generateCrownsForTrunks(const Trunk& trunkColumns,
     }
 }
 
-void TreeGenerator::generateTrees(VoxelGrid& voxelGrid) {
+void TreeGenerator::generateTrees(VoxelTypes::VoxelGrid3D& voxelGrid) {
     if (trunkPositions.empty()) {
         generateNewTreeTrunks(voxelGrid);
     }

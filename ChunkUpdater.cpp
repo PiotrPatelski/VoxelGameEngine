@@ -23,6 +23,7 @@ void ChunkUpdater::checkAndApplyUpdate() {
         if (updateResult.wait_for(std::chrono::milliseconds(0)) ==
             std::future_status::ready) {
             chunk->applyCubeData(updateResult.get());
+            chunk->clearNeighborsSurroundingCubes();
             isUpdating = false;
         }
     }

@@ -7,59 +7,59 @@
 #include "GridGenerator.hpp"
 #include "TreeGenerator.hpp"
 #include "CubeData.hpp"
+#include "PositionHelpers.hpp"
+#include "VoxelTypes.hpp"
 
 class ChunkVoxels {
    public:
-    using VoxelGrid = GridGenerator::VoxelGrid;
     ChunkVoxels(int size, int worldX, int worldZ);
     ChunkVoxels(const ChunkVoxels&) = delete;
     ChunkVoxels& operator=(const ChunkVoxels&) = delete;
     ChunkVoxels(ChunkVoxels&& other) noexcept;
     ChunkVoxels& operator=(ChunkVoxels&& other) noexcept;
 
-    inline const std::unordered_map<CubeType, std::vector<glm::mat4>>&
-    getInstanceModelMatrices() const {
-        return instanceModelMatrices;
-    }
-
-    inline glm::vec3 getChunkOrigin() const {
-        return glm::vec3(chunkWorldXIndex * size, 0.0f,
-                         chunkWorldZIndex * size);
-    }
     inline int getSize() const { return size; }
+    inline bool isModified() const { return modified; }
 
     bool addCube(const glm::ivec3& localPos, CubeType type);
     bool removeCube(const glm::ivec3& localPos);
     bool isCubeInGrid(const glm::ivec3& localPos) const;
 
-    bool isModified() const { return modified; }
-    void setModified(bool value) { modified = value; }
+    const std::unordered_map<CubeType, std::vector<glm::mat4>>&
+    getInstanceModelMatrices() const;
+    glm::vec3 getChunkOrigin() const;
 
+    CubeType getCubeTypeAt(const glm::ivec3& localPos) const;
     CubeData computeCubeData();
-    void storeCubes(std::vector<std::unique_ptr<Cube>>&& newCubes);
-
     std::pair<glm::vec3, glm::vec3> computeChunkAABB() const;
+
+    void setModified(bool value);
+    void setNeighborsSurroundingCubes(VoxelTypes::NeighborVoxelsMap&& data);
+    void clearNeighborsSurroundingCubes();
+    void storeCubes(std::vector<std::unique_ptr<Cube>>&& newCubes);
 
    private:
     using CubeCreator = std::function<void(const glm::ivec3&, CubeType)>;
 
-    VoxelGrid generateInitialVoxelGrid();
+    VoxelTypes::VoxelGrid3D generateInitialVoxelGrid();
     void createCube(const glm::ivec3& worldPos, CubeType type);
     void processVoxelGrid(float firstCubeX, float firstCubeZ,
                           const CubeCreator& action);
     void regenerateChunk(const CubeCreator& action);
     void rebuildCubesFromGrid();
 
-    int size;
-    int chunkWorldXIndex, chunkWorldZIndex;
+    int size{0};
+    int chunkWorldXIndex{0};
+    int chunkWorldZIndex{0};
     static constexpr int waterHeight{14};
 
     TreeGenerator treeGenerator;
-    VoxelGrid voxelGrid{};
+    VoxelTypes::VoxelGrid3D voxelGrid{};
     std::vector<std::unique_ptr<Cube>> cubes{};
     std::unordered_map<CubeType, std::vector<glm::mat4>>
         instanceModelMatrices{};
     std::vector<glm::ivec3> torchPositions{};
+    VoxelTypes::NeighborVoxelsMap neighborsSurroundingCubes{};
 
     bool modified{true};
     mutable std::mutex voxelMutex;

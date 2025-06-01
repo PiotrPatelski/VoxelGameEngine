@@ -19,10 +19,11 @@ GridGenerator::GridGenerator(int size, int worldXIndex, int worldZIndex)
     noise.SetFrequency(0.02f);
 }
 
-GridGenerator::VoxelGrid GridGenerator::generateGrid() {
-    VoxelGrid grid(chunkSize, std::vector<std::vector<CubeType>>(
-                                  chunkSize, std::vector<CubeType>(
-                                                 chunkSize, CubeType::NONE)));
+VoxelTypes::VoxelGrid3D GridGenerator::generateGrid() {
+    VoxelTypes::VoxelGrid3D grid(
+        chunkSize,
+        std::vector<std::vector<CubeType>>(
+            chunkSize, std::vector<CubeType>(chunkSize, CubeType::NONE)));
 
     for (int x = 0; x < chunkSize; x++) {
         for (int z = 0; z < chunkSize; z++) {

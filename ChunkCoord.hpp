@@ -1,5 +1,16 @@
 #pragma once
 #include "glm/glm.hpp"
+#include <array>
+#include <memory>
+#include <unordered_map>
+
+class CpuChunk;
+class RenderableChunk;
+class ChunkUpdater;
+
+constexpr std::array<glm::ivec3, 6> NEIGHBOR_OFFSETS = {
+    glm::ivec3(1, 0, 0),  glm::ivec3(-1, 0, 0), glm::ivec3(0, 1, 0),
+    glm::ivec3(0, -1, 0), glm::ivec3(0, 0, 1),  glm::ivec3(0, 0, -1)};
 
 struct ChunkCoord {
     int x{0};

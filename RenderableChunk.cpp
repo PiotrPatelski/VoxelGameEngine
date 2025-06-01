@@ -20,6 +20,19 @@ bool RenderableChunk::isCubeInGrid(const glm::ivec3& position) const {
 }
 bool RenderableChunk::isModified() const { return voxels.isModified(); }
 
+bool RenderableChunk::isValidCubeAt(const glm::ivec3& position) const {
+    const int size = voxels.getSize();
+    if (position.x < 0 or position.x >= size or position.y < 0 or
+        position.y >= size or position.z < 0 or position.z >= size) {
+        return false;
+    }
+    return voxels.isCubeInGrid(position);
+}
+
+CubeType RenderableChunk::getCubeType(const glm::ivec3& position) const {
+    return voxels.getCubeTypeAt(position);
+}
+
 CubeData RenderableChunk::computeCubeData() { return voxels.computeCubeData(); }
 
 std::unique_ptr<CpuChunk> RenderableChunk::toCpuChunk() {
