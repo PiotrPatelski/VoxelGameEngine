@@ -95,8 +95,8 @@ void App::run() {
     while (!glfwWindowShouldClose(window)) {
         const auto currentFps = frameTimeClock.calculateFps();
 
-        // USER INPUT
-        gameWorld->updateLoadedChunks(camera.getPosition());
+        gameWorld->setCameraPosition(camera.getPosition());
+        gameWorld->updateLoadedChunks();
         processInput();
         renderer->updateShaders(camera);
         renderer->render(currentFps, *gameWorld);

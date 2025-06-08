@@ -23,10 +23,11 @@ class World {
     World(World&&) = delete;
     World& operator=(const World&) = delete;
     World& operator=(World&&) = delete;
+    void setCameraPosition(const glm::vec3& camPos);
     bool addCubeFromRaycast(const Camera& camera, float maxDistance,
                             CubeType type);
     bool removeCubeFromRaycast(const Camera& camera, float maxDistance);
-    void updateLoadedChunks(const glm::vec3& camPos);
+    void updateLoadedChunks();
     void performFrustumCulling(const Frustum& frustum);
     void renderByType(Shader& shader, CubeType type);
     RenderableChunk* getChunk(const ChunkCoord& coord);
@@ -60,7 +61,7 @@ class World {
 
     ChunkCoord lastCameraChunk{-1000, -1000};
     int renderDistance{8};
+    glm::vec3 cameraPosition{};
     static constexpr int chunkSize{64};
-
     std::unique_ptr<ChunkLoader> chunkLoader{};
 };

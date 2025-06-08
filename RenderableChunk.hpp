@@ -25,17 +25,12 @@ class RenderableChunk {
     bool isModified() const;
     bool isValidCubeAt(const glm::ivec3& pos) const;
     CubeType getCubeType(const glm::ivec3& pos) const;
-    void markModified() { voxels.setModified(true); }
-    void setNeighborsSurroundingCubes(VoxelTypes::NeighborVoxelsMap&& data) {
-        voxels.setNeighborsSurroundingCubes(std::move(data));
-    }
-    void clearNeighborsSurroundingCubes() {
-        voxels.clearNeighborsSurroundingCubes();
-    }
-
+    void markModified();
+    void setNeighborsSurroundingCubes(VoxelTypes::NeighborVoxelsMap&& data);
+    void clearNeighborsSurroundingCubes();
+    glm::vec3 getChunkCenter() const;
     CubeData computeCubeData();
     void applyCubeData(CubeData&& data);
-
     void renderByType(Shader& shader, CubeType type);
     void performFrustumCulling(const Frustum& frustum);
 

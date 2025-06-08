@@ -69,7 +69,7 @@ void Renderer::updateProjectionViewShaderParams(const Camera& camera) {
     cubeShader->setVec3("viewPosition", camera.getPosition());
     glm::mat4 projection =
         glm::perspective(glm::radians(camera.getZoom()),
-                         screenWidth / screenHeight, 0.1f, 100.0f);
+                         screenWidth / screenHeight, 0.1f, 200.0f);
     glm::mat4 cameraView = camera.getViewMatrix();
     cubeShader->setMat4("projection", projection);
     cubeShader->setMat4("view", cameraView);

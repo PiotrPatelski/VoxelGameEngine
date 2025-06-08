@@ -225,10 +225,15 @@ void World::runUpdatePerChunk() {
         updater->checkAndApplyUpdate();
     }
 }
+void World::setCameraPosition(const glm::vec3& camPos) {
+    cameraPosition = camPos;
+}
 
-void World::updateLoadedChunks(const glm::vec3& camPos) {
-    const auto camChunkX = static_cast<int>(std::floor(camPos.x / chunkSize));
-    const auto camChunkZ = static_cast<int>(std::floor(camPos.z / chunkSize));
+void World::updateLoadedChunks() {
+    const auto camChunkX =
+        static_cast<int>(std::floor(cameraPosition.x / chunkSize));
+    const auto camChunkZ =
+        static_cast<int>(std::floor(cameraPosition.z / chunkSize));
     ChunkCoord currentCamCoord{camChunkX, camChunkZ};
 
     adjustLoadedChunks(currentCamCoord);
@@ -258,7 +263,14 @@ void World::performFrustumCulling(const Frustum& frustum) {
 
 void World::renderByType(Shader& shader, CubeType type) {
     shader.use();
+    const auto maxRenderDistSq = 200.f * 200.f;
     for (auto& [_, chunk] : loadedChunks) {
+        const auto chunkCenter = chunk->getChunkCenter();
+        const auto distSq = glm::dot(chunkCenter - cameraPosition,
+                                     chunkCenter - cameraPosition);
+        if (distSq > maxRenderDistSq) {
+            continue;
+        }
         chunk->renderByType(shader, type);
     }
 }

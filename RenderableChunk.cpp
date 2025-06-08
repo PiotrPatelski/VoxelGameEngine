@@ -39,6 +39,21 @@ std::unique_ptr<CpuChunk> RenderableChunk::toCpuChunk() {
     return std::make_unique<CpuChunk>(std::move(voxels));
 }
 
+void RenderableChunk::markModified() { voxels.setModified(true); }
+
+void RenderableChunk::setNeighborsSurroundingCubes(
+    VoxelTypes::NeighborVoxelsMap&& data) {
+    voxels.setNeighborsSurroundingCubes(std::move(data));
+}
+
+void RenderableChunk::clearNeighborsSurroundingCubes() {
+    voxels.clearNeighborsSurroundingCubes();
+}
+
+glm::vec3 RenderableChunk::getChunkCenter() const {
+    return voxels.getChunkOrigin() + glm::vec3(voxels.getSize() / 2.0f);
+}
+
 void RenderableChunk::applyCubeData(CubeData&& data) {
     voxels.storeCubes(std::move(data.cubes));
     graphics.updateInstanceData(data.instanceModelMatrices);
