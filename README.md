@@ -2,6 +2,8 @@
 
 PioterCraft is a voxel-based game engine built using modern C++ and OpenGL. It provides a sandbox environment where users can explore, interact, and modify a procedurally generated world. The project demonstrates graphics rendering techniques, chunk management, and real-time updates.
 
+This engine project evolved from the OpenGL tutorial available at [Learn OpenGL](https://learnopengl.com).
+
 ## Features
 
 - **Procedural World Generation**: The game generates a voxel-based world dynamically, including terrain, trees and basic water.
