@@ -76,7 +76,8 @@ add_executable(
         StatusTextRenderer.cpp
         Crosshair.cpp
         LightPropagator.cpp
-        NeighborCubesGatherer.cpp)
+        NeighborCubesGatherer.cpp
+        Entity.cpp)
 target_link_libraries(PioterCraft ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory

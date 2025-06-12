@@ -10,6 +10,7 @@
 #include "Frustum.hpp"
 #include "Material.hpp"
 #include "StatusTextRenderer.hpp"
+#include "Entity.hpp"
 
 class Renderer {
    public:
@@ -45,4 +46,5 @@ class Renderer {
     Materials materials{};
     Frustum frustum{};
     glm::vec3 lastCameraPosition{0.0f, 0.0f, 0.0f};
+    Entity entity;
 };

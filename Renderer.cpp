@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include "Entity.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -33,17 +34,16 @@ void Renderer::applyCubeShaderInitialConfig() {
 
 Renderer::Renderer(unsigned int width, unsigned int height)
     : screenWidth{static_cast<float>(width)},
-      screenHeight{static_cast<float>(height)} {
-    std::cout << "Renderer::Init!" << std::endl;
-
-    statusTextRenderer =
-        std::make_unique<StatusTextRenderer>(screenWidth, screenHeight);
+      screenHeight{static_cast<float>(height)},
+      entity{} {
     cubeShader = std::make_unique<Shader>("shaders/cube_shader.vs",
                                           "shaders/cube_shader.fs");
-    applyCubeShaderInitialConfig();
     crosshairShader = std::make_unique<Shader>("shaders/crosshair_shader.vs",
                                                "shaders/crosshair_shader.fs");
     crosshair = std::make_unique<Crosshair>();
+    statusTextRenderer =
+        std::make_unique<StatusTextRenderer>(screenWidth, screenHeight);
+    applyCubeShaderInitialConfig();
 }
 
 Renderer::~Renderer() {
@@ -84,6 +84,13 @@ void Renderer::updateShaders(const Camera& camera) {
     updateWaterShaderParams(camera);
     updateProjectionViewShaderParams(camera);
     lastCameraPosition = camera.getPosition();
+
+    glm::mat4 viewMatrix = camera.getViewMatrix();
+    glm::mat4 projectionMatrix =
+        glm::perspective(glm::radians(camera.getZoom()),
+                         screenWidth / screenHeight, 0.1f, 200.0f);
+    entity.update(viewMatrix, projectionMatrix);
+    entity.render();
 }
 
 void Renderer::renderOpaqueCubes(World& world) {
@@ -143,5 +150,6 @@ void Renderer::render(unsigned int fps, World& world) {
 
     renderCurrentWorldView(world);
     renderCrosshair();
+    entity.render();
     statusTextRenderer->renderStatus(fps, lastCameraPosition);
 }
