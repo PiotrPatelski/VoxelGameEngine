@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include "CpuChunk.hpp"
 #include "ChunkCoord.hpp"
+#include "VertexData.hpp"
 
 class ChunkLoader {
    public:
@@ -31,7 +32,7 @@ class ChunkLoader {
     Coord::CpuChunksMap generateMissingChunks(
         int camChunkX, int camChunkZ,
         const std::unordered_set<ChunkCoord, PositionXYHash>& existingKeys);
-
+    std::vector<Vertex> vertices{};
     int renderDistance{};
     int chunkSize{};
     unsigned int vertexBufferObjects{0};

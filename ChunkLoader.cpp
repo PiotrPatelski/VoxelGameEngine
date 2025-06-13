@@ -1,12 +1,14 @@
 #include "ChunkLoader.hpp"
-#include "VertexData.hpp"
+#include "VertexDataBuilder.hpp"
 #include "RenderableChunk.hpp"
 #include <glad/glad.h>
 #include <chrono>
 #include <future>
 
 ChunkLoader::ChunkLoader(int renderingDistance, int sizeOfChunk)
-    : renderDistance(renderingDistance), chunkSize(sizeOfChunk) {
+    : vertices{createCubeVertexVector()},
+      renderDistance(renderingDistance),
+      chunkSize(sizeOfChunk) {
     setupVertexBuffers();
 }
 

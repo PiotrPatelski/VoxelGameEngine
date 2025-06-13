@@ -77,7 +77,9 @@ add_executable(
         Crosshair.cpp
         LightPropagator.cpp
         NeighborCubesGatherer.cpp
-        Entity.cpp)
+        Entity.cpp
+        BodyPart.cpp
+        VertexDataBuilder.cpp)
 target_link_libraries(PioterCraft ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory

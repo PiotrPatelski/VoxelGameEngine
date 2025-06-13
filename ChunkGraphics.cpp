@@ -121,7 +121,7 @@ void ChunkGraphics::drawElements(CubeType cubeType, unsigned amt) const {
         glDisable(GL_CULL_FACE);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, waterEBO);
         glDrawElementsInstanced(GL_TRIANGLES,
-                                static_cast<GLsizei>(waterIndicesCount),
+                                static_cast<GLsizei>(waterIndices.size()),
                                 GL_UNSIGNED_INT, nullptr, amt);
         glEnable(GL_CULL_FACE);
     } else {
