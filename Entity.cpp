@@ -2,6 +2,7 @@
 #include "VertexData.hpp"
 #include "Camera.hpp"
 #include "TextureManager.hpp"
+#include "Hitbox.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>
@@ -17,6 +18,10 @@ const glm::vec3 leftArmOffset{-0.375f, 1.0f, 0.0f};
 const glm::vec3 rightArmOffset{0.375f, 1.0f, 0.0f};
 const glm::vec3 leftLegOffset{-0.125f, 0.25f, 0.0f};
 const glm::vec3 rightLegOffset{0.125f, 0.25f, 0.0f};
+const glm::vec3 hitboxOffset{0.f, 0.875f, 0.f};
+const glm::vec3 hitboxScale{1.f, 2.0f, 0.5f};
+const glm::vec3 centerPointToTopRotationAxisOffset{0.0f, 0.5f, 0.0f};
+const glm::vec3 topPointToCenterRotationAxisOffset{0.0f, -0.5f, 0.0f};
 } // namespace
 
 Entity::Entity()
@@ -41,6 +46,8 @@ Entity::Entity()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObject);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
                  indices.data(), GL_STATIC_DRAW);
+    hitbox =
+        std::make_unique<Hitbox>(entityPosition, hitboxOffset, hitboxScale);
 }
 
 Entity::~Entity() {
@@ -53,19 +60,25 @@ glm::mat4 Entity::createLimbTransform(const glm::vec3& offset, float angle,
                                       const glm::vec3& rotationAxis) const {
     glm::mat4 transform =
         glm::translate(glm::mat4(1.0f), entityPosition + offset);
-    transform = glm::translate(transform, glm::vec3(0.0f, 0.5f, 0.0f));
+    transform = glm::translate(transform, centerPointToTopRotationAxisOffset);
     transform = glm::rotate(transform, angle, rotationAxis);
-    transform = glm::translate(transform, glm::vec3(0.0f, -0.5f, 0.0f));
+    transform = glm::translate(transform, topPointToCenterRotationAxisOffset);
     return transform;
+}
+
+void Entity::update(const glm::mat4& view, const glm::mat4& projection) {
+    updateShaders(view, projection);
+    updateMoveAnimation();
 }
 
 void Entity::updateShaders(const glm::mat4& view, const glm::mat4& projection) {
     shader->use();
     shader->setMat4("view", view);
     shader->setMat4("projection", projection);
+    hitbox->updateShaders(view, projection);
 }
 
-void Entity::update() {
+void Entity::updateMoveAnimation() {
     const auto speed = 2.0f;
     const auto maxAngle = glm::radians(30.0f);
     const auto angle = std::sin(glfwGetTime() * speed) * maxAngle;
@@ -91,4 +104,5 @@ void Entity::render() {
     rightArm->render(rightArmTransform, *shader, elementBufferObject);
     leftLeg->render(leftLegTransform, *shader, elementBufferObject);
     rightLeg->render(rightLegTransform, *shader, elementBufferObject);
+    hitbox->render();
 }

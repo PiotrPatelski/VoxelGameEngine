@@ -89,8 +89,7 @@ void Renderer::updateShaders(const Camera& camera) {
     glm::mat4 projectionMatrix =
         glm::perspective(glm::radians(camera.getZoom()),
                          screenWidth / screenHeight, 0.1f, 200.0f);
-    entity.updateShaders(viewMatrix, projectionMatrix);
-    entity.update();
+    entity.update(viewMatrix, projectionMatrix);
 }
 
 void Renderer::renderOpaqueCubes(World& world) {

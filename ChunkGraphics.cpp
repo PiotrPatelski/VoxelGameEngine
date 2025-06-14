@@ -80,7 +80,6 @@ void ChunkGraphics::updateInstanceData(
 
 void ChunkGraphics::updateLightVolume(const std::vector<float>& volume,
                                       int volumeDimension) {
-    // upload new 3D data
     glActiveTexture(GL_TEXTURE0 + 15);
     glBindTexture(GL_TEXTURE_3D, lightVolumeTexture);
     glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, volumeDimension, volumeDimension,

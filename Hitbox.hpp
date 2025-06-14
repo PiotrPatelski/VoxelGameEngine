@@ -1,0 +1,29 @@
+#pragma once
+
+#include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <vector>
+#include <memory>
+#include "Shader.hpp"
+
+class Hitbox {
+   public:
+    Hitbox(const glm::vec3& position, const glm::vec3& offset,
+           const glm::vec3& scale);
+    ~Hitbox();
+    void updateShaders(const glm::mat4& view, const glm::mat4& projection);
+    void render();
+
+   private:
+    void setupBuffers();
+
+    glm::vec3 position{};
+    glm::vec3 offset{};
+    glm::vec3 scale{};
+
+    GLuint vertexArrayObject{0};
+    GLuint vertexBufferObject{0};
+    GLuint elementBufferObject{0};
+
+    std::unique_ptr<Shader> shader{nullptr};
+};

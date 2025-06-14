@@ -8,6 +8,7 @@
 #include "VertexData.hpp"
 #include "TextureManager.hpp"
 #include "BodyPart.hpp"
+#include "Hitbox.hpp"
 
 // clang-format off
 //TexCord:{X, Y}
@@ -215,10 +216,13 @@ class Entity {
     ~Entity();
 
     void render();
-    void updateShaders(const glm::mat4& view, const glm::mat4& projection);
-    void update();
+    void update(const glm::mat4& view, const glm::mat4& projection);
+
+    glm::vec3 getPosition() const { return entityPosition; }
 
    private:
+    void updateShaders(const glm::mat4& view, const glm::mat4& projection);
+    void updateMoveAnimation();
     glm::mat4 createLimbTransform(const glm::vec3& offset, float angle,
                                   const glm::vec3& rotationAxis) const;
     std::unique_ptr<BodyPart> head{nullptr};
@@ -227,11 +231,11 @@ class Entity {
     std::unique_ptr<BodyPart> rightArm{nullptr};
     std::unique_ptr<BodyPart> leftLeg{nullptr};
     std::unique_ptr<BodyPart> rightLeg{nullptr};
+    std::unique_ptr<Hitbox> hitbox{nullptr};
     GLuint elementBufferObject{0};
     glm::vec3 entityPosition{0.0f, 0.0f, 0.0f};
     GLuint textureID{0};
     std::unique_ptr<Shader> shader{nullptr};
-
     glm::mat4 headTransform{};
     glm::mat4 bodyTransform{};
     glm::mat4 leftArmTransform{};

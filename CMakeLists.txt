@@ -79,7 +79,8 @@ add_executable(
         NeighborCubesGatherer.cpp
         Entity.cpp
         BodyPart.cpp
-        VertexDataBuilder.cpp)
+        VertexDataBuilder.cpp
+        Hitbox.cpp)
 target_link_libraries(PioterCraft ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory
