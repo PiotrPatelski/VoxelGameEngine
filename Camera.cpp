@@ -1,6 +1,11 @@
 #include "Camera.hpp"
 
-Camera::Camera() { updateCameraVectors(); }
+Camera::Camera(unsigned int width, unsigned int height)
+    : screenWidth{static_cast<float>(width)},
+      screenHeight{static_cast<float>(height)} {
+    updateCameraVectors();
+    calculateProjection();
+}
 
 // processes input received from any keyboard-like input system. Accepts input
 // parameter in the form of camera defined ENUM (to abstract it from windowing
@@ -43,6 +48,12 @@ void Camera::processMouseScroll(float yoffset) {
     if (zoom > 45.0f) {
         zoom = 45.0f;
     }
+    calculateProjection();
+}
+
+void Camera::calculateProjection() {
+    projectionMatrix = glm::perspective(
+        glm::radians(zoom), screenWidth / screenHeight, 0.1f, 200.0f);
 }
 
 // calculates the front vector from the Camera's (updated) Euler Angles

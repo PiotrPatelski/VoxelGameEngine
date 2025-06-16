@@ -14,7 +14,7 @@ enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT };
 // corresponding Euler Angles, Vectors and Matrices for use in OpenGL
 class Camera {
    public:
-    Camera();
+    Camera(unsigned int width, unsigned int height);
     Camera(const Camera&) = delete;
     Camera(Camera&&) = delete;
     Camera& operator=(const Camera&) = delete;
@@ -24,6 +24,7 @@ class Camera {
     inline glm::mat4 getViewMatrix() const {
         return glm::lookAt(position, position + frontVec, upVec);
     }
+    inline glm::mat4 getProjectionMatrix() const { return projectionMatrix; }
     inline float getZoom() const { return zoom; }
     inline glm::vec3 getPosition() const { return position; }
     inline glm::vec3 getFront() const { return frontVec; }
@@ -37,6 +38,7 @@ class Camera {
 
    private:
     void updateCameraVectors();
+    void calculateProjection();
 
     // camera Attributes
     glm::vec3 position{64.0f, 30.0f, 64.0f};
@@ -51,4 +53,7 @@ class Camera {
     float movementSpeed{2.5f};
     float mouseSensitivity{0.1f};
     float zoom{45.0f};
+    float screenWidth{0};
+    float screenHeight{0};
+    glm::mat4 projectionMatrix{0.0f};
 };

@@ -3,7 +3,8 @@
 #include "World.hpp"
 
 namespace {
-
+constexpr unsigned int SCR_WIDTH = 1920;
+constexpr unsigned int SCR_HEIGHT = 1080;
 // glfw: whenever the window size changed (by OS or user resize) this callback
 // function executes
 // ---------------------------------------------------------------------------------------------
@@ -14,7 +15,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-GLFWwindow* createAppWindow(unsigned int width, unsigned int height) {
+GLFWwindow* createAppWindow() {
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -22,8 +23,8 @@ GLFWwindow* createAppWindow(unsigned int width, unsigned int height) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); //MAC OS ONLY!
-    auto* window = glfwCreateWindow(width, height, "OpenGL Pioter Test Window",
-                                    NULL, NULL);
+    auto* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT,
+                                    "OpenGL Pioter Test Window", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -41,12 +42,12 @@ GLFWwindow* createAppWindow(unsigned int width, unsigned int height) {
 
 } // namespace
 
-App::App() {
+App::App() : camera{std::make_unique<Camera>(SCR_WIDTH, SCR_HEIGHT)} {
     std::cout << "App::Init!" << std::endl;
 
     // glfw window creation
     // --------------------
-    window = createAppWindow(SCR_WIDTH, SCR_HEIGHT);
+    window = createAppWindow();
     lastMouseXPos = static_cast<float>(SCR_WIDTH / 2);
     lastMouseYPos = static_cast<float>(SCR_HEIGHT / 2);
 
@@ -96,17 +97,14 @@ void App::run() {
     while (!glfwWindowShouldClose(window)) {
         const auto currentFps = frameTimeClock.calculateFps();
 
-        gameWorld->setCameraPosition(camera.getPosition());
+        gameWorld->setCameraPosition(camera->getPosition());
         gameWorld->updateLoadedChunks();
 
         processInput();
-        renderer->updateShaders(camera);
-        glm::mat4 viewMatrix = camera.getViewMatrix();
-        glm::mat4 projectionMatrix = glm::perspective(
-            glm::radians(camera.getZoom()),
-            static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT),
-            0.1f, 200.0f);
-        entity->update(viewMatrix, projectionMatrix, *gameWorld);
+        renderer->updateShaders(*camera);
+        entity->update(camera->getViewMatrix(), camera->getProjectionMatrix(),
+                       *gameWorld);
+
         renderer->render(currentFps, *gameWorld);
         entity->render();
 
@@ -133,12 +131,12 @@ void App::mouse_callback([[maybe_unused]] GLFWwindow* targetWindow,
     lastMouseXPos = xposIn;
     lastMouseYPos = yposIn;
 
-    camera.processMouseMovement(xoffset, yoffset);
+    camera->processMouseMovement(xoffset, yoffset);
 }
 
 void App::scroll_callback([[maybe_unused]] GLFWwindow* targetWindow,
                           [[maybe_unused]] float xoffset, float yoffset) {
-    camera.processMouseScroll(yoffset);
+    camera->processMouseScroll(yoffset);
 }
 
 void App::mouse_button_callback([[maybe_unused]] GLFWwindow* targetWindow,
@@ -147,10 +145,10 @@ void App::mouse_button_callback([[maybe_unused]] GLFWwindow* targetWindow,
 
     bool result = false;
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        result = gameWorld->addCubeFromRaycast(camera, 5.0f, selectedCubeType);
+        result = gameWorld->addCubeFromRaycast(*camera, 5.0f, selectedCubeType);
         if (result) printf("Cube added via raycast.\n");
     } else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-        result = gameWorld->removeCubeFromRaycast(camera, 5.0f);
+        result = gameWorld->removeCubeFromRaycast(*camera, 5.0f);
         if (result) printf("Cube removed via raycast.\n");
     }
 }
@@ -161,16 +159,16 @@ void App::processInput() {
         glfwSetWindowShouldClose(window, true);
     }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        camera.processKeyboard(FORWARD, cameraSpeed);
+        camera->processKeyboard(FORWARD, cameraSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        camera.processKeyboard(BACKWARD, cameraSpeed);
+        camera->processKeyboard(BACKWARD, cameraSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        camera.processKeyboard(LEFT, cameraSpeed);
+        camera->processKeyboard(LEFT, cameraSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        camera.processKeyboard(RIGHT, cameraSpeed);
+        camera->processKeyboard(RIGHT, cameraSpeed);
     }
 
     if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {

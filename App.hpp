@@ -27,15 +27,10 @@ class App {
     void processInput();
 
     GLFWwindow* window{nullptr};
-    Camera camera{};
+    std::unique_ptr<Camera> camera{nullptr};
     std::unique_ptr<Renderer> renderer{nullptr};
     std::unique_ptr<World> gameWorld{nullptr};
     Clock frameTimeClock{};
-
-    // settings
-    // SCREEN SIZE
-    const unsigned int SCR_WIDTH{1920};
-    const unsigned int SCR_HEIGHT{1080};
 
     // MOUSE
     float lastMouseXPos{0};
