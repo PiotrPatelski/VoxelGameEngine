@@ -91,15 +91,24 @@ App::~App() { std::cout << "App::Shutdown!" << std::endl; }
 void App::run() {
     gameWorld = std::make_unique<World>();
     renderer = std::make_unique<Renderer>(SCR_WIDTH, SCR_HEIGHT);
+    auto entity = std::make_unique<Entity>();
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
         const auto currentFps = frameTimeClock.calculateFps();
 
         gameWorld->setCameraPosition(camera.getPosition());
         gameWorld->updateLoadedChunks();
+
         processInput();
         renderer->updateShaders(camera);
+        glm::mat4 viewMatrix = camera.getViewMatrix();
+        glm::mat4 projectionMatrix = glm::perspective(
+            glm::radians(camera.getZoom()),
+            static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT),
+            0.1f, 200.0f);
+        entity->update(viewMatrix, projectionMatrix, *gameWorld);
         renderer->render(currentFps, *gameWorld);
+        entity->render();
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)

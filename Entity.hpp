@@ -9,6 +9,7 @@
 #include "TextureManager.hpp"
 #include "BodyPart.hpp"
 #include "Hitbox.hpp"
+#include "World.hpp"
 
 // clang-format off
 //TexCord:{X, Y}
@@ -216,11 +217,13 @@ class Entity {
     ~Entity();
 
     void render();
-    void update(const glm::mat4& view, const glm::mat4& projection);
+    void update(const glm::mat4& view, const glm::mat4& projection,
+                const World& world);
 
     glm::vec3 getPosition() const { return entityPosition; }
 
    private:
+    void updateMovement(const World& world);
     void updateShaders(const glm::mat4& view, const glm::mat4& projection);
     void updateMoveAnimation();
     glm::mat4 createLimbTransform(const glm::vec3& offset, float angle,

@@ -11,8 +11,10 @@ class Hitbox {
     Hitbox(const glm::vec3& position, const glm::vec3& offset,
            const glm::vec3& scale);
     ~Hitbox();
+    glm::vec3 getBottomFacePosition() const;
     void updateShaders(const glm::mat4& view, const glm::mat4& projection);
     void render();
+    void setPosition(const glm::vec3& newPosition);
 
    private:
     void setupBuffers();

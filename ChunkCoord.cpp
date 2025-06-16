@@ -9,3 +9,14 @@ bool isChunkWithinWindow(const ChunkCoord& coord, const ChunkWindow& window) {
     return (coord.x >= window.minX && coord.x <= window.maxX) &&
            (coord.z >= window.minZ && coord.z <= window.maxZ);
 }
+
+ChunkCoord fromWorldPosition(const glm::vec3& position) {
+    return {static_cast<int>(std::floor(position.x / 64.0f)),
+            static_cast<int>(std::floor(position.z / 64.0f))};
+}
+
+glm::ivec3 toLocalPosition(const glm::vec3& position) {
+    return {static_cast<int>(std::floor(position.x)) % 64,
+            static_cast<int>(std::floor(position.y)),
+            static_cast<int>(std::floor(position.z)) % 64};
+}

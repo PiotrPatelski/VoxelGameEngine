@@ -90,10 +90,12 @@ bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
     return chunk->removeCube({localX, localY, localZ});
 }
 
-RenderableChunk* World::getChunk(const ChunkCoord& coord) {
-    std::lock_guard<std::mutex> lock(loadedChunksMutex);
+RenderableChunk* World::getChunk(const ChunkCoord& coord) const {
     const auto it = loadedChunks.find(coord);
-    return (it != loadedChunks.end()) ? it->second.get() : nullptr;
+    if (it != loadedChunks.cend()) {
+        return it->second.get();
+    }
+    return nullptr;
 }
 
 bool World::updateCameraChunk(const ChunkCoord& currentCamCoord) {
@@ -288,6 +290,16 @@ void World::notifyNeighborChunks(const ChunkCoord& centerCoord) {
             }
         }
     }
+}
+
+CubeType World::getCubeTypeAtPosition(const glm::vec3& position) const {
+    const auto chunkCoord = fromWorldPosition(position);
+    const auto chunk = getChunk(chunkCoord);
+    if (chunk) {
+        const auto localPos = toLocalPosition(position);
+        return chunk->getCubeType(localPos);
+    }
+    return CubeType::NONE;
 }
 
 World::~World() { std::cout << "World::Shutdown!" << std::endl; }

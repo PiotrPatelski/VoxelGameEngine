@@ -3,6 +3,7 @@
 #include "Camera.hpp"
 #include "TextureManager.hpp"
 #include "Hitbox.hpp"
+#include "World.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>
@@ -25,7 +26,7 @@ const glm::vec3 topPointToCenterRotationAxisOffset{0.0f, -0.5f, 0.0f};
 } // namespace
 
 Entity::Entity()
-    : entityPosition{64.0f, 30.0f, 64.0f},
+    : entityPosition{67.0f, 30.0f, 55.0f},
       shader{std::make_unique<Shader>("shaders/entity_shader.vs",
                                       "shaders/entity_shader.fs")} {
     textureID = TextureManager::loadTextureFromFile("textures/steve-64x64.png");
@@ -66,7 +67,18 @@ glm::mat4 Entity::createLimbTransform(const glm::vec3& offset, float angle,
     return transform;
 }
 
-void Entity::update(const glm::mat4& view, const glm::mat4& projection) {
+void Entity::updateMovement(const World& world) {
+    glm::vec3 bottomFacePosition = hitbox->getBottomFacePosition();
+    CubeType cubeTypeBelow = world.getCubeTypeAtPosition(bottomFacePosition);
+    if (cubeTypeBelow == CubeType::NONE) {
+        entityPosition.y -= 0.1f;
+        hitbox->setPosition(entityPosition);
+    }
+}
+
+void Entity::update(const glm::mat4& view, const glm::mat4& projection,
+                    const World& world) {
+    updateMovement(world);
     updateShaders(view, projection);
     updateMoveAnimation();
 }

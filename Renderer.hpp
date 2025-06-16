@@ -22,7 +22,6 @@ class Renderer {
     Renderer& operator=(Renderer&&) = delete;
     void updateShaders(const Camera& camera);
     void render(unsigned int fps, World& world);
-    void updateEntityGroundCollision(Entity& entity, World& world);
 
    private:
     void applyCubeShaderInitialConfig();

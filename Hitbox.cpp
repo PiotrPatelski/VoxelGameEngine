@@ -68,3 +68,11 @@ void Hitbox::render() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glUseProgram(0);
 }
+
+glm::vec3 Hitbox::getBottomFacePosition() const {
+    return position + offset - glm::vec3(0.0f, (scale.y / 2.0f) - 0.4f, 0.0f);
+}
+
+void Hitbox::setPosition(const glm::vec3& newPosition) {
+    position = newPosition;
+}
