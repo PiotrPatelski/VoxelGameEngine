@@ -102,23 +102,28 @@ void Entity::updateFallingMovement(const World& world) {
 void Entity::update(const glm::mat4& view, const glm::mat4& projection,
                     const World& world) {
     updateFallingMovement(world);
-
-    float currentTime = glfwGetTime();
-
-    if (currentTime - lastTime > 2.0f) { // Change direction every 2 seconds
-        directionAngle = glm::radians(static_cast<float>(rand() % 360));
-        lastTime = currentTime;
-    }
-
+    updateDirection();
     moveForward(world);
     updateShaders(view, projection);
     updateMoveAnimation();
+}
+
+void Entity::updateDirection() {
+    float currentTime = glfwGetTime();
+    bool hasTwoSecondsElapsed = (currentTime - lastTime) > 2.0f;
+    if (hasTwoSecondsElapsed) {
+        directionAngle = glm::radians(static_cast<float>(rand() % 360));
+        lastTime = currentTime;
+    }
 }
 
 void Entity::updateShaders(const glm::mat4& view, const glm::mat4& projection) {
     shader->use();
     shader->setMat4("view", view);
     shader->setMat4("projection", projection);
+    shader->setVec3("underwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
+    shader->setFloat("underwaterMix", 0.5f);
+    shader->setFloat("waterLevelY", 14.0f);
     hitbox->updateShaders(view, projection);
 }
 

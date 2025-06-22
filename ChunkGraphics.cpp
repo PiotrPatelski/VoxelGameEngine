@@ -117,12 +117,14 @@ void ChunkGraphics::bindInstanceAttributesForType(CubeType cubeType) const {
 
 void ChunkGraphics::drawElements(CubeType cubeType, unsigned amt) const {
     if (cubeType == CubeType::WATER) {
+        glDepthMask(GL_FALSE);
         glDisable(GL_CULL_FACE);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, waterEBO);
         glDrawElementsInstanced(GL_TRIANGLES,
                                 static_cast<GLsizei>(waterIndices.size()),
                                 GL_UNSIGNED_INT, nullptr, amt);
         glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
     } else {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, regularCubeEBO);
         glDrawElementsInstanced(GL_TRIANGLES,
