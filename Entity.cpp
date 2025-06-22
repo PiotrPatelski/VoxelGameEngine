@@ -4,51 +4,25 @@
 #include "TextureManager.hpp"
 #include "Hitbox.hpp"
 #include "World.hpp"
+#include "SteveData.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>
-
-namespace {
-const glm::vec3 headScale{0.5f, 0.5f, 0.5f};
-const glm::vec3 bodyScale{0.5f, 0.75f, 0.25f};
-const glm::vec3 armScale{0.25f, 0.75f, 0.25f};
-const glm::vec3 legScale{0.25f, 0.75f, 0.25f};
-const glm::vec3 headOffset{0.0f, 1.625f, 0.0f};
-const glm::vec3 bodyOffset{0.0f, 1.0f, 0.0f};
-const glm::vec3 leftArmOffset{-0.375f, 1.0f, 0.0f};
-const glm::vec3 rightArmOffset{0.375f, 1.0f, 0.0f};
-const glm::vec3 leftLegOffset{-0.125f, 0.25f, 0.0f};
-const glm::vec3 rightLegOffset{0.125f, 0.25f, 0.0f};
-const glm::vec3 hitboxOffset{0.f, 0.875f, 0.f};
-const glm::vec3 hitboxScale{1.f, 2.0f, 0.5f};
-const glm::vec3 centerPointToTopRotationAxisOffset{0.0f, 0.5f, 0.0f};
-const glm::vec3 topPointToCenterRotationAxisOffset{0.0f, -0.5f, 0.0f};
-} // namespace
 
 Entity::Entity()
     : entityPosition{67.0f, 30.0f, 55.0f},
       shader{std::make_unique<Shader>("shaders/entity_shader.vs",
                                       "shaders/entity_shader.fs")} {
     textureID = TextureManager::loadTextureFromFile("textures/steve-64x64.png");
+    createLimbs();
 
-    head = std::make_unique<BodyPart>(headTexCoords, headOffset, headScale,
-                                      textureID);
-    body = std::make_unique<BodyPart>(bodyTexCoords, bodyOffset, bodyScale,
-                                      textureID);
-    leftArm = std::make_unique<BodyPart>(leftArmTexCoords, leftArmOffset,
-                                         armScale, textureID);
-    rightArm = std::make_unique<BodyPart>(rightArmTexCoords, rightArmOffset,
-                                          armScale, textureID);
-    leftLeg = std::make_unique<BodyPart>(leftLegTexCoords, leftLegOffset,
-                                         legScale, textureID);
-    rightLeg = std::make_unique<BodyPart>(rightLegTexCoords, rightLegOffset,
-                                          legScale, textureID);
     glGenBuffers(1, &elementBufferObject);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObject);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
                  indices.data(), GL_STATIC_DRAW);
-    hitbox =
-        std::make_unique<Hitbox>(entityPosition, hitboxOffset, hitboxScale);
+    hitbox = std::make_unique<Hitbox>(entityPosition, Steve::hitboxOffset,
+                                      Steve::hitboxScale);
+    lastTime = glfwGetTime();
 }
 
 Entity::~Entity() {
@@ -57,28 +31,86 @@ Entity::~Entity() {
     }
 }
 
-glm::mat4 Entity::createLimbTransform(const glm::vec3& offset, float angle,
-                                      const glm::vec3& rotationAxis) const {
-    glm::mat4 transform =
-        glm::translate(glm::mat4(1.0f), entityPosition + offset);
-    transform = glm::translate(transform, centerPointToTopRotationAxisOffset);
-    transform = glm::rotate(transform, angle, rotationAxis);
-    transform = glm::translate(transform, topPointToCenterRotationAxisOffset);
-    return transform;
+void Entity::createLimbs() {
+    head = std::make_unique<BodyPart>(Steve::headTexCoords, Steve::headOffset,
+                                      Steve::headScale, textureID);
+    body = std::make_unique<BodyPart>(Steve::bodyTexCoords, Steve::bodyOffset,
+                                      Steve::bodyScale, textureID);
+    leftArm = std::make_unique<BodyPart>(Steve::leftArmTexCoords,
+                                         Steve::leftArmOffset, Steve::armScale,
+                                         textureID);
+    rightArm = std::make_unique<BodyPart>(Steve::rightArmTexCoords,
+                                          Steve::rightArmOffset,
+                                          Steve::armScale, textureID);
+    leftLeg = std::make_unique<BodyPart>(Steve::leftLegTexCoords,
+                                         Steve::leftLegOffset, Steve::legScale,
+                                         textureID);
+    rightLeg = std::make_unique<BodyPart>(Steve::rightLegTexCoords,
+                                          Steve::rightLegOffset,
+                                          Steve::legScale, textureID);
 }
 
-void Entity::updateMovement(const World& world) {
-    glm::vec3 bottomFacePosition = hitbox->getBottomFacePosition();
-    CubeType cubeTypeBelow = world.getCubeTypeAtPosition(bottomFacePosition);
+glm::mat4 Entity::createLimbTransform(const glm::vec3& limbOffset,
+                                      float animationAngle,
+                                      const glm::mat4& bodyRotation) const {
+    return glm::translate(glm::mat4(1.0f), entityPosition + Steve::bodyOffset) *
+           bodyRotation *
+           glm::translate(glm::mat4(1.0f),
+                          limbOffset - Steve::bodyOffset +
+                              Steve::centerPointToTopRotationAxisOffset) *
+           glm::rotate(glm::mat4(1.0f), animationAngle,
+                       glm::vec3(1.0f, 0.0f, 0.0f)) *
+           glm::translate(glm::mat4(1.0f),
+                          -Steve::centerPointToTopRotationAxisOffset);
+}
+
+void Entity::moveForward(const World& world) {
+    const auto frontFacePosition = hitbox->getFrontFacePosition();
+    const auto cubeTypeInFront = world.getCubeTypeAtPosition(frontFacePosition);
+    const auto cubeTypeInFrontHeadLevel = world.getCubeTypeAtPosition(
+        frontFacePosition + glm::vec3(0.0f, 1.0f, 0.0f));
+    const auto cubeTypeBelow =
+        world.getCubeTypeAtPosition(hitbox->getBottomFacePosition());
+    if (cubeTypeBelow == CubeType::NONE) {
+        isMoving = false;
+        return;
+    }
+    if (cubeTypeInFrontHeadLevel != CubeType::NONE) {
+        isMoving = false;
+        return;
+    }
+    if (cubeTypeInFront != CubeType::NONE) {
+        entityPosition += glm::vec3(0.0f, 1.75f, 0.0f);
+    }
+    isMoving = true;
+    const auto forwardDirection = glm::normalize(
+        glm::vec3(std::sin(directionAngle), 0.0f, std::cos(directionAngle)));
+    entityPosition += forwardDirection * 0.05f;
+    hitbox->setPosition(entityPosition);
+}
+
+void Entity::updateFallingMovement(const World& world) {
+    const auto cubeTypeBelow =
+        world.getCubeTypeAtPosition(hitbox->getBottomFacePosition());
     if (cubeTypeBelow == CubeType::NONE) {
         entityPosition.y -= 0.1f;
         hitbox->setPosition(entityPosition);
+        isMoving = false;
     }
 }
 
 void Entity::update(const glm::mat4& view, const glm::mat4& projection,
                     const World& world) {
-    updateMovement(world);
+    updateFallingMovement(world);
+
+    float currentTime = glfwGetTime();
+
+    if (currentTime - lastTime > 2.0f) { // Change direction every 2 seconds
+        directionAngle = glm::radians(static_cast<float>(rand() % 360));
+        lastTime = currentTime;
+    }
+
+    moveForward(world);
     updateShaders(view, projection);
     updateMoveAnimation();
 }
@@ -91,22 +123,73 @@ void Entity::updateShaders(const glm::mat4& view, const glm::mat4& projection) {
 }
 
 void Entity::updateMoveAnimation() {
-    const auto speed = 2.0f;
-    const auto maxAngle = glm::radians(30.0f);
-    const auto angle = std::sin(glfwGetTime() * speed) * maxAngle;
-    const auto rotationAxis = glm::vec3(1.0f, 0.0f, 0.0f);
+    rotate();
+    if (isMoving) {
+        const auto speed = 2.0f;
+        const auto maxAnimationAngle = glm::radians(30.0f);
+        const auto currentAnimationAngle =
+            std::sin(glfwGetTime() * speed) * maxAnimationAngle;
+        const auto bodyRotation = glm::rotate(glm::mat4(1.0f), directionAngle,
+                                              glm::vec3(0.0f, 1.0f, 0.0f));
+        applyAnimationTransforms(currentAnimationAngle, bodyRotation);
+    }
+}
+
+void Entity::applyAnimationTransforms(float currentAnimationAngle,
+                                      const glm::mat4& bodyRotation) {
     headTransform =
-        glm::translate(glm::mat4(1.0f), entityPosition + headOffset);
+        glm::translate(glm::mat4(1.0f), entityPosition + Steve::headOffset) *
+        bodyRotation;
+
     bodyTransform =
-        glm::translate(glm::mat4(1.0f), entityPosition + bodyOffset);
+        glm::translate(glm::mat4(1.0f), entityPosition + Steve::bodyOffset) *
+        bodyRotation;
 
-    leftArmTransform = createLimbTransform(leftArmOffset, angle, rotationAxis);
-    rightArmTransform =
-        createLimbTransform(rightArmOffset, -angle, rotationAxis);
+    leftArmTransform = createLimbTransform(Steve::leftArmOffset,
+                                           currentAnimationAngle, bodyRotation);
+    rightArmTransform = createLimbTransform(
+        Steve::rightArmOffset, -currentAnimationAngle, bodyRotation);
 
-    leftLegTransform = createLimbTransform(leftLegOffset, -angle, rotationAxis);
-    rightLegTransform =
-        createLimbTransform(rightLegOffset, angle, rotationAxis);
+    leftLegTransform = createLimbTransform(
+        Steve::leftLegOffset, -currentAnimationAngle, bodyRotation);
+    rightLegTransform = createLimbTransform(
+        Steve::rightLegOffset, currentAnimationAngle, bodyRotation);
+}
+
+void Entity::rotate() {
+    const auto bodyRotation = glm::rotate(glm::mat4(1.0f), directionAngle,
+                                          glm::vec3(0.0f, 1.0f, 0.0f));
+    const auto bodyOffsetTranslation =
+        glm::translate(glm::mat4(1.0f), entityPosition + Steve::bodyOffset);
+
+    applyRotationTransforms(bodyRotation, bodyOffsetTranslation);
+
+    hitbox->setRotation(bodyRotation);
+}
+
+void Entity::applyRotationTransforms(const glm::mat4& bodyRotation,
+                                     const glm::mat4& bodyOffsetTranslation) {
+    headTransform =
+        bodyOffsetTranslation * bodyRotation *
+        glm::translate(glm::mat4(1.0f), Steve::headOffset - Steve::bodyOffset);
+
+    bodyTransform = bodyOffsetTranslation * bodyRotation;
+
+    leftArmTransform = bodyOffsetTranslation * bodyRotation *
+                       glm::translate(glm::mat4(1.0f),
+                                      Steve::leftArmOffset - Steve::bodyOffset);
+
+    rightArmTransform = bodyOffsetTranslation * bodyRotation *
+                        glm::translate(glm::mat4(1.0f), Steve::rightArmOffset -
+                                                            Steve::bodyOffset);
+
+    leftLegTransform = bodyOffsetTranslation * bodyRotation *
+                       glm::translate(glm::mat4(1.0f),
+                                      Steve::leftLegOffset - Steve::bodyOffset);
+
+    rightLegTransform = bodyOffsetTranslation * bodyRotation *
+                        glm::translate(glm::mat4(1.0f), Steve::rightLegOffset -
+                                                            Steve::bodyOffset);
 }
 
 void Entity::render() {

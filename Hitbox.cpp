@@ -54,11 +54,15 @@ void Hitbox::updateShaders(const glm::mat4& view, const glm::mat4& projection) {
     shader->setMat4("projection", projection);
 }
 
+void Hitbox::setRotation(const glm::mat4& rotationMatrix) {
+    rotation = rotationMatrix;
+}
+
 void Hitbox::render() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     shader->use();
-
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), position + offset);
+    glm::mat4 model =
+        glm::translate(glm::mat4(1.0f), position + offset) * rotation;
     model = glm::scale(model, scale);
     shader->setMat4("model", model);
     glBindVertexArray(vertexArrayObject);
@@ -70,9 +74,13 @@ void Hitbox::render() {
 }
 
 glm::vec3 Hitbox::getBottomFacePosition() const {
-    return position + offset - glm::vec3(0.0f, (scale.y / 2.0f) - 0.4f, 0.0f);
+    return position + offset - glm::vec3(0.0f, (scale.y / 2.0f) - 0.375f, 0.0f);
 }
 
 void Hitbox::setPosition(const glm::vec3& newPosition) {
     position = newPosition;
+}
+
+glm::vec3 Hitbox::getFrontFacePosition() const {
+    return position + offset + glm::vec3(0.0f, 0.0f, (scale.z / 2.0f) + 0.6f);
 }

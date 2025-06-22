@@ -11,206 +11,6 @@
 #include "Hitbox.hpp"
 #include "World.hpp"
 
-// clang-format off
-//TexCord:{X, Y}
-//BACK
-//FRONT
-//LEFT
-//RIGHT
-//BOTTOM
-//TOP
-const std::vector<glm::vec2> headTexCoords = {
-    
-    {0.5f, 0.25f}, 
-    {0.375f, 0.125f}, 
-    {0.375f, 0.25f}, 
-    {0.5f, 0.125f},
-    
-    {0.25f, 0.25f},
-    {0.125f, 0.25f},
-    {0.125f, 0.125f},
-    {0.25f, 0.125f},
-   
-    {0.25f, 0.125f},
-    {0.375f, 0.125f},
-    {0.375f, 0.25f},
-    {0.25f, 0.25f},
-    
-    {0.25f, 0.125f},
-    {0.375f, 0.25f},
-    {0.375f, 0.125f},
-    {0.25f, 0.25f},
-    
-    {0.25f, 0.0f},
-    {0.375f, 0.0f},
-    {0.375f, 0.125f},
-    {0.25f, 0.125f},
-
-    {0.125f, 0.125f},
-    {0.25f, 0.0f},
-    {0.25f, 0.125f},
-    {0.125f, 0.0f}};
-
-const std::vector<glm::vec2> bodyTexCoords = {
-    {0.625f, 0.5f}, 
-    {0.5f, 0.3125f}, 
-    {0.5f, 0.5f}, 
-    {0.625f, 0.3125f},
-
-     {0.4375f, 0.5f},
-     {0.3125f, 0.5f},
-     {0.3125f, 0.3125f},
-     {0.4375f, 0.3125f},
-
-     {0.4375f, 0.3125f},
-     {0.5f, 0.3125f},
-     {0.5f, 0.5f},
-     {0.4375f, 0.5f},
-
-     {0.25f, 0.3125f},
-     {0.3125f, 0.5f},
-     {0.3125f, 0.3125f},
-     {0.25f, 0.5f},
-
-     {0.4375f, 0.25f},
-     {0.5625f, 0.25f},
-     {0.5625f, 0.3125f},
-     {0.4375f, 0.3125f},
-
-     {0.3125f, 0.3125f},
-     {0.4375f, 0.25f},
-     {0.4375f, 0.3125f},
-     {0.3125f, 0.25f}};
-
-const std::vector<glm::vec2> leftArmTexCoords = {
-    {0.75f, 0.5f}, 
-    {0.6875f, 0.3125f}, 
-    {0.6875f, 0.5f}, 
-    {0.75f, 0.3125f},
-
-    {0.75f, 0.5f}, 
-    {0.6875f, 0.5f}, 
-    {0.6875f, 0.3125f}, 
-    {0.75f, 0.3125f},
-
-    {0.6875f, 0.3125f}, 
-    {0.75f, 0.3125f}, 
-    {0.75f, 0.5f}, 
-    {0.6875f, 0.5f},
-    
-    {0.625f, 0.3125f}, 
-    {0.6875f, 0.5f}, 
-    {0.6875f, 0.3125f}, 
-    {0.625f, 0.5f},
-
-    {0.75f, 0.25f}, 
-    {0.8125f, 0.25f}, 
-    {0.8125f, 0.3125f}, 
-    {0.75f, 0.3125f},
-
-    {0.6875f, 0.3125f}, 
-    {0.75f, 0.25f}, 
-    {0.75f, 0.3125f}, 
-    {0.6875f, 0.25f}
-};
-
-const std::vector<glm::vec2> rightArmTexCoords = {
-    {0.75f, 0.5f}, 
-    {0.6875f, 0.3125f}, 
-    {0.6875f, 0.5f}, 
-    {0.75f, 0.3125f},
-
-    {0.75f, 0.5f}, 
-    {0.6875f, 0.5f}, 
-    {0.6875f, 0.3125f}, 
-    {0.75f, 0.3125f},
-
-    {0.625f, 0.3125f}, 
-    {0.6875f, 0.3125f}, 
-    {0.6875f, 0.5f}, 
-    {0.625f, 0.5f},
-
-    {0.6875f, 0.3125f}, 
-    {0.75f, 0.5f}, 
-    {0.75f, 0.3125f}, 
-    {0.6875f, 0.5f},
-
-    {0.75f, 0.25f}, 
-    {0.8125f, 0.25f}, 
-    {0.8125f, 0.3125f}, 
-    {0.75f, 0.3125f},
-
-    {0.6875f, 0.3125f}, 
-    {0.75f, 0.25f}, 
-    {0.75f, 0.3125f}, 
-    {0.6875f, 0.25f}
-};
-
-const std::vector<glm::vec2> leftLegTexCoords = {
-    {0.25f, 0.5f}, 
-    {0.1875f, 0.3125f}, 
-    {0.1875f, 0.5f}, 
-    {0.25f, 0.3125f},
-
-    {0.125f, 0.5f}, 
-    {0.0625f, 0.5f}, 
-    {0.0625f, 0.3125f}, 
-    {0.125f, 0.3125f},
-
-    {0.125f, 0.3125f}, 
-    {0.1875f, 0.3125f}, 
-    {0.1875f, 0.5f}, 
-    {0.125f, 0.5f},
-
-    {0.1875f, 0.3125f}, 
-    {0.25f, 0.5f}, 
-    {0.25f, 0.3125f}, 
-    {0.1875f, 0.5f},
-
-    {0.125f, 0.25f}, 
-    {0.1725f, 0.25f}, 
-    {0.1725f, 0.3125f}, 
-    {0.125f, 0.3125f},
-
-    {0.0625f, 0.3125f}, 
-    {0.1100f, 0.25f}, 
-    {0.1100f, 0.3125f}, 
-    {0.0625f, 0.25f}
-};
-
-const std::vector<glm::vec2> rightLegTexCoords = {
-    {0.25f, 0.5f}, 
-    {0.1875f, 0.3125f}, 
-    {0.1875f, 0.5f}, 
-    {0.25f, 0.3125f},
-
-    {0.125f, 0.5f}, 
-    {0.0625f, 0.5f}, 
-    {0.0625f, 0.3125f}, 
-    {0.125f, 0.3125f},
-
-    {0.125f, 0.3125f}, 
-    {0.1875f, 0.3125f}, 
-    {0.1875f, 0.5f}, 
-    {0.125f, 0.5f},
-
-    {0.125f, 0.3125f}, 
-    {0.1875f, 0.5f}, 
-    {0.1875f, 0.3125f}, 
-    {0.125f, 0.5f},
-
-    {0.125f, 0.25f}, 
-    {0.1725f, 0.25f}, 
-    {0.1725f, 0.3125f}, 
-    {0.125f, 0.3125f},
-
-    {0.0625f, 0.3125f}, 
-    {0.1100f, 0.25f}, 
-    {0.1100f, 0.3125f}, 
-    {0.0625f, 0.25f}
-};
-
-// clang-format on
 class Entity {
    public:
     Entity();
@@ -222,12 +22,21 @@ class Entity {
 
     glm::vec3 getPosition() const { return entityPosition; }
 
+    void moveForward(const World& world);
+
    private:
-    void updateMovement(const World& world);
+    void createLimbs();
+    void updateFallingMovement(const World& world);
     void updateShaders(const glm::mat4& view, const glm::mat4& projection);
     void updateMoveAnimation();
+    void updateDirection();
+    void applyAnimationTransforms(float currentAnimationAngle,
+                                  const glm::mat4& bodyRotation);
+    void applyRotationTransforms(const glm::mat4& bodyRotation,
+                                 const glm::mat4& bodyOffsetTranslation);
+    void rotate();
     glm::mat4 createLimbTransform(const glm::vec3& offset, float angle,
-                                  const glm::vec3& rotationAxis) const;
+                                  const glm::mat4& bodyRotation) const;
     std::unique_ptr<BodyPart> head{nullptr};
     std::unique_ptr<BodyPart> body{nullptr};
     std::unique_ptr<BodyPart> leftArm{nullptr};
@@ -245,4 +54,7 @@ class Entity {
     glm::mat4 rightArmTransform{};
     glm::mat4 leftLegTransform{};
     glm::mat4 rightLegTransform{};
+    float directionAngle{0.0f};
+    float lastTime{0.0f};
+    bool isMoving{false};
 };
