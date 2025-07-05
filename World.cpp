@@ -8,7 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace {
-
+constexpr int CHUNK_SIZE{64};
 ChunkWindow computeChunkWindow(const ChunkCoord& cameraChunk,
                                int renderDistance) {
     return {cameraChunk.x - renderDistance, cameraChunk.x + renderDistance,
@@ -31,7 +31,7 @@ void World::loadInitialChunks() {
 
 World::World() {
     printf("World::Init!\n");
-    chunkLoader = std::make_unique<ChunkLoader>(renderDistance, chunkSize);
+    chunkLoader = std::make_unique<ChunkLoader>(renderDistance, CHUNK_SIZE);
     loadInitialChunks();
     lastCameraChunk = {0, 0};
 }
@@ -39,22 +39,22 @@ World::World() {
 bool World::addCubeFromRaycast(const Camera& camera, float maxDistance,
                                CubeType type) {
     const auto hitOpt =
-        Raycaster{camera, chunkSize}.raycastDDA(loadedChunks, maxDistance);
+        Raycaster{camera, CHUNK_SIZE}.raycastDDA(loadedChunks, maxDistance);
     if (not hitOpt.has_value()) {
         return false;
     }
 
     const auto hit = hitOpt.value();
     const auto newCubePos = hit.position + hit.normal;
-    const auto chunkX = floorDivide(newCubePos.x, chunkSize);
-    const auto chunkZ = floorDivide(newCubePos.z, chunkSize);
+    const auto chunkX = floorDivide(newCubePos.x, CHUNK_SIZE);
+    const auto chunkZ = floorDivide(newCubePos.z, CHUNK_SIZE);
     auto* chunk = getChunk({chunkX, chunkZ});
     if (not chunk) {
         return false;
     }
 
-    const auto localX = negativeSafeModulo(newCubePos.x, chunkSize);
-    const auto localZ = negativeSafeModulo(newCubePos.z, chunkSize);
+    const auto localX = negativeSafeModulo(newCubePos.x, CHUNK_SIZE);
+    const auto localZ = negativeSafeModulo(newCubePos.z, CHUNK_SIZE);
     const auto localY = newCubePos.y;
 
     bool added = chunk->addCube({localX, localY, localZ}, type);
@@ -66,22 +66,22 @@ bool World::addCubeFromRaycast(const Camera& camera, float maxDistance,
 
 bool World::removeCubeFromRaycast(const Camera& camera, float maxDistance) {
     auto hitOpt =
-        Raycaster{camera, chunkSize}.raycastDDA(loadedChunks, maxDistance);
+        Raycaster{camera, CHUNK_SIZE}.raycastDDA(loadedChunks, maxDistance);
     if (not hitOpt.has_value()) {
         return false;
     }
 
     const auto hit = hitOpt.value();
     const auto worldCubePos = hit.position;
-    const auto chunkX = floorDivide(worldCubePos.x, chunkSize);
-    const auto chunkZ = floorDivide(worldCubePos.z, chunkSize);
+    const auto chunkX = floorDivide(worldCubePos.x, CHUNK_SIZE);
+    const auto chunkZ = floorDivide(worldCubePos.z, CHUNK_SIZE);
     auto* chunk = getChunk({chunkX, chunkZ});
     if (not chunk) {
         return false;
     }
 
-    const auto localX = negativeSafeModulo(worldCubePos.x, chunkSize);
-    const auto localZ = negativeSafeModulo(worldCubePos.z, chunkSize);
+    const auto localX = negativeSafeModulo(worldCubePos.x, CHUNK_SIZE);
+    const auto localZ = negativeSafeModulo(worldCubePos.z, CHUNK_SIZE);
     const auto localY = worldCubePos.y;
 
     if (chunk->getCubeType({localX, localY, localZ}) == CubeType::TORCH) {
@@ -233,9 +233,9 @@ void World::setCameraPosition(const glm::vec3& camPos) {
 
 void World::updateLoadedChunks() {
     const auto camChunkX =
-        static_cast<int>(std::floor(cameraPosition.x / chunkSize));
+        static_cast<int>(std::floor(cameraPosition.x / CHUNK_SIZE));
     const auto camChunkZ =
-        static_cast<int>(std::floor(cameraPosition.z / chunkSize));
+        static_cast<int>(std::floor(cameraPosition.z / CHUNK_SIZE));
     ChunkCoord currentCamCoord{camChunkX, camChunkZ};
 
     adjustLoadedChunks(currentCamCoord);
@@ -248,7 +248,7 @@ void World::injectNeighborsToModifiedChunks() {
     for (auto& [coord, chunk] : loadedChunks) {
         if (chunk->isModified()) {
             auto neighborData =
-                NeighborGatherer{chunkSize}.gatherNeighborsForCoord(
+                NeighborGatherer{CHUNK_SIZE}.gatherNeighborsForCoord(
                     coord, [this](const ChunkCoord& chunkCoord) {
                         return this->getChunk(chunkCoord);
                     });

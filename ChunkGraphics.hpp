@@ -40,5 +40,4 @@ class ChunkGraphics {
     GLuint lightVolumeTexture{0};
 
     unsigned vertexArrayObjects{0}, regularCubeEBO{0}, waterEBO{0};
-    static constexpr unsigned matrixAttrCount = 4;
 };

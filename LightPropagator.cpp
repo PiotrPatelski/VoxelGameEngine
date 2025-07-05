@@ -1,7 +1,7 @@
 #include "LightPropagator.hpp"
 
 namespace {
-constexpr int padding{2};
+constexpr int PADDING{2};
 VoxelTypes::VoxelGrid3D createEmptyVoxelGrid(size_t size) {
     return {size, std::vector<std::vector<CubeType>>(
                       size, std::vector<CubeType>(size, CubeType::NONE))};
@@ -14,7 +14,7 @@ VoxelTypes::LightGrid3D createEmptyLightGrid(size_t size) {
 
 LightPropagator::LightPropagator(int chunkSize, float attenuationFactor)
     : originalSize(chunkSize),
-      paddedSize(chunkSize + padding),
+      paddedSize(chunkSize + PADDING),
       attenuation(attenuationFactor) {
     paddedVoxels = createEmptyVoxelGrid(paddedSize);
     paddedLight = createEmptyLightGrid(paddedSize);

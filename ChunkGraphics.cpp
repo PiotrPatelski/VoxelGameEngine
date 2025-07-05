@@ -3,6 +3,7 @@
 #include <array>
 
 namespace {
+constexpr unsigned MATRIX_ATTR_COUNT = 4;
 void initPositionVertexAttributes(unsigned int stride) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
@@ -100,14 +101,14 @@ void ChunkGraphics::uploadInstanceBuffer() {
 
 void ChunkGraphics::bindInstanceAttributesForType(CubeType cubeType) const {
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBOs.at(cubeType));
-    for (unsigned attrIndex = 0; attrIndex < matrixAttrCount; ++attrIndex) {
+    for (unsigned attrIndex = 0; attrIndex < MATRIX_ATTR_COUNT; ++attrIndex) {
         glVertexAttribPointer(3 + attrIndex, 4, GL_FLOAT, GL_FALSE,
                               sizeof(glm::mat4),
                               (void*)(attrIndex * sizeof(glm::vec4)));
         glEnableVertexAttribArray(3 + attrIndex);
         glVertexAttribDivisor(3 + attrIndex, 1);
     }
-    const unsigned lightAttr = 3 + matrixAttrCount;
+    const unsigned lightAttr = 3 + MATRIX_ATTR_COUNT;
     glBindBuffer(GL_ARRAY_BUFFER, instanceLightVBOs.at(cubeType));
     glVertexAttribPointer(lightAttr, 1, GL_FLOAT, GL_FALSE, sizeof(float),
                           (void*)0);

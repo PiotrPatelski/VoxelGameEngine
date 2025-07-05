@@ -6,6 +6,7 @@
 #include "VoxelTypes.hpp"
 
 namespace {
+constexpr int WATER_HEIGHT{14};
 bool isCubeExposed(const VoxelTypes::VoxelGrid3D& grid, const glm::ivec3& pos) {
     const auto chunkSize = static_cast<int>(grid.size());
     for (const auto& offset : NEIGHBOR_OFFSETS) {
@@ -182,7 +183,7 @@ void ChunkVoxels::processVoxelGrid(float firstCubeXWorldPosition,
                 if (cubeType != CubeType::NONE and
                     isCubeExposed(voxelGrid, {x, y, z})) {
                     createCube(worldCubePos, cubeType);
-                } else if (y == waterHeight) {
+                } else if (y == WATER_HEIGHT) {
                     createCube(worldCubePos, CubeType::WATER);
                 }
             }

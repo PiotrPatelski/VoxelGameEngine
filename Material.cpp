@@ -2,9 +2,9 @@
 #include <string>
 
 namespace {
-constexpr unsigned placeHolderTextureUnit{99};
-constexpr float opaque{1.0f};
-constexpr float semiTransparent{0.5f};
+constexpr unsigned PLACEHOLDER_TEXTURE_UNIT{99};
+constexpr float OPAQUE{1.0f};
+constexpr float SEMI_TRANSPARENT{0.5f};
 
 Material createSandMaterial() {
     const int textureUnit{1};
@@ -14,10 +14,10 @@ Material createSandMaterial() {
             "",
             "",
             textureUnit,
-            placeHolderTextureUnit,
-            placeHolderTextureUnit,
+            PLACEHOLDER_TEXTURE_UNIT,
+            PLACEHOLDER_TEXTURE_UNIT,
             shininess,
-            opaque,
+            OPAQUE,
             isMultiTexture};
 }
 
@@ -29,10 +29,10 @@ Material createDirtMaterial() {
             "",
             "",
             textureUnit,
-            placeHolderTextureUnit,
-            placeHolderTextureUnit,
+            PLACEHOLDER_TEXTURE_UNIT,
+            PLACEHOLDER_TEXTURE_UNIT,
             shininess,
-            opaque,
+            OPAQUE,
             isMultiTexture};
 }
 
@@ -44,10 +44,10 @@ Material createGrassMaterial() {
             "",
             "",
             textureUnit,
-            placeHolderTextureUnit,
-            placeHolderTextureUnit,
+            PLACEHOLDER_TEXTURE_UNIT,
+            PLACEHOLDER_TEXTURE_UNIT,
             shininess,
-            opaque,
+            OPAQUE,
             isMultiTexture};
 }
 
@@ -59,10 +59,10 @@ Material createWaterMaterial() {
             "",
             "",
             textureUnit,
-            placeHolderTextureUnit,
-            placeHolderTextureUnit,
+            PLACEHOLDER_TEXTURE_UNIT,
+            PLACEHOLDER_TEXTURE_UNIT,
             shininess,
-            semiTransparent,
+            SEMI_TRANSPARENT,
             isMultiTexture};
 }
 
@@ -76,9 +76,9 @@ Material createLogMaterial() {
             "",
             maintextureUnit,
             secondarytextureUnit,
-            placeHolderTextureUnit,
+            PLACEHOLDER_TEXTURE_UNIT,
             shininess,
-            opaque,
+            OPAQUE,
             isMultiTexture};
 }
 
@@ -90,10 +90,10 @@ Material createLeavesMaterial() {
             "",
             "",
             textureUnit,
-            placeHolderTextureUnit,
-            placeHolderTextureUnit,
+            PLACEHOLDER_TEXTURE_UNIT,
+            PLACEHOLDER_TEXTURE_UNIT,
             shininess,
-            opaque,
+            OPAQUE,
             isMultiTexture};
 }
 
@@ -105,10 +105,10 @@ Material createTorchMaterial() {
             "",
             "",
             textureUnit,
-            placeHolderTextureUnit,
-            placeHolderTextureUnit,
+            PLACEHOLDER_TEXTURE_UNIT,
+            PLACEHOLDER_TEXTURE_UNIT,
             shininess,
-            opaque,
+            OPAQUE,
             isMultiTexture};
 }
 } // namespace

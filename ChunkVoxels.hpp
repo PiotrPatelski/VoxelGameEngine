@@ -50,7 +50,6 @@ class ChunkVoxels {
     int size{0};
     int chunkWorldXIndex{0};
     int chunkWorldZIndex{0};
-    static constexpr int waterHeight{14};
 
     TreeGenerator treeGenerator;
     VoxelTypes::VoxelGrid3D voxelGrid{};
