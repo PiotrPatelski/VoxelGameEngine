@@ -7,6 +7,7 @@
 #include "Shader.hpp"
 #include "Clock.hpp"
 #include "Cube.hpp"
+#include "EntityManager.hpp"
 
 class App {
    public:
@@ -30,6 +31,7 @@ class App {
     std::unique_ptr<Camera> camera{nullptr};
     std::unique_ptr<Renderer> renderer{nullptr};
     std::unique_ptr<World> gameWorld{nullptr};
+    std::unique_ptr<EntityManager> entityManager{nullptr};
     Clock frameTimeClock{};
 
     // MOUSE

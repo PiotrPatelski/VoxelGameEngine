@@ -14,7 +14,7 @@
 
 class Entity {
    public:
-    Entity();
+    Entity(const glm::vec3& initialPosition);
     ~Entity();
 
     void render();
@@ -22,6 +22,7 @@ class Entity {
                 const World& world);
 
     glm::vec3 getPosition() const { return physicsComponent->getPosition(); }
+    void setPosition(const glm::vec3& position);
 
     void moveForward(const World& world);
 

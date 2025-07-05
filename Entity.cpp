@@ -9,11 +9,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>
 
-Entity::Entity()
+Entity::Entity(const glm::vec3& initialPosition)
     : shader{std::make_unique<Shader>("shaders/entity_shader.vs",
                                       "shaders/entity_shader.fs")} {
-    const glm::vec3 initialPosition{67.0f, 30.0f, 55.0f};
-
     textureID = TextureManager::loadTextureFromFile("textures/steve-64x64.png");
     createLimbs();
 
@@ -32,6 +30,10 @@ Entity::~Entity() {
     if (elementBufferObject) {
         glDeleteBuffers(1, &elementBufferObject);
     }
+}
+
+void Entity::setPosition(const glm::vec3& position) {
+    physicsComponent->setPosition(position);
 }
 
 void Entity::createLimbs() {

@@ -90,6 +90,7 @@ App::App() : camera{std::make_unique<Camera>(SCR_WIDTH, SCR_HEIGHT)} {
 App::~App() {
     std::cout << "App::Shutdown!" << std::endl;
 
+    entityManager.reset();
     renderer.reset();
     gameWorld.reset();
     camera.reset();
@@ -103,7 +104,12 @@ App::~App() {
 void App::run() {
     gameWorld = std::make_unique<World>();
     renderer = std::make_unique<Renderer>(SCR_WIDTH, SCR_HEIGHT);
-    auto entity = std::make_unique<Entity>();
+    entityManager = std::make_unique<EntityManager>();
+
+    entityManager->createEntity({67.0f, 30.0f, 55.0f});
+    entityManager->createEntity({70.0f, 30.0f, 60.0f});
+    entityManager->createEntity({65.0f, 30.0f, 50.0f});
+
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
         const auto currentFps = frameTimeClock.calculateFps();
@@ -113,11 +119,11 @@ void App::run() {
 
         processInput();
         renderer->updateShaders(*camera);
-        entity->update(camera->getViewMatrix(), camera->getProjectionMatrix(),
-                       *gameWorld);
+
+        entityManager->update(*gameWorld, *camera);
 
         renderer->render(currentFps, *gameWorld);
-        entity->render();
+        entityManager->render(*camera);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)

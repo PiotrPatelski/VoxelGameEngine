@@ -46,5 +46,4 @@ class Renderer {
     Materials materials{};
     Frustum frustum{};
     glm::vec3 lastCameraPosition{0.0f, 0.0f, 0.0f};
-    Entity entity;
 };
