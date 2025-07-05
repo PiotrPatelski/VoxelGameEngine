@@ -83,3 +83,9 @@ void Shader::compileShaders(const char* vertexShaderCode,
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 }
+
+Shader::~Shader() {
+    if (programID != 0) {
+        glDeleteProgram(programID);
+    }
+}

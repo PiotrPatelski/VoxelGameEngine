@@ -11,6 +11,7 @@
 class Shader {
    public:
     Shader(const char* vertexPath, const char* fragmentPath);
+    ~Shader();
     Shader(const Shader&) = delete;
     Shader(Shader&&) = delete;
     Shader& operator=(const Shader&) = delete;
@@ -44,6 +45,5 @@ class Shader {
    private:
     void compileShaders(const char* vertexShaderCode,
                         const char* fragmentShaderCode);
-    // the program programID
     unsigned int programID{};
 };

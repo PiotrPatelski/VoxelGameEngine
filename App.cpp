@@ -87,7 +87,18 @@ App::App() : camera{std::make_unique<Camera>(SCR_WIDTH, SCR_HEIGHT)} {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-App::~App() { std::cout << "App::Shutdown!" << std::endl; }
+App::~App() {
+    std::cout << "App::Shutdown!" << std::endl;
+
+    renderer.reset();
+    gameWorld.reset();
+    camera.reset();
+    // glfw: terminate, clearing all previously allocated GLFW resources.
+    if (window) {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+}
 
 void App::run() {
     gameWorld = std::make_unique<World>();

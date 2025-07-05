@@ -45,10 +45,7 @@ Renderer::Renderer(unsigned int width, unsigned int height)
     applyCubeShaderInitialConfig();
 }
 
-Renderer::~Renderer() {
-    std::cout << "Renderer::Shutdown!" << std::endl;
-    glfwTerminate();
-}
+Renderer::~Renderer() { std::cout << "Renderer::Shutdown!" << std::endl; }
 
 void Renderer::updateWaterShaderParams(const Camera& camera) {
     const float underwaterEffectHeight{14.5f};
