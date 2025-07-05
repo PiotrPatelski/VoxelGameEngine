@@ -10,9 +10,10 @@
 #include <GLFW/glfw3.h>
 
 Entity::Entity()
-    : entityPosition{67.0f, 30.0f, 55.0f},
-      shader{std::make_unique<Shader>("shaders/entity_shader.vs",
+    : shader{std::make_unique<Shader>("shaders/entity_shader.vs",
                                       "shaders/entity_shader.fs")} {
+    const glm::vec3 initialPosition{67.0f, 30.0f, 55.0f};
+
     textureID = TextureManager::loadTextureFromFile("textures/steve-64x64.png");
     createLimbs();
 
@@ -20,8 +21,10 @@ Entity::Entity()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObject);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
                  indices.data(), GL_STATIC_DRAW);
-    hitbox = std::make_unique<Hitbox>(entityPosition, Steve::hitboxOffset,
+    hitbox = std::make_shared<Hitbox>(initialPosition, Steve::hitboxOffset,
                                       Steve::hitboxScale);
+    physicsComponent =
+        std::make_unique<PhysicsComponent>(initialPosition, hitbox);
     lastTime = glfwGetTime();
 }
 
@@ -53,7 +56,9 @@ void Entity::createLimbs() {
 glm::mat4 Entity::createLimbTransform(const glm::vec3& limbOffset,
                                       float animationAngle,
                                       const glm::mat4& bodyRotation) const {
-    return glm::translate(glm::mat4(1.0f), entityPosition + Steve::bodyOffset) *
+    const auto currentPosition = physicsComponent->getPosition();
+    return glm::translate(glm::mat4(1.0f),
+                          currentPosition + Steve::bodyOffset) *
            bodyRotation *
            glm::translate(glm::mat4(1.0f),
                           limbOffset - Steve::bodyOffset +
@@ -65,36 +70,18 @@ glm::mat4 Entity::createLimbTransform(const glm::vec3& limbOffset,
 }
 
 void Entity::moveForward(const World& world) {
-    const auto frontFacePosition = hitbox->getFrontFacePosition();
-    const auto cubeTypeInFront = world.getCubeTypeAtPosition(frontFacePosition);
-    const auto cubeTypeInFrontHeadLevel = world.getCubeTypeAtPosition(
-        frontFacePosition + glm::vec3(0.0f, 1.0f, 0.0f));
-    const auto cubeTypeBelow =
-        world.getCubeTypeAtPosition(hitbox->getBottomFacePosition());
-    if (cubeTypeBelow == CubeType::NONE) {
-        isMoving = false;
-        return;
-    }
-    if (cubeTypeInFrontHeadLevel != CubeType::NONE) {
-        isMoving = false;
-        return;
-    }
-    if (cubeTypeInFront != CubeType::NONE) {
-        entityPosition += glm::vec3(0.0f, 1.75f, 0.0f);
-    }
-    isMoving = true;
-    const auto forwardDirection = glm::normalize(
-        glm::vec3(std::sin(directionAngle), 0.0f, std::cos(directionAngle)));
-    entityPosition += forwardDirection * 0.05f;
-    hitbox->setPosition(entityPosition);
+    const bool moved = physicsComponent->moveForward(
+        world, physicsComponent->getDirectionAngle());
+
+    hitbox->setPosition(physicsComponent->getPosition());
+    isMoving = moved;
 }
 
 void Entity::updateFallingMovement(const World& world) {
-    const auto cubeTypeBelow =
-        world.getCubeTypeAtPosition(hitbox->getBottomFacePosition());
-    if (cubeTypeBelow == CubeType::NONE) {
-        entityPosition.y -= 0.1f;
-        hitbox->setPosition(entityPosition);
+    const bool fell = physicsComponent->updateFalling(world);
+
+    hitbox->setPosition(physicsComponent->getPosition());
+    if (fell) {
         isMoving = false;
     }
 }
@@ -112,7 +99,8 @@ void Entity::updateDirection() {
     float currentTime = glfwGetTime();
     bool hasTwoSecondsElapsed = (currentTime - lastTime) > 2.0f;
     if (hasTwoSecondsElapsed) {
-        directionAngle = glm::radians(static_cast<float>(rand() % 360));
+        physicsComponent->setDirectionAngle(
+            glm::radians(static_cast<float>(rand() % 360)));
         lastTime = currentTime;
     }
 }
@@ -134,20 +122,22 @@ void Entity::updateMoveAnimation() {
         const auto maxAnimationAngle = glm::radians(30.0f);
         const auto currentAnimationAngle =
             std::sin(glfwGetTime() * speed) * maxAnimationAngle;
-        const auto bodyRotation = glm::rotate(glm::mat4(1.0f), directionAngle,
-                                              glm::vec3(0.0f, 1.0f, 0.0f));
+        const auto bodyRotation =
+            glm::rotate(glm::mat4(1.0f), physicsComponent->getDirectionAngle(),
+                        glm::vec3(0.0f, 1.0f, 0.0f));
         applyAnimationTransforms(currentAnimationAngle, bodyRotation);
     }
 }
 
 void Entity::applyAnimationTransforms(float currentAnimationAngle,
                                       const glm::mat4& bodyRotation) {
+    const auto currentPosition = physicsComponent->getPosition();
     headTransform =
-        glm::translate(glm::mat4(1.0f), entityPosition + Steve::headOffset) *
+        glm::translate(glm::mat4(1.0f), currentPosition + Steve::headOffset) *
         bodyRotation;
 
     bodyTransform =
-        glm::translate(glm::mat4(1.0f), entityPosition + Steve::bodyOffset) *
+        glm::translate(glm::mat4(1.0f), currentPosition + Steve::bodyOffset) *
         bodyRotation;
 
     leftArmTransform = createLimbTransform(Steve::leftArmOffset,
@@ -162,10 +152,12 @@ void Entity::applyAnimationTransforms(float currentAnimationAngle,
 }
 
 void Entity::rotate() {
-    const auto bodyRotation = glm::rotate(glm::mat4(1.0f), directionAngle,
-                                          glm::vec3(0.0f, 1.0f, 0.0f));
+    const auto bodyRotation =
+        glm::rotate(glm::mat4(1.0f), physicsComponent->getDirectionAngle(),
+                    glm::vec3(0.0f, 1.0f, 0.0f));
+    const auto currentPosition = physicsComponent->getPosition();
     const auto bodyOffsetTranslation =
-        glm::translate(glm::mat4(1.0f), entityPosition + Steve::bodyOffset);
+        glm::translate(glm::mat4(1.0f), currentPosition + Steve::bodyOffset);
 
     applyRotationTransforms(bodyRotation, bodyOffsetTranslation);
 

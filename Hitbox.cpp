@@ -74,7 +74,7 @@ void Hitbox::render() {
 }
 
 glm::vec3 Hitbox::getBottomFacePosition() const {
-    return position + offset - glm::vec3(0.0f, (scale.y / 2.0f) - 0.375f, 0.0f);
+    return position + offset - glm::vec3(0.0f, scale.y / 2.0f, 0.0f);
 }
 
 void Hitbox::setPosition(const glm::vec3& newPosition) {
@@ -82,5 +82,119 @@ void Hitbox::setPosition(const glm::vec3& newPosition) {
 }
 
 glm::vec3 Hitbox::getFrontFacePosition() const {
-    return position + offset + glm::vec3(0.0f, 0.0f, (scale.z / 2.0f) + 0.6f);
+    return position + offset + glm::vec3(0.0f, 0.0f, scale.z / 2.0f);
+}
+
+std::vector<glm::vec3> Hitbox::getBottomFacePoints() const {
+    const glm::vec3 center = getHitboxCenter();
+    const glm::vec3 shrunkHalfScale = getShrunkHalfScale();
+    const float bottomY = center.y - getHalfScale().y;
+
+    return createHorizontalFacePoints(center, shrunkHalfScale, bottomY);
+}
+
+std::vector<glm::vec3> Hitbox::getFrontFacePoints() const {
+    const glm::vec3 center = getHitboxCenter();
+    const glm::vec3 shrunkHalfScale = getShrunkHalfScale();
+    const float frontZ = center.z + getHalfScale().z;
+
+    return createVerticalFacePointsZ(center, shrunkHalfScale, frontZ);
+}
+
+std::vector<glm::vec3> Hitbox::getBackFacePoints() const {
+    const glm::vec3 center = getHitboxCenter();
+    const glm::vec3 shrunkHalfScale = getShrunkHalfScale();
+    const float backZ = center.z - getHalfScale().z;
+
+    return createVerticalFacePointsZ(center, shrunkHalfScale, backZ);
+}
+
+std::vector<glm::vec3> Hitbox::getLeftFacePoints() const {
+    const glm::vec3 center = getHitboxCenter();
+    const glm::vec3 shrunkHalfScale = getShrunkHalfScale();
+    const float leftX = center.x - getHalfScale().x;
+
+    return createVerticalFacePointsX(center, shrunkHalfScale, leftX);
+}
+
+std::vector<glm::vec3> Hitbox::getRightFacePoints() const {
+    const glm::vec3 center = getHitboxCenter();
+    const glm::vec3 shrunkHalfScale = getShrunkHalfScale();
+    const float rightX = center.x + getHalfScale().x;
+
+    return createVerticalFacePointsX(center, shrunkHalfScale, rightX);
+}
+
+std::vector<glm::vec3> Hitbox::getTopFacePoints() const {
+    const glm::vec3 center = getHitboxCenter();
+    const glm::vec3 shrunkHalfScale = getShrunkHalfScale();
+    const float topY = center.y + getHalfScale().y;
+
+    return createHorizontalFacePoints(center, shrunkHalfScale, topY);
+}
+
+glm::vec3 Hitbox::getMinBounds() const {
+    const glm::vec3 center = position + offset;
+    return center - scale / 2.0f;
+}
+
+glm::vec3 Hitbox::getMaxBounds() const {
+    const glm::vec3 center = position + offset;
+    return center + scale / 2.0f;
+}
+
+glm::vec3 Hitbox::getHitboxCenter() const { return position + offset; }
+
+glm::vec3 Hitbox::getHalfScale() const { return scale * 0.5f; }
+
+glm::vec3 Hitbox::getShrunkHalfScale() const {
+    return getHalfScale() * COLLISION_POINT_SHRINK_FACTOR;
+}
+
+std::vector<glm::vec3> Hitbox::createHorizontalFacePoints(
+    const glm::vec3& center, const glm::vec3& shrunkHalfScale,
+    float fixedY) const {
+    const glm::vec3 backLeft{center.x - shrunkHalfScale.x, fixedY,
+                             center.z - shrunkHalfScale.z};
+    const glm::vec3 backRight{center.x + shrunkHalfScale.x, fixedY,
+                              center.z - shrunkHalfScale.z};
+    const glm::vec3 frontLeft{center.x - shrunkHalfScale.x, fixedY,
+                              center.z + shrunkHalfScale.z};
+    const glm::vec3 frontRight{center.x + shrunkHalfScale.x, fixedY,
+                               center.z + shrunkHalfScale.z};
+    const glm::vec3 centerPoint{center.x, fixedY, center.z};
+
+    return {backLeft, backRight, frontLeft, frontRight, centerPoint};
+}
+
+std::vector<glm::vec3> Hitbox::createVerticalFacePointsZ(
+    const glm::vec3& center, const glm::vec3& shrunkHalfScale,
+    float fixedZ) const {
+    const glm::vec3 bottomLeft{center.x - shrunkHalfScale.x,
+                               center.y - shrunkHalfScale.y, fixedZ};
+    const glm::vec3 bottomRight{center.x + shrunkHalfScale.x,
+                                center.y - shrunkHalfScale.y, fixedZ};
+    const glm::vec3 topLeft{center.x - shrunkHalfScale.x,
+                            center.y + shrunkHalfScale.y, fixedZ};
+    const glm::vec3 topRight{center.x + shrunkHalfScale.x,
+                             center.y + shrunkHalfScale.y, fixedZ};
+    const glm::vec3 centerPoint{center.x, center.y, fixedZ};
+
+    return {bottomLeft, bottomRight, topLeft, topRight, centerPoint};
+}
+
+std::vector<glm::vec3> Hitbox::createVerticalFacePointsX(
+    const glm::vec3& center, const glm::vec3& shrunkHalfScale,
+    float fixedX) const {
+    const glm::vec3 bottomBack{fixedX, center.y - shrunkHalfScale.y,
+                               center.z - shrunkHalfScale.z};
+    const glm::vec3 bottomFront{fixedX, center.y - shrunkHalfScale.y,
+                                center.z + shrunkHalfScale.z};
+    const glm::vec3 topBack{fixedX, center.y + shrunkHalfScale.y,
+                            center.z - shrunkHalfScale.z};
+    const glm::vec3 topFront{fixedX, center.y + shrunkHalfScale.y,
+                             center.z + shrunkHalfScale.z};
+    const glm::vec3 centerPoint{fixedX, center.y, center.z};
+
+    return {bottomBack, bottomFront, topBack, topFront, centerPoint};
 }

@@ -46,8 +46,8 @@ struct PositionXYZHash {
 
 bool isPositionWithinBounds(const glm::ivec3& pos, int boundary);
 bool isChunkWithinWindow(const ChunkCoord& coord, const ChunkWindow& window);
-ChunkCoord fromWorldPosition(const glm::vec3& position);
-glm::ivec3 toLocalPosition(const glm::vec3& position);
+ChunkCoord fromWorldPosition(const glm::ivec3& position);
+glm::ivec3 toLocalPosition(const glm::ivec3& position);
 
 namespace Coord {
 using CpuChunksMap =

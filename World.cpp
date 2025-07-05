@@ -292,7 +292,7 @@ void World::notifyNeighborChunks(const ChunkCoord& centerCoord) {
     }
 }
 
-CubeType World::getCubeTypeAtPosition(const glm::vec3& position) const {
+CubeType World::getCubeTypeAtPosition(const glm::ivec3& position) const {
     const auto chunkCoord = fromWorldPosition(position);
     const auto chunk = getChunk(chunkCoord);
     if (chunk) {

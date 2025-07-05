@@ -31,7 +31,7 @@ class World {
     void performFrustumCulling(const Frustum& frustum);
     void renderByType(Shader& shader, CubeType type);
     RenderableChunk* getChunk(const ChunkCoord& coord) const;
-    CubeType getCubeTypeAtPosition(const glm::vec3& position) const;
+    CubeType getCubeTypeAtPosition(const glm::ivec3& position) const;
 
    private:
     VoxelTypes::NeighborVoxelsMap gatherEdgeVoxelsFor(

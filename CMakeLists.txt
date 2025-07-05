@@ -80,7 +80,8 @@ add_executable(
         Entity.cpp
         BodyPart.cpp
         VertexDataBuilder.cpp
-        Hitbox.cpp)
+        Hitbox.cpp
+        PhysicsComponent.cpp)
 target_link_libraries(PioterCraft ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory
