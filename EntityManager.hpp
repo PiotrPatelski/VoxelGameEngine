@@ -3,10 +3,12 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+#include <mutex>
 #include <glm/glm.hpp>
 #include "Entity.hpp"
 #include "Camera.hpp"
 #include "World.hpp"
+#include "ThreadPool.hpp"
 
 using EntityID = uint32_t;
 
@@ -26,6 +28,12 @@ class EntityManager {
    private:
     std::unordered_map<EntityID, std::unique_ptr<Entity>> entities;
     EntityID nextEntityID{1};
+
+    std::unique_ptr<ThreadPool> physicsPool{nullptr};
+    std::mutex entitiesMutex;
+
+    void updatePhysicsAsync(const World& world, const Camera& camera);
+    void updateRenderingSync(const Camera& camera);
 
     bool isEntityInRenderRange(const Entity& entity,
                                const Camera& camera) const;

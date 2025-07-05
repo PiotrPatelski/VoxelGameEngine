@@ -1,12 +1,16 @@
 #include "EntityManager.hpp"
 #include <cmath>
 #include <iostream>
+#include <thread>
 
 namespace {
 static constexpr float DEFAULT_RENDER_DISTANCE{100.0f};
 static constexpr float DEFAULT_UPDATE_DISTANCE{150.0f};
 } // namespace
-EntityManager::EntityManager() {
+
+EntityManager::EntityManager()
+    : physicsPool(std::make_unique<ThreadPool>(
+          std::thread::hardware_concurrency() - 1)) {
     std::cout << "EntityManager::Init!" << std::endl;
 }
 
@@ -23,15 +27,35 @@ EntityID EntityManager::createEntity(const glm::vec3& position) {
 }
 
 void EntityManager::update(const World& world, const Camera& camera) {
+    updatePhysicsAsync(world, camera);
+    updateRenderingSync(camera);
+}
+
+void EntityManager::updatePhysicsAsync(const World& world,
+                                       const Camera& camera) {
+    std::lock_guard<std::mutex> lock(entitiesMutex);
     for (auto& [_, entity] : entities) {
         if (isEntityInUpdateRange(*entity, camera)) {
-            entity->update(camera.getViewMatrix(), camera.getProjectionMatrix(),
-                           world);
+            physicsPool->enqueue(
+                [&entity, &world]() { entity->updatePhysics(world); });
+        }
+    }
+
+    physicsPool->waitForAll();
+}
+
+void EntityManager::updateRenderingSync(const Camera& camera) {
+    std::lock_guard<std::mutex> lock(entitiesMutex);
+    for (auto& [_, entity] : entities) {
+        if (isEntityInUpdateRange(*entity, camera)) {
+            entity->updateRendering(camera.getViewMatrix(),
+                                    camera.getProjectionMatrix());
         }
     }
 }
 
 void EntityManager::render(const Camera& camera) {
+    std::lock_guard<std::mutex> lock(entitiesMutex);
     for (auto& [_, entity] : entities) {
         if (isEntityInRenderRange(*entity, camera)) {
             entity->render();

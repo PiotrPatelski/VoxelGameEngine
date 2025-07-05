@@ -18,8 +18,8 @@ class Entity {
     ~Entity();
 
     void render();
-    void update(const glm::mat4& view, const glm::mat4& projection,
-                const World& world);
+    void updatePhysics(const World& world);
+    void updateRendering(const glm::mat4& view, const glm::mat4& projection);
 
     glm::vec3 getPosition() const { return physicsComponent->getPosition(); }
     void setPosition(const glm::vec3& position);

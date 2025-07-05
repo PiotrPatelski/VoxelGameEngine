@@ -88,11 +88,14 @@ void Entity::updateFallingMovement(const World& world) {
     }
 }
 
-void Entity::update(const glm::mat4& view, const glm::mat4& projection,
-                    const World& world) {
+void Entity::updatePhysics(const World& world) {
     updateFallingMovement(world);
     updateDirection();
     moveForward(world);
+}
+
+void Entity::updateRendering(const glm::mat4& view,
+                             const glm::mat4& projection) {
     updateShaders(view, projection);
     updateMoveAnimation();
 }
