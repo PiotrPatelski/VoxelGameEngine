@@ -41,52 +41,46 @@ if(CLANG_FORMAT)
     # Define the target that formats all C++ source files
     add_custom_target(
         clang_format ALL
-        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.hpp
-        # Include all subdirectories you want to format
-        # COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/shaders/*.fs ${PROJECT_SOURCE_DIR}/shaders/*.vs
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/main.cpp
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/core/src/*.cpp ${PROJECT_SOURCE_DIR}/core/inc/*.hpp
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/world/src/*.cpp ${PROJECT_SOURCE_DIR}/world/inc/*.hpp
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/entities/src/*.cpp ${PROJECT_SOURCE_DIR}/entities/inc/*.hpp
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/physics/src/*.cpp ${PROJECT_SOURCE_DIR}/physics/inc/*.hpp
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/rendering/src/*.cpp ${PROJECT_SOURCE_DIR}/rendering/inc/*.hpp
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/ui/src/*.cpp ${PROJECT_SOURCE_DIR}/ui/inc/*.hpp
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/water/src/*.cpp ${PROJECT_SOURCE_DIR}/water/inc/*.hpp
+        COMMAND ${CLANG_FORMAT} -i ${PROJECT_SOURCE_DIR}/utils/src/*.cpp ${PROJECT_SOURCE_DIR}/utils/inc/*.hpp
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         COMMENT "Running clang-format on source files"
     )
 endif()
 
-add_executable(
-        PioterCraft
-        main.cpp 
-        App.cpp 
-        Clock.cpp 
-        Renderer.cpp 
-        FontManager.cpp 
-        TextureManager.cpp 
-        Shader.cpp 
-        Camera.cpp 
-        Frustum.cpp
-        GridGenerator.cpp
-        World.cpp 
-        ChunkVoxels.cpp
-        ChunkGraphics.cpp
-        CpuChunk.cpp
-        RenderableChunk.cpp 
-        Cube.cpp
-        ChunkCoord.cpp
-        TreeGenerator.cpp
-        Raycaster.cpp
-        Material.cpp
-        ChunkLoader.cpp
-        ChunkUpdater.cpp
-        StatusTextRenderer.cpp
-        Crosshair.cpp
-        LightPropagator.cpp
-        NeighborCubesGatherer.cpp
-        Entity.cpp
-        BodyPart.cpp
-        VertexDataBuilder.cpp
-        Hitbox.cpp
-        PhysicsComponent.cpp
-        CollisionDetector.cpp
-        EntityManager.cpp
-        ThreadPool.cpp
-        WaterMeshBuilder.cpp
-        RenderableWaterMesh.cpp)
+# Create the main executable
+add_executable(PioterCraft main.cpp)
+
+# Add all module include directories to the global include path
+target_include_directories(PioterCraft PRIVATE 
+    ${PROJECT_SOURCE_DIR}/core/inc
+    ${PROJECT_SOURCE_DIR}/world/inc
+    ${PROJECT_SOURCE_DIR}/entities/inc
+    ${PROJECT_SOURCE_DIR}/physics/inc
+    ${PROJECT_SOURCE_DIR}/rendering/inc
+    ${PROJECT_SOURCE_DIR}/ui/inc
+    ${PROJECT_SOURCE_DIR}/water/inc
+    ${PROJECT_SOURCE_DIR}/utils/inc
+)
+
+# Include all module directories
+add_subdirectory(core)
+add_subdirectory(world)
+add_subdirectory(entities)
+add_subdirectory(physics)
+add_subdirectory(rendering)
+add_subdirectory(ui)
+add_subdirectory(water)
+add_subdirectory(utils)
+
+# Link libraries
 target_link_libraries(PioterCraft ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} OpenGL::GL glfw glad -lGL)
 
 # Copy shader files to the build directory
