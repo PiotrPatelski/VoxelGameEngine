@@ -70,6 +70,11 @@ App::App() : camera{std::make_unique<Camera>(SCR_WIDTH, SCR_HEIGHT)} {
         App* app = static_cast<App*>(glfwGetWindowUserPointer(targetWindow));
         app->mouse_button_callback(targetWindow, button, action, mods);
     });
+    glfwSetWindowFocusCallback(window, [](GLFWwindow* targetWindow,
+                                          int focused) {
+        App* app = static_cast<App*>(glfwGetWindowUserPointer(targetWindow));
+        app->window_focus_callback(targetWindow, focused);
+    });
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -167,6 +172,14 @@ void App::mouse_button_callback([[maybe_unused]] GLFWwindow* targetWindow,
     } else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         result = gameWorld->removeCubeFromRaycast(*camera, 5.0f);
         if (result) printf("Cube removed via raycast.\n");
+    }
+}
+
+void App::window_focus_callback([[maybe_unused]] GLFWwindow* targetWindow,
+                                int focused) {
+    if (focused) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        firstMouse = true;
     }
 }
 
