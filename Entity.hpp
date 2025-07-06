@@ -19,7 +19,7 @@ class Entity {
 
     void render();
     void updatePhysics(const World& world);
-    void updateRendering(const glm::mat4& view, const glm::mat4& projection);
+    void updateRendering(const Camera& camera);
 
     glm::vec3 getPosition() const { return physicsComponent->getPosition(); }
     void setPosition(const glm::vec3& position);
@@ -29,7 +29,7 @@ class Entity {
    private:
     void createLimbs();
     void updateFallingMovement(const World& world);
-    void updateShaders(const glm::mat4& view, const glm::mat4& projection);
+    void updateShaders(const Camera& camera);
     void updateMoveAnimation();
     void updateDirection();
     void applyAnimationTransforms(float currentAnimationAngle,

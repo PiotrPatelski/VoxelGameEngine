@@ -8,6 +8,9 @@
 #include "TreeGenerator.hpp"
 #include "CubeData.hpp"
 #include "VoxelTypes.hpp"
+#include "RenderableWaterMesh.hpp"
+#include "CpuWaterMesh.hpp"
+#include "WaterMeshBuilder.hpp"
 
 class ChunkVoxels {
    public:
@@ -37,6 +40,11 @@ class ChunkVoxels {
     void clearNeighborsSurroundingCubes();
     void storeCubes(std::vector<std::unique_ptr<Cube>>&& newCubes);
 
+    const std::vector<CpuWaterMesh>& getWaterMeshData() const {
+        return waterMeshData;
+    }
+    void buildWaterMeshData();
+
    private:
     using CubeCreator = std::function<void(const glm::ivec3&, CubeType)>;
 
@@ -46,6 +54,11 @@ class ChunkVoxels {
                           const CubeCreator& action);
     void regenerateChunk(const CubeCreator& action);
     void rebuildCubesFromGrid();
+
+    void placeWaterBlocks();
+    glm::vec2 computeChunkWorldPosition() const;
+    void storeValidWaterSurfaces(
+        const std::vector<WaterMeshBuilder::WaterSurface>& surfaces);
 
     int size{0};
     int chunkWorldXIndex{0};
@@ -58,6 +71,8 @@ class ChunkVoxels {
         instanceModelMatrices{};
     std::vector<glm::ivec3> torchPositions{};
     VoxelTypes::NeighborVoxelsMap neighborsSurroundingCubes{};
+
+    std::vector<CpuWaterMesh> waterMeshData{};
 
     bool modified{true};
     mutable std::mutex voxelMutex;

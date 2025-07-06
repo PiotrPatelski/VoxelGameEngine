@@ -1,5 +1,6 @@
 #include "CollisionDetector.hpp"
 #include "SteveData.hpp"
+#include "WaterSystem.hpp"
 #include <cmath>
 
 namespace {
@@ -13,6 +14,10 @@ constexpr float MOVEMENT_THRESHOLD{0.001f};
 constexpr float STEP_CHECK_HEIGHT{1.1f};
 constexpr float STEP_CLEARANCE{0.01f};
 constexpr float MAX_STEP_HEIGHT{1.1f};
+
+bool isSolidForCollision(CubeType type) {
+    return type != CubeType::NONE and not WaterSystem::isWater(type);
+}
 
 bool isStepHeightReasonable(float requiredStepHeight) {
     return (requiredStepHeight <= MAX_STEP_HEIGHT);
@@ -41,7 +46,7 @@ std::optional<float> CollisionDetector::getDistanceToGround(
                                   y,
                                   static_cast<int>(std::floor(hitboxCenter.z))};
 
-        if (world.getCubeTypeAtPosition(checkPos) != CubeType::NONE) {
+        if (isSolidForCollision(world.getCubeTypeAtPosition(checkPos))) {
             const float groundSurfaceY{y + 1.0f};
             return hitboxBottom - groundSurfaceY;
         }
@@ -56,7 +61,7 @@ bool CollisionDetector::checkCollisionAtPoints(
         const glm::ivec3 checkPos{static_cast<int>(std::floor(point.x)),
                                   static_cast<int>(std::floor(point.y)),
                                   static_cast<int>(std::floor(point.z))};
-        if (world.getCubeTypeAtPosition(checkPos) != CubeType::NONE) {
+        if (isSolidForCollision(world.getCubeTypeAtPosition(checkPos))) {
             return true;
         }
     }
@@ -66,15 +71,15 @@ bool CollisionDetector::checkCollisionAtPoints(
 bool CollisionDetector::checkGroundCollision(const World& world,
                                              const glm::vec3& position) const {
     hitbox->setPosition(position);
-    bool result = checkCollisionAtPoints(world, hitbox->getBottomFacePoints());
-    return result;
+    return checkCollisionAtPoints(world, hitbox->getBottomFacePoints());
+    ;
 }
 
 bool CollisionDetector::checkCeilingCollision(const World& world,
                                               const glm::vec3& position) const {
     hitbox->setPosition(position);
-    bool result = checkCollisionAtPoints(world, hitbox->getTopFacePoints());
-    return result;
+    return checkCollisionAtPoints(world, hitbox->getTopFacePoints());
+    ;
 }
 
 std::vector<glm::vec3> CollisionDetector::getCollisionPoints(
@@ -106,7 +111,7 @@ std::optional<glm::ivec3> CollisionDetector::isObstacleAt(
             static_cast<int>(std::floor(frontPosition.z)));
 
         const auto cubeType = world.getCubeTypeAtPosition(checkPos);
-        if (cubeType != CubeType::NONE) {
+        if (isSolidForCollision(cubeType)) {
             return checkPos;
         }
     }
@@ -135,7 +140,7 @@ bool CollisionDetector::hasObstacleGroundSupport(
         static_cast<int>(std::floor(frontPosition.z)));
     const auto groundCubeType = world.getCubeTypeAtPosition(groundCheckPos);
 
-    return (groundCubeType != CubeType::NONE);
+    return isSolidForCollision(groundCubeType);
 }
 
 bool CollisionDetector::hasCurrentGroundSupport(
@@ -149,7 +154,7 @@ bool CollisionDetector::hasCurrentGroundSupport(
     const auto currentGroundType =
         world.getCubeTypeAtPosition(currentGroundPos);
 
-    return (currentGroundType != CubeType::NONE);
+    return isSolidForCollision(currentGroundType);
 }
 
 bool CollisionDetector::hasValidGroundSupport(const World& world,
@@ -210,7 +215,7 @@ bool CollisionDetector::isColliding(const World& world,
                               static_cast<int>(std::floor(point.z)));
 
     const auto cubeType = world.getCubeTypeAtPosition(checkPos);
-    if (cubeType != CubeType::NONE) {
+    if (isSolidForCollision(cubeType)) {
         return true;
     }
     return false;
@@ -269,7 +274,7 @@ glm::vec3 CollisionDetector::tryHorizontalMovement(
 
     const auto cubeType = world.getCubeTypeAtPosition(frontCheckPos);
 
-    if (cubeType != CubeType::NONE) {
+    if (isSolidForCollision(cubeType)) {
         const auto stepUpHeight =
             getStepUpHeight(world, position, horizontalDirection);
         if (stepUpHeight.has_value()) {
@@ -319,7 +324,7 @@ std::optional<float> CollisionDetector::findGroundSurfaceForSnapping(
                                   static_cast<int>(std::floor(center.z)));
 
         const auto cubeType = world.getCubeTypeAtPosition(checkPos);
-        if (cubeType != CubeType::NONE) {
+        if (isSolidForCollision(cubeType)) {
             return static_cast<float>(y + 1);
         }
     }

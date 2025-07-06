@@ -94,9 +94,8 @@ void Entity::updatePhysics(const World& world) {
     moveForward(world);
 }
 
-void Entity::updateRendering(const glm::mat4& view,
-                             const glm::mat4& projection) {
-    updateShaders(view, projection);
+void Entity::updateRendering(const Camera& camera) {
+    updateShaders(camera);
     updateMoveAnimation();
 }
 
@@ -110,13 +109,15 @@ void Entity::updateDirection() {
     }
 }
 
-void Entity::updateShaders(const glm::mat4& view, const glm::mat4& projection) {
+void Entity::updateShaders(const Camera& camera) {
+    const auto view = camera.getViewMatrix();
+    const auto projection = camera.getProjectionMatrix();
     shader->use();
     shader->setMat4("view", view);
     shader->setMat4("projection", projection);
     shader->setVec3("underwaterTint", glm::vec3(0.0f, 0.3f, 0.5f));
-    shader->setFloat("underwaterMix", 0.5f);
-    shader->setFloat("waterLevelY", 14.0f);
+    shader->setFloat("underwaterMix", camera.isUnderwater() ? 0.5f : 0.0f);
+    shader->setBool("isUnderwater", camera.isUnderwater());
     hitbox->updateShaders(view, projection);
 }
 

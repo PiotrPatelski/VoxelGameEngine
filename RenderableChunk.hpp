@@ -5,6 +5,7 @@
 #include "CubeData.hpp"
 #include "Frustum.hpp"
 #include "VoxelTypes.hpp"
+#include "RenderableWaterMesh.hpp"
 
 class CpuChunk;
 
@@ -31,11 +32,14 @@ class RenderableChunk {
     glm::vec3 getChunkCenter() const;
     CubeData computeCubeData();
     void applyCubeData(CubeData&& data);
+    void createWaterMeshes();
     void renderByType(Shader& shader, CubeType type);
+    void renderWaterMeshes(Shader& shader);
     void performFrustumCulling(const Frustum& frustum);
 
    private:
     ChunkVoxels voxels;
     ChunkGraphics graphics;
+    std::vector<RenderableWaterMesh> waterMeshes{};
     bool isCulled{false};
 };

@@ -48,8 +48,7 @@ void EntityManager::updateRenderingSync(const Camera& camera) {
     std::lock_guard<std::mutex> lock(entitiesMutex);
     for (auto& [_, entity] : entities) {
         if (isEntityInUpdateRange(*entity, camera)) {
-            entity->updateRendering(camera.getViewMatrix(),
-                                    camera.getProjectionMatrix());
+            entity->updateRendering(camera);
         }
     }
 }

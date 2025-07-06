@@ -25,6 +25,7 @@ class Renderer {
 
    private:
     void applyCubeShaderInitialConfig();
+    void applyWaterShaderInitialConfig();
     void setupDirectionalLightConfig();
     void setupWaterTintConfig();
     void updateWaterShaderParams(const Camera& camera);
@@ -39,6 +40,7 @@ class Renderer {
     float screenHeight{0};
 
     std::unique_ptr<Shader> cubeShader{nullptr};
+    std::unique_ptr<Shader> waterShader{nullptr};
     std::unique_ptr<Shader> lightCubeShader{nullptr};
     std::unique_ptr<Shader> crosshairShader{nullptr};
     std::unique_ptr<Crosshair> crosshair{nullptr};

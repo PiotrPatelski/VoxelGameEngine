@@ -2,7 +2,17 @@
 #include <vector>
 #include <glm/gtc/matrix_transform.hpp>
 
-enum class CubeType { NONE, SAND, DIRT, GRASS, WATER, LOG, LEAVES, TORCH };
+enum class CubeType {
+    NONE,
+    SAND,
+    DIRT,
+    GRASS,
+    WATER_SOURCE,  // Static infinite water
+    WATER_FLOWING, // For future flowing water
+    LOG,
+    LEAVES,
+    TORCH
+};
 
 class Cube {
    public:

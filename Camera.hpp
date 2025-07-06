@@ -30,6 +30,7 @@ class Camera {
     inline glm::vec3 getFront() const { return frontVec; }
     inline glm::vec3 getUp() const { return upVec; }
     inline glm::vec3 getRight() const { return frontVec; }
+    inline bool isUnderwater() const { return position.y < 14.5f; }
 
     void processKeyboard(Camera_Movement direction, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset,

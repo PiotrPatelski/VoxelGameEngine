@@ -30,6 +30,7 @@ class World {
     void updateLoadedChunks();
     void performFrustumCulling(const Frustum& frustum);
     void renderByType(Shader& shader, CubeType type);
+    void renderWaterMeshes(Shader& shader);
     RenderableChunk* getChunk(const ChunkCoord& coord) const;
     CubeType getCubeTypeAtPosition(const glm::ivec3& position) const;
 

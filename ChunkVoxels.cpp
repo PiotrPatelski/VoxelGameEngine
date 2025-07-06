@@ -1,27 +1,66 @@
 #include "ChunkVoxels.hpp"
 #include "VertexData.hpp"
 #include "LightPropagator.hpp"
+#include "WaterSystem.hpp"
+#include "WaterMeshBuilder.hpp"
+#include "ChunkCoord.hpp"
 #include <array>
 #include <queue>
+#include <iostream>
 #include "VoxelTypes.hpp"
 
 namespace {
 constexpr int WATER_HEIGHT{14};
-bool isCubeExposed(const VoxelTypes::VoxelGrid3D& grid, const glm::ivec3& pos) {
-    const auto chunkSize = static_cast<int>(grid.size());
+
+bool isWaterFaceExposed(const VoxelTypes::VoxelGrid3D& grid,
+                        const glm::ivec3& pos, CubeType currentType) {
+    const int chunkSize = static_cast<int>(grid.size());
+
     for (const auto& offset : NEIGHBOR_OFFSETS) {
         glm::ivec3 neighbor = pos + offset;
-        // If neighbor is out of bounds, we consider the cube exposed.
+
         if (not isPositionWithinBounds(neighbor, chunkSize)) {
             return true;
         }
-        // If neighbor cell is false (i.e. no cube present), then current cube
-        // is exposed.
-        if (grid[neighbor.x][neighbor.z][neighbor.y] == CubeType::NONE) {
+
+        const CubeType neighborType = grid[neighbor.x][neighbor.z][neighbor.y];
+
+        if (WaterSystem::shouldRenderWaterFace(currentType, neighborType)) {
             return true;
         }
     }
     return false;
+}
+
+bool isSolidFaceExposed(const VoxelTypes::VoxelGrid3D& grid,
+                        const glm::ivec3& pos) {
+    const int chunkSize = static_cast<int>(grid.size());
+
+    for (const auto& offset : NEIGHBOR_OFFSETS) {
+        glm::ivec3 neighbor = pos + offset;
+
+        if (not isPositionWithinBounds(neighbor, chunkSize)) {
+            return true;
+        }
+
+        const CubeType neighborType = grid[neighbor.x][neighbor.z][neighbor.y];
+
+        if (neighborType == CubeType::NONE or
+            WaterSystem::isWater(neighborType)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isCubeExposed(const VoxelTypes::VoxelGrid3D& grid, const glm::ivec3& pos) {
+    const CubeType currentType = grid[pos.x][pos.z][pos.y];
+
+    if (WaterSystem::isWater(currentType)) {
+        return isWaterFaceExposed(grid, pos, currentType);
+    } else {
+        return isSolidFaceExposed(grid, pos);
+    }
 }
 } // namespace
 
@@ -43,6 +82,7 @@ ChunkVoxels::ChunkVoxels(ChunkVoxels&& other) noexcept
       cubes(std::move(other.cubes)),
       instanceModelMatrices(std::move(other.instanceModelMatrices)),
       torchPositions(std::move(other.torchPositions)),
+      waterMeshData(std::move(other.waterMeshData)),
       modified(other.modified) {}
 
 ChunkVoxels& ChunkVoxels::operator=(ChunkVoxels&& other) noexcept {
@@ -56,6 +96,7 @@ ChunkVoxels& ChunkVoxels::operator=(ChunkVoxels&& other) noexcept {
         cubes = std::move(other.cubes);
         instanceModelMatrices = std::move(other.instanceModelMatrices);
         torchPositions = std::move(other.torchPositions);
+        waterMeshData = std::move(other.waterMeshData);
         modified = other.modified;
     }
     return *this;
@@ -181,10 +222,10 @@ void ChunkVoxels::processVoxelGrid(float firstCubeXWorldPosition,
                                         firstCubeZWorldPosition + z);
                 auto cubeType = voxelGrid[x][z][y];
                 if (cubeType != CubeType::NONE and
+                    cubeType != CubeType::WATER_SOURCE and
+                    cubeType != CubeType::WATER_FLOWING and
                     isCubeExposed(voxelGrid, {x, y, z})) {
                     createCube(worldCubePos, cubeType);
-                } else if (y == WATER_HEIGHT) {
-                    createCube(worldCubePos, CubeType::WATER);
                 }
             }
 }
@@ -194,8 +235,11 @@ void ChunkVoxels::regenerateChunk(const CubeCreator& createCube) {
         static_cast<float>(chunkWorldXIndex * size);
     const auto firstCubeZWorldPosition =
         static_cast<float>(chunkWorldZIndex * size);
+
     processVoxelGrid(firstCubeXWorldPosition, firstCubeZWorldPosition,
                      createCube);
+
+    buildWaterMeshData();
 
     treeGenerator.generateTrees(voxelGrid);
     treeGenerator.reapplyTrunks(firstCubeXWorldPosition,
@@ -210,4 +254,43 @@ void ChunkVoxels::rebuildCubesFromGrid() {
     regenerateChunk([this](const glm::ivec3& worldCubePos, CubeType cubeType) {
         createCube(worldCubePos, cubeType);
     });
+}
+
+void ChunkVoxels::buildWaterMeshData() {
+    waterMeshData.clear();
+    placeWaterBlocks();
+
+    WaterMeshBuilder meshBuilder;
+    const auto worldPos = computeChunkWorldPosition();
+
+    auto waterSurfaces =
+        meshBuilder.buildWaterSurfaces(voxelGrid, worldPos.x, worldPos.y);
+    storeValidWaterSurfaces(waterSurfaces);
+}
+
+void ChunkVoxels::placeWaterBlocks() {
+    for (int x = 0; x < size; ++x) {
+        for (int z = 0; z < size; ++z) {
+            if (voxelGrid[x][z][WATER_HEIGHT] == CubeType::NONE) {
+                voxelGrid[x][z][WATER_HEIGHT] = CubeType::WATER_SOURCE;
+            }
+        }
+    }
+}
+
+glm::vec2 ChunkVoxels::computeChunkWorldPosition() const {
+    const auto worldX = static_cast<float>(chunkWorldXIndex * size);
+    const auto worldZ = static_cast<float>(chunkWorldZIndex * size);
+    return {worldX, worldZ};
+}
+
+void ChunkVoxels::storeValidWaterSurfaces(
+    const std::vector<WaterMeshBuilder::WaterSurface>& surfaces) {
+    waterMeshData.reserve(surfaces.size());
+    for (const auto& surface : surfaces) {
+        if (not surface.vertices.empty()) {
+            waterMeshData.emplace_back(surface.vertices, surface.indices,
+                                       surface.waterType, surface.center);
+        }
+    }
 }

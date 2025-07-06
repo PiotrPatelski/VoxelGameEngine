@@ -1,4 +1,5 @@
 #include "ChunkGraphics.hpp"
+#include "WaterSystem.hpp"
 #include "VertexData.hpp"
 #include <array>
 
@@ -23,9 +24,9 @@ void initNormalVertexAttributes(unsigned int stride) {
 } // namespace
 
 void ChunkGraphics::generateInstanceBuffersForCubeTypes() {
-    const std::array<CubeType, 7> types{
-        CubeType::SAND, CubeType::DIRT,   CubeType::GRASS, CubeType::WATER,
-        CubeType::LOG,  CubeType::LEAVES, CubeType::TORCH};
+    const std::array<CubeType, 6> types{CubeType::SAND,   CubeType::DIRT,
+                                        CubeType::GRASS,  CubeType::LOG,
+                                        CubeType::LEAVES, CubeType::TORCH};
     for (auto type : types) {
         unsigned cubeId{};
         unsigned lightSourceId{};
@@ -117,7 +118,7 @@ void ChunkGraphics::bindInstanceAttributesForType(CubeType cubeType) const {
 }
 
 void ChunkGraphics::drawElements(CubeType cubeType, unsigned amt) const {
-    if (cubeType == CubeType::WATER) {
+    if (WaterSystem::isWater(cubeType)) {
         glDepthMask(GL_FALSE);
         glDisable(GL_CULL_FACE);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, waterEBO);

@@ -5,14 +5,13 @@ in vec3 fragPos;
 out vec4 FragColor;
 
 uniform sampler2D entityTexture;
-uniform float waterLevelY;
 uniform vec3 underwaterTint;
 uniform float underwaterMix;
+uniform bool isUnderwater;
 
 void main() {
     vec3 baseColor = texture(entityTexture, TexCoord).rgb;
-    bool isUnderwaterFragment = fragPos.y < waterLevelY + 0.5;
-    if (isUnderwaterFragment) {
+    if (isUnderwater) {
         baseColor = mix(baseColor, underwaterTint, underwaterMix);
     }
     FragColor = vec4(baseColor, 1.0);

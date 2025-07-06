@@ -117,7 +117,8 @@ Materials::Materials() {
     materials[CubeType::SAND] = createSandMaterial();
     materials[CubeType::DIRT] = createDirtMaterial();
     materials[CubeType::GRASS] = createGrassMaterial();
-    materials[CubeType::WATER] = createWaterMaterial();
+    materials[CubeType::WATER_SOURCE] = createWaterMaterial();
+    materials[CubeType::WATER_FLOWING] = createWaterMaterial();
     materials[CubeType::LOG] = createLogMaterial();
     materials[CubeType::LEAVES] = createLeavesMaterial();
     materials[CubeType::TORCH] = createTorchMaterial();

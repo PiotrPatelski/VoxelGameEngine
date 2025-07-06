@@ -7,6 +7,8 @@ RenderableChunk::RenderableChunk(ChunkVoxels&& voxelsData, unsigned sharedVBO,
     : voxels(std::move(voxelsData)) {
     graphics.initializeGL(sharedVBO, sharedCubeEBO, sharedWaterEBO,
                           voxels.getSize());
+
+    createWaterMeshes();
 }
 
 bool RenderableChunk::addCube(const glm::ivec3& position, CubeType type) {
@@ -59,6 +61,18 @@ void RenderableChunk::applyCubeData(CubeData&& data) {
     graphics.updateInstanceData(data.instanceModelMatrices);
     graphics.updateLightVolume(data.lightVolume, voxels.getSize());
     voxels.setModified(false);
+    createWaterMeshes();
+}
+
+void RenderableChunk::createWaterMeshes() {
+    waterMeshes.clear();
+    const auto& waterMeshData = voxels.getWaterMeshData();
+    waterMeshes.reserve(waterMeshData.size());
+    for (const auto& data : waterMeshData) {
+        if (not data.isEmpty()) {
+            waterMeshes.emplace_back(data);
+        }
+    }
 }
 
 void RenderableChunk::renderByType(Shader& shader, CubeType type) {
@@ -66,6 +80,18 @@ void RenderableChunk::renderByType(Shader& shader, CubeType type) {
         shader.setVec3("chunkOrigin", voxels.getChunkOrigin());
         shader.setFloat("chunkSize", float(voxels.getSize()));
         graphics.renderByType(type);
+    }
+}
+
+void RenderableChunk::renderWaterMeshes(Shader& shader) {
+    if (not isCulled) {
+        shader.setVec3("chunkOrigin", voxels.getChunkOrigin());
+        shader.setFloat("chunkSize", float(voxels.getSize()));
+        for (const auto& waterMesh : waterMeshes) {
+            if (not waterMesh.isEmpty()) {
+                waterMesh.render();
+            }
+        }
     }
 }
 

@@ -277,6 +277,20 @@ void World::renderByType(Shader& shader, CubeType type) {
     }
 }
 
+void World::renderWaterMeshes(Shader& shader) {
+    shader.use();
+    const auto maxRenderDistSq = 200.f * 200.f;
+    for (auto& [_, chunk] : loadedChunks) {
+        const auto chunkCenter = chunk->getChunkCenter();
+        const auto distSq = glm::dot(chunkCenter - cameraPosition,
+                                     chunkCenter - cameraPosition);
+        if (distSq > maxRenderDistSq) {
+            continue;
+        }
+        chunk->renderWaterMeshes(shader);
+    }
+}
+
 void World::notifyNeighborChunks(const ChunkCoord& centerCoord) {
     for (int offsetX = -1; offsetX <= 1; ++offsetX) {
         for (int offsetZ = -1; offsetZ <= 1; ++offsetZ) {
